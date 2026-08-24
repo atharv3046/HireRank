@@ -1,0 +1,19 @@
+Jane Doe
+jane.doe@email.com
+(555) 987-6543
+
+Objective
+Recent graduate seeking frontend developer position.
+
+Education
+Bachelor of Science in Computer Science
+State University, 2022
+
+Experience
+Junior Web Developer - WebAgency
+June 2022 - Present
+- Built React components for e-commerce websites
+- Implemented responsive designs using Tailwind CSS
+
+Skills
+JavaScript, TypeScript, React, Vue.js, HTML, CSS, Tailwind CSS, Git, REST API, Node.js

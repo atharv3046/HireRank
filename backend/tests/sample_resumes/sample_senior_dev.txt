@@ -1,0 +1,25 @@
+John Smith
+john.smith@email.com
++1 (555) 123-4567
+
+Summary
+Senior Python Developer with 8 years of experience building scalable web applications.
+
+Experience
+Senior Software Engineer - TechCorp Inc.
+Jan 2020 - Present
+- Led team of 5 engineers building microservices with Python, FastAPI, Docker, Kubernetes
+- Reduced API latency by 40% using Redis caching and PostgreSQL optimization
+
+Software Engineer - StartupXYZ
+March 2017 - December 2019
+- Built data pipelines using Python, Pandas, Apache Spark
+- Deployed ML models using TensorFlow and scikit-learn
+
+Skills
+Python, FastAPI, Django, PostgreSQL, Redis, Docker, Kubernetes, AWS, TensorFlow,
+scikit-learn, Pandas, NumPy, Git, Linux, REST API, Microservices
+
+Education
+Master of Science in Computer Science
+University of California, Berkeley - 2017

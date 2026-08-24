@@ -1,0 +1,25 @@
+Dr. Alice Johnson
+alice.j@datalab.com
++44 7700 900123
+
+Summary
+Data Scientist with PhD in Statistics and 5 years industry experience.
+
+Experience
+Lead Data Scientist - DataDriven Corp
+2021 - Present
+- Built recommendation systems using Python, scikit-learn, TensorFlow
+- Deployed models with MLflow and Docker
+
+Data Scientist - Analytics Inc
+2019 - 2021
+- Performed A/B testing and statistical analysis
+- Built dashboards using Plotly and Tableau
+
+Skills
+Python, R, Machine Learning, Deep Learning, TensorFlow, PyTorch, scikit-learn,
+Pandas, NumPy, SQL, PostgreSQL, Docker, MLflow, Statistics, Data Visualization
+
+Education
+PhD in Statistics - Oxford University, 2019
+Bachelor of Science in Mathematics - Cambridge University, 2014

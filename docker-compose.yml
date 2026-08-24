@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    environment:
+      POSTGRES_USER: resumeuser
+      POSTGRES_PASSWORD: resumepass
+      POSTGRES_DB: resumedb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
