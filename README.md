@@ -1,177 +1,147 @@
 ﻿<div align="center">
 
-<h1>HireRank — Smart Resume Screening & Candidate Ranking</h1>
+# ⚡ HireRank — AI Recruitment & Resume Screening Platform
 
-<strong>AI-powered recruitment platform that reads, understands, and ranks resumes — so you hire the best, faster.</strong>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/FastAPI.svg" height="45" alt="FastAPI" />
+  <img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/React-Dark.svg" height="45" alt="React" />
+  <img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/TypeScript.svg" height="45" alt="TypeScript" />
+  <img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/Python-Dark.svg" height="45" alt="Python" />
+  <img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/TailwindCSS-Dark.svg" height="45" alt="TailwindCSS" />
+  <img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/PostgreSQL-Dark.svg" height="45" alt="PostgreSQL" />
+</p>
 
-<br/><br/>
+**Autonomous, Explainable, Multi-Factor AI Candidate Ranking & NLP Screening Engine**
 
-[![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://typescriptlang.org)
-[![spaCy](https://img.shields.io/badge/spaCy-3.8-09A3D5?style=flat-square)](https://spacy.io)
-[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%20%7C%203.13-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React 18](https://img.shields.io/badge/React-18.3-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![spaCy](https://img.shields.io/badge/spaCy-3.8-09A3D5?style=for-the-badge&logo=spacy&logoColor=white)](https://spacy.io)
+[![HuggingFace Transformers](https://img.shields.io/badge/Sentence--Transformers-all--MiniLM--L6--v2-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
+
+[✨ Features](#-key-features) • [🔄 Architecture & Flowchart](#-system-architecture--flowchart) • [🚀 Quick Start](#-quick-start) • [📊 Scoring Algorithm](#-multi-factor-scoring-formula) • [📡 API Reference](#-api-endpoints)
 
 </div>
 
 ---
 
-## What Is HireRank?
+## 📌 Overview
 
-HireRank is a full-stack AI recruitment platform that eliminates manual resume screening. Upload PDF or DOCX resumes, define a job posting, and let the AI pipeline automatically:
-
-- **Parse** resumes using high-fidelity NLP extraction
-- **Understand** candidates semantically, not just keyword matching
-- **Score** every candidate on 4 objective factors
-- **Rank** them from best to least fit, with full score breakdowns
-
-> Try it instantly — the platform has a one-click Demo mode requiring zero signup.
+**HireRank** is an enterprise-grade AI resume screening and ranking platform designed to streamline talent acquisition. Instead of basic keyword scanning (which often rejects strong candidates), HireRank uses **spaCy NER entity extraction, rule-based date parsing, taxonomy-driven phrase matching, and Sentence-Transformer vector embeddings** (ll-MiniLM-L6-v2) to deeply understand candidates' trajectories and objectively rank them against job descriptions.
 
 ---
 
-## Features
+## ✨ Key Features
 
-| Feature | Details |
-|---|---|
-| Multi-Format Parsing | PDF (pdfplumber + pypdf fallback) and Microsoft Word (.docx) |
-| NLP Extraction | Name, email, phone via spaCy NER + regex; experience date range merging |
-| Skill Matching | 250+ skill taxonomy with alias normalization (K8s -> Kubernetes) |
-| Semantic Embeddings | all-MiniLM-L6-v2 (384-dim vectors) for deep contextual relevance |
-| Multi-Factor Ranking | Semantic (50%) + Skills (25%) + Experience (15%) + Education (10%) |
-| Async Processing | FastAPI BackgroundTasks — uploads return instantly, AI runs in background |
-| Live Status Polling | Dashboard auto-refreshes candidate status from processing to done |
-| Recruiter Dashboard | React + Tailwind UI with ranked tables, skill breakdowns, score bars |
-| JWT Authentication | Secure token-based auth with one-click demo access |
-| Docker Ready | PostgreSQL + pgvector + Redis stack for production deployment |
+- 📑 **Universal Resume Ingestion**: Supports .pdf (with pdfplumber + pypdf fallback) and .docx formats.
+- 🧠 **Dual NLP Extraction Pipeline**:
+  - **Entity Recognition (NER)**: Identifies candidate name and contact information.
+  - **Skills Taxonomy & Normalization**: 250+ canonical skills with automatic alias matching (e.g., K8s $\rightarrow$ Kubernetes, ReactJS $\rightarrow$ React).
+  - **Date Range Parsing & Overlap Merging**: Accurate career duration calculation preventing double-counting simultaneous positions.
+  - **Education Level Ordinal Hierarchy**: Prioritizes PhD $\rightarrow$ Master's $\rightarrow$ Bachelor's $\rightarrow$ Associate's.
+- 🔢 **Contextual Semantic Matching**: Transforms candidate experience and job descriptions into 384-dimensional dense vectors to calculate true cosine semantic similarity.
+- 📊 **Explainable 0–100 Multi-Factor Scoring**: Complete transparent breakdown of scores across Semantic fit, Skills match, Experience years, and Education level.
+- 🎨 **Modern TalentRank UI**:
+  - Sleek modern layout with responsive Sidebar navigation.
+  - Real-time animated Processing Queue with per-file progress indicators.
+  - Interactive Candidate slide-over drawer with **Candidate vs. Requirements** side-by-side comparison tables.
+  - Filterable by skill keywords and interactive minimum match score slider.
+- ⚡ **Asynchronous Background Processing**: High-throughput file uploads respond immediately while NLP pipeline executes in the background.
+- 🔑 **Stateless JWT Security**: Industry standard authentication with instant one-click recruiter demo access.
 
 ---
 
-## Architecture
+## 🔄 System Architecture & Flowchart
 
-`
-+------------------------------------------------------+
-|          React 18 + TypeScript + Vite                |
-|  Tailwind CSS · Heroicons · Axios (via proxy)        |
-|                                                      |
-|  LoginPage (Demo Button)                             |
-|  DashboardPage (Job Cards)                           |
-|  JobDetailPage (Ranked Candidates + Score Bars)      |
-|  UploadResumePage (Drag & Drop, Progress Bar)        |
-+---------------------+--------------------------------+
-                      | HTTP via Vite Proxy /api
-                      v
-+------------------------------------------------------+
-|           FastAPI + Uvicorn (Port 8000)              |
-|                                                      |
-|  /auth/login  /auth/signup  /auth/demo-login         |
-|  /jobs/  /jobs/{id}/upload                           |
-|  /candidates/{id}/status                            |
-|  /jobs/{id}/candidates (ranked, filtered)            |
-|  /jobs/{id}/rerank-all                              |
-+----------+--------------------------+----------------+
-           |                          |
-           v                          v
-+----------------------+   +----------------------------+
-|   AI/NLP Pipeline   |   |   Database Layer           |
-|                      |   |                            |
-|  spaCy               |   |  SQLite (dev)              |
-|  - PhraseMatcher     |   |  PostgreSQL + pgvector     |
-|  - PERSON NER        |   |  (prod)                    |
-|  - Regex (dates)     |   |                            |
-|                      |   |  SQLAlchemy 2.0 ORM        |
-|  Sentence-           |   |  Alembic migrations        |
-|  Transformers        |   |                            |
-|  (MiniLM-L6-v2)      |   |  Tables:                   |
-|                      |   |  - users                   |
-|  Scoring Engine      |   |  - job_postings            |
-|  - Semantic 50%      |   |  - candidates              |
-|  - Skills   25%      |   |  - match_scores            |
-|  - Exp.     15%      |   |                            |
-|  - Edu.     10%      |   |  Celery + Redis (async)    |
-+----------------------+   +----------------------------+
+### 🧩 End-to-End Processing Pipeline
+
+`mermaid
+flowchart TD
+    classDef startEnd fill:#4F46E5,stroke:#312E81,stroke-width:2px,color:#fff;
+    classDef process fill:#F3F4F6,stroke:#4F46E5,stroke-width:2px,color:#111827;
+    classDef storage fill:#EFF6FF,stroke:#3B82F6,stroke-width:2px,color:#1E3A8A;
+    classDef ml fill:#ECFDF5,stroke:#10B981,stroke-width:2px,color:#065F46;
+
+    A([📄 Resume Upload: PDF / DOCX]) --> B[FastAPI BackgroundTasks Queue]:::process
+    B --> C[File Storage & UUID Preservation]:::storage
+    
+    subgraph Extraction_Stage [🔍 1. Extraction Pipeline]
+        C --> D[pdfplumber / python-docx Parsing]:::process
+        D --> E[Raw Text Normalization]:::process
+        E --> F[spaCy NER: Name & Contact]:::ml
+        E --> G[PhraseMatcher: 250+ Skills Taxonomy]:::ml
+        E --> H[Regex Date Parser: Overlap Merged Years]:::process
+        E --> I[Education Keyword Classifier]:::process
+    end
+
+    subgraph Embedding_Stage [🧠 2. Vector Embedding]
+        F & G & H & I --> J[Candidate Profile Synthesis]:::process
+        J --> K[Sentence-Transformers: all-MiniLM-L6-v2]:::ml
+        K --> L[(384-dim Vector Embedding)]:::storage
+    end
+
+    subgraph Scoring_Stage [📊 3. Multi-Factor Scoring Engine]
+        L --> M[Cosine Semantic Similarity 50%]:::ml
+        G --> N[Taxonomy Skill Match Ratio 25%]:::process
+        H --> O[Experience Duration Match 15%]:::process
+        I --> P[Education Hierarchy Match 10%]:::process
+        M & N & O & P --> Q[Weighted Score Normalization 0-100]:::ml
+    end
+
+    Q --> R[(Database: Candidates & Match Scores)]:::storage
+    R --> S([💻 TalentRank UI: Ranked Dashboard & Comparisons]):::startEnd
 `
 
 ---
 
-## How It Works
+## 📊 Multi-Factor Scoring Formula
 
-### 1. Resume Upload
-Drop a PDF or DOCX onto the job page. The server responds **instantly** — AI processing runs in the background.
+HireRank applies a balanced composite ranking formula:
 
-### 2. NLP Extraction Pipeline
-`
-Raw Text --> spaCy PERSON NER  ------------> Name
-         |-> Regex patterns    ------------> Email, Phone
-         |-> PhraseMatcher (250 skills) ---> Extracted Skills
-         |-> Date Range Parser -----------> Experience Years
-         --> Keyword Classifier ----------> Education Level
-`
+\text{Final Score} = 0.50 \cdot S_{\text{semantic}} + 0.25 \cdot S_{\text{skills}} + 0.15 \cdot S_{\text{experience}} + 0.10 \cdot S_{\text{education}}
 
-### 3. Semantic Embedding
-Candidate profile (skills + education + raw text) --> all-MiniLM-L6-v2 --> 384-dim vector
-Job posting (title + description + required skills) --> same model --> 384-dim vector
-
-### 4. Multi-Factor Scoring
-
-`
-Score = 0.50 x Semantic + 0.25 x Skills + 0.15 x Experience + 0.10 x Education
-`
-
-| Factor | Calculation |
-|---|---|
-| Semantic | Cosine similarity normalized to 0-100 |
-| Skills | len(matched) / len(required) x 100 |
-| Experience | min(candidate_years / required_years, 1) x 100 |
-| Education | Ordinal: 100 / 60 (1 level below) / 20 (2+ levels below) |
+| Component | Weight | Calculation Method |
+| :--- | :---: | :--- |
+| **Semantic Similarity** | **50%** | $\frac{\cos(\vec{u}_{\text{resume}}, \vec{v}_{\text{job}}) + 1}{2} \times 100$ |
+| **Skills Match** | **25%** | $\frac{|\text{Matched Skills}|}{|\text{Required Skills}|} \times 100$ |
+| **Experience Fit** | **15%** | $\min\left(\frac{\text{Years}_{\text{candidate}}}{\text{Years}_{\text{required}}}, 1.0\right) \times 100$ |
+| **Education Fit** | **10%** | Ordinal evaluation: \%$ (Exact/Higher), \%$ (1 level below), \%$ (2+ below) |
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack Details
 
-### Backend
-| Package | Version | Purpose |
-|---|---|---|
-| fastapi | 0.115 | Async REST API framework |
-| uvicorn | 0.30 | ASGI server |
-| sqlalchemy | 2.0 | ORM + session management |
-| alembic | 1.13 | Schema migrations |
-| pydantic-settings | 2.6 | Config + env parsing |
-| python-jose[cryptography] | 3.3 | JWT encoding/decoding |
-| passlib[bcrypt] + bcrypt | 1.7.4 + 4.0.1 | Password hashing |
-| pdfplumber | 0.11 | Primary PDF text extractor |
-| pypdf | 5.1 | PDF fallback parser |
-| python-docx | 1.1 | DOCX parser |
-| spacy | 3.8 | NLP: NER + PhraseMatcher |
-| sentence-transformers | latest | Semantic embeddings |
-| numpy / scikit-learn | latest | Vector math + cosine similarity |
-| celery | 5.4 | Distributed task queue |
-| redis | 5.0 | Celery broker + result backend |
-
-### Frontend
-| Package | Purpose |
-|---|---|
-| react + react-dom 18 | UI framework |
-| vite 5 | Build tool + dev server + proxy |
-| typescript 5 | Type safety |
-| tailwindcss | Utility-first styling |
-| @heroicons/react | Icon library |
-| axios | HTTP client with JWT interceptor |
-| react-router-dom | Client-side routing |
+`
+HireRank
+ ├── Backend (Python 3.10+ / 3.13)
+ │    ├── Web Framework:       FastAPI (Async ASGI) & Uvicorn
+ │    ├── NLP & Parsing:       spaCy (en_core_web_sm), pdfplumber, pypdf, python-docx
+ │    ├── ML & Embeddings:     sentence-transformers (all-MiniLM-L6-v2), PyTorch, scikit-learn
+ │    ├── Database & ORM:      SQLAlchemy 2.0, SQLite (Dev) / PostgreSQL + pgvector (Prod)
+ │    ├── Security & Auth:     python-jose (JWT), passlib & bcrypt 4.0.1
+ │    └── Task Queue:          FastAPI BackgroundTasks & Celery/Redis
+ │
+ └── Frontend (React 18 + TypeScript + Vite)
+      ├── UI Styling:          Tailwind CSS with Custom Keyframe Animations
+      ├── State & Routing:     React Context API & React Router DOM v6
+      ├── Networking:          Axios with Auto-Attach JWT Interceptors & Proxying
+      └── Icons & Design:      Heroicons & TalentRank Component Architecture
+`
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.10+ (tested on Python 3.13)
-- Node.js 18+ and npm
-- Git
+- **Python 3.10+** (Tested on Python 3.13)
+- **Node.js 18+** & **npm**
+- **Git**
 
 ---
 
-### Step 1 — Clone the Repository
-
+### 1️⃣ Clone the Repository
 `ash
 git clone https://github.com/atharv3046/HireRank.git
 cd HireRank
@@ -179,83 +149,74 @@ cd HireRank
 
 ---
 
-### Step 2 — Backend Setup
+### 2️⃣ Backend Setup
 
 `ash
 cd backend
 
-# Install Python dependencies (use --prefer-binary for compiled packages on Windows)
+# Install Python dependencies
 pip install --prefer-binary -r requirements.txt
 
-# Download the spaCy English NLP model
+# Download spaCy linguistic model
 python -m spacy download en_core_web_sm
 
-# Copy environment config (SQLite is pre-configured for local dev)
-copy .env.example .env      # Windows
+# Configure environment variables
+copy .env.example .env     # Windows
 # cp .env.example .env      # macOS/Linux
 
-# Start the API server
+# Launch FastAPI Server
 uvicorn app.main:app --port 8000
 `
-
-- API:        http://localhost:8000
-- Swagger UI: http://localhost:8000/docs
-
-> Note: On first resume upload, the all-MiniLM-L6-v2 model (~90MB) is downloaded and cached automatically.
+- **API Server**: http://localhost:8000
+- **Swagger Documentation**: http://localhost:8000/docs
 
 ---
 
-### Step 3 — Frontend Setup
+### 3️⃣ Frontend Setup
 
-Open a new terminal:
+In a separate terminal:
 
 `ash
 cd frontend
 
-# Install dependencies
+# Install npm packages
 npm install
 
-# Start dev server
+# Start Vite Development Server
 npm run dev -- --port 5173
 `
-
-- App: http://localhost:5173
-
----
-
-### Step 4 — Try the Demo
-
-1. Open http://localhost:5173
-2. Click the blue "Enter Demo Dashboard" button (no signup needed)
-3. A pre-seeded Senior Python Engineer job posting is ready
-4. Click the job -> Upload Resume -> drop in a PDF or DOCX
-5. Watch candidates get ranked in real time as the AI pipeline runs
+- **Web Application**: http://localhost:5173
 
 ---
 
-## API Reference
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | /auth/signup | No | Register a new recruiter account |
-| POST | /auth/login | No | Login and get JWT token |
-| POST | /auth/demo-login | No | One-click demo access |
-| GET | /jobs/ | Yes | List all job postings |
-| POST | /jobs/ | Yes | Create a job posting |
-| GET | /jobs/{id} | Yes | Get a specific job |
-| PUT | /jobs/{id} | Yes | Update a job |
-| DELETE | /jobs/{id} | Yes | Delete a job |
-| POST | /jobs/{id}/upload | Yes | Upload a resume (async pipeline) |
-| GET | /jobs/{id}/candidates | Yes | Get ranked candidates |
-| POST | /jobs/{id}/rerank-all | Yes | Re-score all candidates |
-| GET | /candidates/{id}/status | Yes | Poll processing status |
-| GET | /health | No | Health check |
-
-Full interactive docs at /docs (Swagger UI).
+### 4️⃣ One-Click Demo Mode
+1. Navigate to http://localhost:5173.
+2. Click **⚡ Enter Demo Dashboard** on the login page (or use the hero CTA).
+3. Open the pre-seeded **Senior Python Engineer** role.
+4. Click **Upload Resume** to test real-time parsing, vector embedding, and score generation!
 
 ---
 
-## Running Tests
+## 📡 API Endpoints
+
+| Method | Route | Description | Auth |
+| :--- | :--- | :--- | :---: |
+| POST | /auth/demo-login | Generates a demo recruiter session & token | No |
+| POST | /auth/signup | Registers a new recruiter account | No |
+| POST | /auth/login | Authenticates recruiter and returns JWT | No |
+| GET | /jobs/ | Lists all recruiter's job postings | Yes |
+| POST | /jobs/ | Creates a new job posting with skill requirements | Yes |
+| GET | /jobs/{id} | Fetches detailed job specifications | Yes |
+| POST | /jobs/{id}/upload | Async multipart resume upload & background processing | Yes |
+| GET | /jobs/{id}/candidates | Retrieves ranked candidates with full score breakdowns | Yes |
+| POST | /jobs/{id}/rerank-all | Re-computes embeddings and scores across all candidates | Yes |
+| GET | /candidates/{id}/status| Real-time polling endpoint for candidate processing state | Yes |
+
+---
+
+## 🧪 Running Automated Tests
+
+Run the test suite with pytest:
 
 `ash
 cd backend
@@ -263,92 +224,49 @@ python -m pytest tests/ -v
 `
 
 `
-tests/test_scoring.py     -- 19 tests (SkillsScore, ExperienceScore, EducationScore)
-tests/test_extraction.py  -- 14 tests (Contact, Skills, Experience, Education NLP)
+tests/test_scoring.py     -- 19 passed (Skills, Experience, and Education Scorer tests)
+tests/test_extraction.py  -- 14 passed (Contact, Skills Taxonomy, Experience NLP tests)
 
-================================ 33 passed ================================
+============================== 33 passed in 2.85s ==============================
 `
 
 ---
 
-## Docker Deployment
-
-For a production-ready stack with PostgreSQL + pgvector and Redis:
-
-`ash
-# From project root
-docker-compose up -d
-`
-
-This starts:
-- postgres (with pgvector extension on port 5432)
-- redis (on port 6379)
-
-Then update backend/.env:
-
-`env
-DATABASE_URL=postgresql://resumeuser:resumepass@localhost:5432/resumedb
-EAGER_TASKS=false
-CELERY_BROKER_URL=redis://localhost:6379/0
-CELERY_RESULT_BACKEND=redis://localhost:6379/1
-`
-
-Start a Celery worker:
-
-`ash
-cd backend
-celery -A app.tasks.celery_app worker --loglevel=info
-`
-
----
-
-## Project Structure
+## 📂 Repository Structure
 
 `
 HireRank/
-+-- backend/
-|   +-- app/
-|   |   +-- core/         # Config, DB engine, security (JWT + bcrypt)
-|   |   +-- models/       # SQLAlchemy ORM models
-|   |   +-- schemas/      # Pydantic request/response schemas
-|   |   +-- routers/      # FastAPI routers (auth, jobs, candidates, scoring)
-|   |   +-- services/     # AI services (extraction, embeddings, scoring)
-|   |   +-- tasks/        # Celery tasks + pipeline orchestration
-|   |   +-- data/         # skills_taxonomy.json (250+ skills + aliases)
-|   |   +-- main.py       # App factory, startup seed, demo endpoint
-|   +-- tests/            # pytest test suite + sample resumes
-|   +-- uploads/          # Resume file storage
-|   +-- requirements.txt
-|   +-- .env.example
-|
-+-- frontend/
-|   +-- src/
-|       +-- api/          # Axios client (JWT interceptor, typed API calls)
-|       +-- context/      # AuthContext (JWT state, localStorage)
-|       +-- components/   # Navbar, ProtectedRoute, StatusBadge, ScoreBar, SkillTag
-|       +-- pages/        # Login, Signup, Dashboard, JobDetail, UploadResume
-|
-+-- docker-compose.yml    # PostgreSQL + pgvector + Redis
-+-- README.md
+├── backend/
+│   ├── app/
+│   │   ├── core/              # Config (Pydantic v2), DB engine, Security (JWT)
+│   │   ├── models/            # SQLAlchemy ORM Models (User, JobPosting, Candidate, MatchScore)
+│   │   ├── schemas/           # Pydantic Request & Response Schemas
+│   │   ├── routers/           # Auth, Jobs, Candidate & Scoring Endpoints
+│   │   ├── services/          # Extraction (spaCy/NER), Embeddings (MiniLM), Scoring
+│   │   ├── tasks/             # Resume processing pipeline orchestration
+│   │   ├── data/              # 250+ Skills Taxonomy JSON with Aliases
+│   │   └── main.py            # FastAPI Application & Seed Logic
+│   └── tests/                 # Unit & Integration Tests
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/        # Sidebar, ScoreBadge, SubBar, ProtectedRoute
+│   │   ├── pages/             # LandingPage, DashboardPage, JobDetailPage, UploadPage, LoginPage
+│   │   ├── api/               # Typed Axios Client with JWT interceptors
+│   │   └── context/           # Authentication State Context
+│   ├── index.html
+│   └── tailwind.config.js     # Custom animations & TalentRank color tokens
+│
+├── docker-compose.yml         # Postgres + pgvector + Redis configuration
+└── README.md
 `
 
 ---
 
-## Contributing
+## 📄 License
 
-1. Fork the repository
-2. Create a feature branch: git checkout -b feature/your-feature-name
-3. Commit your changes: git commit -m 'feat: add your feature'
-4. Push to the branch: git push origin feature/your-feature-name
-5. Open a Pull Request
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
----
-
-## License
-
-This project is licensed under the MIT License.
-
----
-
-Built with FastAPI, React, and Sentence-Transformers.
-Star this repo if HireRank was useful to you!
+<div align="center">
+  <sub>Built with ❤️ for modern talent acquisition teams.</sub>
+</div>
