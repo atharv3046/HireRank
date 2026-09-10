@@ -16,10 +16,13 @@ class EmbeddingService:
 
     def _load_model(self):
         if self._model is None:
-            logger.info("Loading sentence-transformers model all-MiniLM-L6-v2...")
+            import os
             from sentence_transformers import SentenceTransformer
-            self._model = SentenceTransformer("all-MiniLM-L6-v2")
-            logger.info("Model loaded.")
+            # Set EMBEDDING_MODEL=./hirerank-finetuned-v1 in .env to use fine-tuned model
+            model_name = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+            logger.info(f"Loading embedding model: {model_name}")
+            self._model = SentenceTransformer(model_name)
+            logger.info("Model loaded successfully.")
         return self._model
 
     def generate_embedding(self, text: str) -> list:
