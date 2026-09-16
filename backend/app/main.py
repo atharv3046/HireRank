@@ -1,11 +1,30 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import Base, engine, SessionLocal
-from app.routers import auth, jobs, candidates, scoring
+from app.routers import auth, jobs, candidates, scoring, internal, settings as settings_router, assessments as assessments_router
+from app.routers import guest as guest_router
 import app.models  # Import all models to register them
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
+
+# Ensure pipeline_status column exists in candidates table
+try:
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE candidates ADD COLUMN pipeline_status VARCHAR DEFAULT 'Screened'"))
+        conn.commit()
+except Exception:
+    pass
+
+# Ensure domain column exists in users table
+try:
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE users ADD COLUMN domain VARCHAR"))
+        conn.commit()
+except Exception:
+    pass
 
 # ── Seed demo user & sample data on startup ──────────────────────────────────
 def _seed_demo():
@@ -76,6 +95,14 @@ app.include_router(auth.router)
 app.include_router(jobs.router)
 app.include_router(candidates.router)
 app.include_router(scoring.router)
+app.include_router(guest_router.router)   # /guest/* — anonymous screening sessions
+app.include_router(guest_router.router, prefix="/api") # /api/guest/* — direct API alias
+app.include_router(internal.router)       # /internal/* — maintenance & cleanup tasks
+app.include_router(internal.router, prefix="/api")     # /api/internal/* — direct API alias
+app.include_router(settings_router.router)     # /settings/* — company profile, team members, billing
+app.include_router(settings_router.router, prefix="/api") # /api/settings/* — direct API alias
+app.include_router(assessments_router.router)  # /assessments/* — AI assessment planner wizard
+app.include_router(assessments_router.router, prefix="/api") # /api/assessments/* — direct API alias
 
 @app.get("/health")
 def health_check():

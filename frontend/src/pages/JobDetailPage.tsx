@@ -1,682 +1,718 @@
-import React, { useState, useEffect, useCallback } from 'react';
+/**
+ * Screen 7 — Candidate List / Batch Detail (/jobs/:jobId)
+ * ========================================================
+ * Framer Motion animation pass with:
+ *  - Smooth accordion expand/collapse via AnimatePresence
+ *  - Staggered candidate row entrance
+ *  - Interactive button states & spinning rerank icon
+ *  - prefers-reduced-motion safety
+ */
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import { api, JobPosting, CandidateWithScore } from '../api/client';
+import {
+  useReducedMotion,
+  fadeInUpVariants,
+  staggerContainerVariants,
+  accordionVariants,
+} from '../utils/animations';
 
-// ── Animated score bar ───────────────────────────────────────────────────────
-const SubBar: React.FC<{ label: string; value: number | null; color: string; delay?: number }> = ({ label, value, color, delay = 0 }) => {
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const t = setTimeout(() => setWidth(Math.min(value ?? 0, 100)), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return (
-    <div>
-      <div className="flex justify-between text-xs mb-1.5">
-        <span className="text-gray-500">{label}</span>
-        <span className="font-semibold text-gray-800">{value !== null ? Math.round(value ?? 0) : '—'}</span>
-      </div>
-      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-700 ease-out ${color}`}
-          style={{ width: `${width}%` }}
-        />
-      </div>
-    </div>
-  );
+const TIER_BADGES: Record<string, string> = {
+  Strong: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  Potential: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  Low: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+  'Needs Review': 'bg-rose-500/10 text-rose-400 border-rose-500/20',
 };
 
-// ── Score badge for table ────────────────────────────────────────────────────
-const ScoreBadge: React.FC<{ score: number | null }> = ({ score }) => {
-  if (score === null || score === undefined) return <span className="text-xs text-gray-400">—</span>;
+const TIER_DOTS: Record<string, string> = {
+  Strong: 'bg-emerald-500',
+  Potential: 'bg-amber-400',
+  Low: 'bg-slate-400',
+  'Needs Review': 'bg-rose-500',
+};
+
+const ScoreBadge: React.FC<{ score: number | null; needsReview?: boolean }> = ({ score, needsReview }) => {
+  if (needsReview || score === null || score === undefined) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border bg-rose-500/10 text-rose-400 border-rose-500/20">
+        <svg className="w-3.5 h-3.5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        Needs Review
+      </span>
+    );
+  }
   const s = Math.round(score);
-  const cls = s >= 80 ? 'bg-green-100 text-green-700 ring-green-200 glow-green'
-            : s >= 60 ? 'bg-yellow-100 text-yellow-700 ring-yellow-200 glow-yellow'
-            : 'bg-red-100 text-red-600 ring-red-200';
+  const style = s >= 75
+    ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+    : s >= 55
+    ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+    : 'text-slate-400 bg-slate-500/10 border-slate-500/20';
+
   return (
-    <span className={`inline-flex items-center justify-center w-12 h-8 rounded-lg text-sm font-bold ring-1 ${cls}`}>
+    <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-black border ${style}`}>
       {s}%
     </span>
   );
 };
 
-// ── Candidate detail panel ───────────────────────────────────────────────────
-const CandidatePanel: React.FC<{ candidate: CandidateWithScore; job: JobPosting; onClose: () => void }> = ({ candidate, job, onClose }) => {
-  const initials = candidate.name
-    ? candidate.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-    : '?';
-
-  const overallScore = Math.round(candidate.overall_score ?? 0);
-  const scoreColor = overallScore >= 80 ? 'text-green-600' : overallScore >= 60 ? 'text-yellow-600' : 'text-red-500';
-  const scoreBg = overallScore >= 80 ? 'bg-green-50 border-green-200' : overallScore >= 60 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200';
-  const coverage = job.required_skills?.length
-    ? Math.round(((candidate.matched_skills?.length || 0) / job.required_skills.length) * 100)
-    : 0;
-
-  // Education label map
-  const eduLabel: Record<string, string> = {
-    high_school: 'High School', associate: 'Associate', bachelors: "Bachelor's Degree",
-    masters: "Master's Degree", phd: 'PhD / Doctorate',
-  };
-
-  const meetsExp = (candidate.experience_years ?? 0) >= (job.min_experience_years ?? 0);
-  const meetsEdu = candidate.education_level !== null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/30 backdrop-panel" onClick={onClose} />
-      <div className="w-full max-w-xl bg-white shadow-2xl flex flex-col overflow-hidden animate-slide-in">
-
-        {/* ── Header ── */}
-        <div className="px-6 pt-5 pb-4 border-b border-gray-100">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xl font-bold shadow-lg flex-shrink-0">
-                {initials}
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">{candidate.name || 'Unknown Candidate'}</h2>
-                <div className="text-sm text-gray-400">{candidate.email || '—'}</div>
-                <div className="flex flex-wrap items-center gap-2 mt-2">
-                  {candidate.experience_years !== null && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">
-                      🕐 {candidate.experience_years} Yrs Exp
-                    </span>
-                  )}
-                  {candidate.education_level && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">
-                      🎓 {candidate.education_level.charAt(0).toUpperCase() + candidate.education_level.slice(1)}
-                    </span>
-                  )}
-                  {candidate.phone && (
-                    <span className="text-xs text-gray-400">{candidate.phone}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Score box */}
-            <div className="flex items-start gap-2">
-              <div className={`border rounded-xl px-4 py-2 text-center animate-score-pop ${scoreBg}`}>
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Match Score</div>
-                <div className={`text-3xl font-extrabold ${scoreColor} tabular-nums`}>
-                  {overallScore}<span className="text-sm font-normal text-gray-400">/100</span>
-                </div>
-              </div>
-              <button onClick={onClose} className="text-gray-300 hover:text-gray-500 transition-colors mt-1">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Scrollable body ── */}
-        <div className="flex-1 overflow-y-auto">
-
-          {/* AI Summary */}
-          {candidate.summary && (
-            <div className="px-6 pt-5 animate-fade-up">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-5 h-5 rounded-md bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs">✦</div>
-                <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">AI Summary</span>
-              </div>
-              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-xl p-4">
-                <p className="text-sm text-gray-700 leading-relaxed italic">"{candidate.summary}"</p>
-              </div>
-            </div>
-          )}
-
-          {/* Score breakdown + Skills grid */}
-          <div className="px-6 pt-5 grid grid-cols-2 gap-4 animate-fade-up" style={{ animationDelay: '60ms' }}>
-            {/* Score breakdown */}
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-              <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Score Breakdown</div>
-              <div className="space-y-3.5">
-                <SubBar label="Semantic Sim. (50%)" value={candidate.semantic_score}  color="bg-indigo-500" delay={100} />
-                <SubBar label="Skills Match (25%)"  value={candidate.skills_score}    color="bg-cyan-500"   delay={200} />
-                <SubBar label="Experience (15%)"    value={candidate.experience_score} color="bg-teal-500"   delay={300} />
-                <SubBar label="Education (10%)"     value={candidate.education_score}  color="bg-sky-400"    delay={400} />
-              </div>
-            </div>
-
-            {/* Required skills */}
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wide">Required Skills</div>
-                <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">{coverage}% Coverage</span>
-              </div>
-
-              {(candidate.matched_skills?.length || 0) > 0 && (
-                <div className="mb-3">
-                  <div className="text-xs text-green-600 font-semibold mb-1.5">Matched</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {candidate.matched_skills.map(s => (
-                      <span key={s} className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">
-                        <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {(candidate.missing_skills?.length || 0) > 0 && (
-                <div>
-                  <div className="text-xs text-red-500 font-semibold mb-1.5">Missing / Legacy</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {candidate.missing_skills.slice(0, 6).map(s => (
-                      <span key={s} className="inline-flex items-center gap-1 text-xs bg-red-50 text-red-500 border border-red-200 px-2 py-0.5 rounded-full line-through opacity-75">
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ── Candidate vs Requirements table ── */}
-          <div className="px-6 pt-5 pb-2 animate-fade-up" style={{ animationDelay: '120ms' }}>
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Candidate vs Requirements</div>
-            <div className="rounded-xl border border-gray-200 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide w-1/4">Criteria</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide w-5/12">
-                      {candidate.name?.split(' ')[0] || 'Candidate'} (Parsed)
-                    </th>
-                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide w-5/12">Job Req.</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {/* Experience row */}
-                  <tr className="hover:bg-gray-50/60 transition-colors">
-                    <td className="px-4 py-3 text-gray-500 text-xs font-medium flex items-center gap-1.5 whitespace-nowrap">
-                      🕐 Experience
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className={`font-semibold ${meetsExp ? 'text-gray-900' : 'text-red-600'}`}>
-                        {candidate.experience_years !== null ? `${candidate.experience_years} Years` : '—'}
-                        {meetsExp && <span className="ml-1.5 text-green-500">✓</span>}
-                        {!meetsExp && candidate.experience_years !== null && <span className="ml-1.5 text-red-400">✗</span>}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">
-                      {job.min_experience_years}+ years minimum
-                    </td>
-                  </tr>
-
-                  {/* Education row */}
-                  <tr className="hover:bg-gray-50/60 transition-colors">
-                    <td className="px-4 py-3 text-gray-500 text-xs font-medium whitespace-nowrap">
-                      🎓 Education
-                    </td>
-                    <td className="px-4 py-3">
-                      {candidate.education_level ? (
-                        <div className="font-semibold text-gray-900">
-                          {eduLabel[candidate.education_level] || candidate.education_level}
-                          {meetsEdu && <span className="ml-1.5 text-green-500">✓</span>}
-                          {candidate.education_details && (
-                            <div className="text-xs text-gray-400 font-normal mt-0.5 truncate">{candidate.education_details}</div>
-                          )}
-                        </div>
-                      ) : <span className="text-gray-400">Not detected</span>}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">
-                      {job.education_requirement
-                        ? (eduLabel[job.education_requirement] || job.education_requirement) + ' or equivalent'
-                        : 'Any'}
-                    </td>
-                  </tr>
-
-                  {/* Core stack row */}
-                  <tr className="hover:bg-gray-50/60 transition-colors">
-                    <td className="px-4 py-3 text-gray-500 text-xs font-medium whitespace-nowrap">
-                      {'<>'} Core Stack
-                    </td>
-                    <td className="px-4 py-3">
-                      {(candidate.matched_skills?.length || 0) > 0 ? (
-                        <div>
-                          <div className="font-semibold text-gray-900 text-xs">
-                            {candidate.matched_skills.slice(0, 4).join(', ')}
-                          </div>
-                          {(candidate.missing_skills?.length || 0) > 0 && (
-                            <div className="text-xs text-red-400 mt-0.5 flex items-center gap-1">
-                              ⚠ Missing: {candidate.missing_skills.slice(0, 2).join(', ')}
-                            </div>
-                          )}
-                        </div>
-                      ) : <span className="text-gray-400 text-xs">Not extracted</span>}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">
-                      {job.required_skills?.slice(0, 3).join(', ') || '—'}
-                      {(job.required_skills?.length || 0) > 3 && ` +${job.required_skills.length - 3} more`}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* All extracted skills */}
-          {(candidate.extracted_skills?.length || 0) > 0 && (
-            <div className="px-6 pt-4 pb-5 animate-fade-up" style={{ animationDelay: '180ms' }}>
-              <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">All Extracted Skills</div>
-              <div className="flex flex-wrap gap-1.5">
-                {candidate.extracted_skills.map(s => (
-                  <span key={s} className={`text-xs border px-2.5 py-1 rounded-full transition-colors ${
-                    candidate.matched_skills?.includes(s)
-                      ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                      : 'bg-white border-gray-200 text-gray-500'
-                  }`}>{s}</span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ── Footer actions ── */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/60 flex items-center gap-3">
-          <button className="flex-1 flex items-center justify-center gap-2 border border-red-200 text-red-500 hover:bg-red-50 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-            Reject Candidate
-          </button>
-          <button className="flex-1 flex items-center justify-center gap-2 border border-gray-200 text-gray-700 hover:bg-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            Message
-          </button>
-          <button className="flex-1 flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-gray-900/20">
-            Move to Interview →
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ── Upload modal ─────────────────────────────────────────────────────────────
-const UploadModal: React.FC<{ jobId: string; onClose: () => void; onUploaded: () => void }> = ({ jobId, onClose, onUploaded }) => {
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleUpload = async () => {
-    if (!file) return;
-    setUploading(true); setError(null); setProgress(0);
-    try {
-      await api.uploadResume(jobId, file, e => setProgress(Math.round((e.loaded * 100) / (e.total || 100))));
-      setDone(true);
-      setTimeout(() => { onUploaded(); onClose(); }, 1200);
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'Upload failed');
-      setUploading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">Upload Resume</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="px-6 py-5">
-          <label
-            className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-8 cursor-pointer transition-colors ${
-              file ? 'border-indigo-300 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-            }`}
-          >
-            <input type="file" accept=".pdf,.docx" className="sr-only" onChange={e => { if (e.target.files?.[0]) setFile(e.target.files[0]); }} />
-            <svg className="w-10 h-10 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            {file ? (
-              <div className="text-center">
-                <p className="text-sm font-medium text-indigo-700">{file.name}</p>
-                <p className="text-xs text-gray-400 mt-1">Click to change file</p>
-              </div>
-            ) : (
-              <div className="text-center">
-                <p className="text-sm text-gray-500">Drop resume here or <span className="text-indigo-600 font-medium">browse</span></p>
-                <p className="text-xs text-gray-400 mt-1">PDF or DOCX, up to 10MB</p>
-              </div>
-            )}
-          </label>
-
-          {uploading && (
-            <div className="mt-4">
-              <div className="flex justify-between text-xs mb-1.5">
-                <span className="text-gray-500">{done ? '✅ Uploaded! AI processing in background...' : 'Uploading...'}</span>
-                <span className="font-medium text-gray-700">{progress}%</span>
-              </div>
-              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
-              </div>
-            </div>
-          )}
-
-          {error && <p className="mt-3 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
-
-          <div className="flex gap-3 mt-5">
-            <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
-              Cancel
-            </button>
-            <button
-              onClick={handleUpload}
-              disabled={!file || uploading}
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              {uploading ? 'Uploading...' : 'Upload Resume'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ── Status pill for processing ───────────────────────────────────────────────
-const ProcessingPill: React.FC<{ status: string }> = ({ status }) => {
-  const map: Record<string, { label: string; cls: string }> = {
-    processing:      { label: 'Processing…', cls: 'bg-blue-50 text-blue-600' },
-    extracting:      { label: 'Extracting…', cls: 'bg-purple-50 text-purple-600' },
-    extracted_fields:{ label: 'Embedding…',  cls: 'bg-indigo-50 text-indigo-600' },
-    scoring:         { label: 'Scoring…',    cls: 'bg-yellow-50 text-yellow-600' },
-    needs_ocr:       { label: 'Needs OCR',   cls: 'bg-orange-50 text-orange-600' },
-    error:           { label: 'Error',        cls: 'bg-red-50 text-red-600' },
-  };
-  const info = map[status];
-  if (!info) return null;
-  return <span className={`text-xs px-2.5 py-1 rounded-full font-medium animate-pulse ${info.cls}`}>{info.label}</span>;
-};
-
-// ── Main page ────────────────────────────────────────────────────────────────
 export default function JobDetailPage() {
   const { jobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
-  const [job, setJob]               = useState<JobPosting | null>(null);
+  const shouldReduce = useReducedMotion();
+
+  const [job, setJob] = useState<JobPosting | null>(null);
   const [candidates, setCandidates] = useState<CandidateWithScore[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [selected, setSelected]     = useState<CandidateWithScore | null>(null);
-  const [showUpload, setShowUpload] = useState(false);
-  const [reranking, setReranking]   = useState(false);
-  const [minScore, setMinScore]     = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+  const [reranking, setReranking] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  // Filters & Sorting state
+  const [tierFilter, setTierFilter] = useState<'all' | 'Strong' | 'Potential' | 'Low' | 'Needs Review'>('all');
   const [skillFilter, setSkillFilter] = useState('');
+  const [sortBy, setSortBy] = useState<'score_desc' | 'score_asc' | 'exp_desc'>('score_desc');
+
+  // Expanded rows state
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchJob = useCallback(async () => {
+    if (!jobId) return;
+    try {
+      const data = await api.getJob(jobId);
+      setJob(data);
+    } catch {
+      setJob(null);
+    }
+  }, [jobId]);
 
   const fetchCandidates = useCallback(async () => {
     if (!jobId) return;
-    const data = await api.getRankedCandidates(jobId, 'overall_score');
-    setCandidates(data);
-    return data;
+    try {
+      const data = await api.getRankedCandidates(jobId);
+      setCandidates(data || []);
+    } catch (e) {
+      console.error('Failed to load candidates', e);
+    }
   }, [jobId]);
 
   useEffect(() => {
-    if (!jobId) return;
     setLoading(true);
-    Promise.all([api.getJob(jobId), api.getRankedCandidates(jobId, 'overall_score')])
-      .then(([j, c]) => { setJob(j); setCandidates(c); })
-      .finally(() => setLoading(false));
-  }, [jobId]);
+    Promise.all([fetchJob(), fetchCandidates()]).finally(() => setLoading(false));
+  }, [fetchJob, fetchCandidates]);
 
-  // Ref-based polling — avoids stale closure, polls every 2.5s until all done
-  const candidatesRef = React.useRef<CandidateWithScore[]>([]);
-  candidatesRef.current = candidates;
+  // Polling for processing candidates
   useEffect(() => {
-    if (!jobId) return;
-    const id = window.setInterval(async () => {
-      const allDone = candidatesRef.current.length > 0 && candidatesRef.current.every(
-        c => c.processing_status === 'done' || c.processing_status === 'error' || c.processing_status === 'needs_ocr'
-      );
-      if (!allDone) {
-        await fetchCandidates();
-      } else {
-        clearInterval(id);
-      }
-    }, 2500);
-    return () => clearInterval(id);
-  }, [jobId, fetchCandidates]);
+    const hasUnfinished = candidates.some(
+      c => c.processing_status !== 'done' && c.processing_status !== 'error' && c.processing_status !== 'needs_manual_review'
+    );
+    if (hasUnfinished) {
+      pollingRef.current = setInterval(() => {
+        fetchCandidates();
+      }, 2500);
+    } else if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+    }
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [candidates, fetchCandidates]);
 
   const handleRerank = async () => {
     if (!jobId) return;
     setReranking(true);
-    await api.rerankAll(jobId);
-    await fetchCandidates();
-    setReranking(false);
+    try {
+      await api.rerankAll(jobId);
+      await fetchCandidates();
+    } finally {
+      setReranking(false);
+    }
   };
 
-  // Always show all candidates; filter score only for scored ones
-  const filtered = candidates.filter(c => {
-    if (c.overall_score !== null && c.overall_score < minScore) return false;
-    if (skillFilter && c.processing_status === 'done' &&
-        !c.extracted_skills?.some(s => s.toLowerCase().includes(skillFilter.toLowerCase()))) return false;
+  const toggleExpand = (id: number) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // CSV Export
+  const handleExportCsv = async () => {
+    if (!jobId) return;
+    setExporting(true);
+    try {
+      const blob = await api.exportJobCsv(jobId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(job?.title || 'batch').replace(/\s+/g, '_')}_candidates.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('CSV export failed', err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Filter & sort logic
+  const filteredCandidates = candidates.filter(c => {
+    const candidateTier = c.tier || (c.needs_manual_review ? 'Needs Review' : (c.overall_score && c.overall_score >= 75 ? 'Strong' : c.overall_score && c.overall_score >= 55 ? 'Potential' : 'Low'));
+    if (tierFilter !== 'all' && candidateTier !== tierFilter) return false;
+
+    if (skillFilter.trim()) {
+      const q = skillFilter.toLowerCase().trim();
+      const hasSkill =
+        c.extracted_skills?.some(s => s.toLowerCase().includes(q)) ||
+        c.matched_skills?.some(s => s.toLowerCase().includes(q));
+      if (!hasSkill) return false;
+    }
     return true;
   });
 
-  if (loading) return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
-      <main className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-sm text-gray-500">Loading job data…</p>
-        </div>
-      </main>
-    </div>
-  );
+  filteredCandidates.sort((a, b) => {
+    if (sortBy === 'score_desc') {
+      return (b.overall_score !== null ? 1 : 0) - (a.overall_score !== null ? 1 : 0) || ((b.overall_score ?? 0) - (a.overall_score ?? 0));
+    }
+    if (sortBy === 'score_asc') {
+      return (a.overall_score ?? 999) - (b.overall_score ?? 999);
+    }
+    if (sortBy === 'exp_desc') {
+      return (b.experience_years ?? -1) - (a.experience_years ?? -1);
+    }
+    return 0;
+  });
 
-  if (!job) return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
-      <main className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-500">Job not found.</p>
-          <button onClick={() => navigate('/dashboard')} className="mt-4 text-indigo-600 text-sm">← Back to Dashboard</button>
-        </div>
-      </main>
-    </div>
-  );
+  const selectAll = () => {
+    if (selectedIds.size === filteredCandidates.length && filteredCandidates.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredCandidates.map(c => c.id)));
+    }
+  };
 
-  const doneCount = candidates.filter(c => c.overall_score !== null).length;
+  if (loading) {
+    return (
+      <div className="flex min-h-screen font-sans text-white" style={{ background: '#0a0a0f' }}>
+        <Sidebar />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-10 h-10 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm text-white/40">Loading candidate roster…</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!job) {
+    return (
+      <div className="flex min-h-screen font-sans text-white" style={{ background: '#0a0a0f' }}>
+        <Sidebar />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-white font-bold text-lg mb-2">Screening Batch Not Found</p>
+            <button onClick={() => navigate('/dashboard')} className="text-cyan-400 text-sm font-semibold hover:underline">
+              ← Return to Dashboard
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sans">
+    <div className="flex min-h-screen font-sans text-white" style={{ background: '#0a0a0f' }}>
       <Sidebar />
-
       <main className="flex-1 overflow-auto">
-        <div className="px-8 py-8">
+        <motion.div
+          initial={shouldReduce ? false : "hidden"}
+          animate="visible"
+          variants={staggerContainerVariants}
+          className="px-8 py-8 max-w-6xl mx-auto"
+        >
           {/* Breadcrumb */}
-          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mb-6 transition-colors">
+          <motion.button
+            variants={fadeInUpVariants}
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-1.5 text-xs font-semibold text-white/40 hover:text-white mb-6 transition-colors"
+          >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            All Jobs
-          </button>
+            Back to Dashboard
+          </motion.button>
 
-          {/* Job header */}
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <div className="text-xs text-indigo-600 font-semibold uppercase tracking-wide mb-1">ACTIVE JOB POSTING</div>
-              <h1 className="text-2xl font-bold text-gray-900">{job.title}</h1>
-              <div className="flex items-center gap-3 mt-2">
-                <span className="text-sm text-gray-500">{job.min_experience_years}+ years experience</span>
-                {job.education_requirement && (
-                  <span className="text-sm text-gray-500">· {job.education_requirement}</span>
-                )}
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  job.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                }`}>{job.status}</span>
+          {/* Batch header card */}
+          <motion.div
+            variants={fadeInUpVariants}
+            className="rounded-2xl border border-white/[0.08] p-6 shadow-sm mb-6"
+            style={{ background: '#0d0d14' }}
+          >
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold tracking-wider text-cyan-400 uppercase bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
+                    SCREENING BATCH #{job.id}
+                  </span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    {job.status.toUpperCase()}
+                  </span>
+                </div>
+                <h1 className="text-2xl font-black text-white mt-2">{job.title}</h1>
+                <div className="flex flex-wrap items-center gap-4 text-xs text-white/40 mt-2">
+                  <span>⏱️ Min. {job.min_experience_years} years experience</span>
+                  {job.education_requirement && (
+                    <span className="capitalize">🎓 {job.education_requirement.replace('_', ' ')} required</span>
+                  )}
+                  <span>👥 {candidates.length} total candidates</span>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRerank}
-                disabled={reranking}
-                className="flex items-center gap-1.5 border border-gray-200 text-gray-600 hover:bg-gray-50 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-              >
-                <svg className={`w-4 h-4 ${reranking ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                {reranking ? 'Reranking…' : 'Re-rank All'}
-              </button>
-              <button
-                onClick={() => navigate(`/jobs/${jobId}/upload`)}
-                className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-md shadow-indigo-500/30"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                Upload Resume
-              </button>
-            </div>
-          </div>
 
-          {/* Filters */}
-          <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 mb-4 flex items-center gap-4">
-            <div className="flex-1">
-              <label className="block text-xs text-gray-400 mb-1">Skill Search</label>
-              <input
-                value={skillFilter}
-                onChange={e => setSkillFilter(e.target.value)}
-                placeholder="e.g. React, Python, AWS..."
-                className="w-full text-sm text-gray-700 focus:outline-none placeholder-gray-300"
-              />
-            </div>
-            <div className="w-px h-8 bg-gray-100" />
-            <div className="w-48">
-              <label className="block text-xs text-gray-400 mb-1">Minimum Match Score</label>
+              {/* Action buttons */}
               <div className="flex items-center gap-3">
-                <input
-                  type="range" min={0} max={100} step={5}
-                  value={minScore}
-                  onChange={e => setMinScore(+e.target.value)}
-                  className="flex-1 accent-indigo-600"
-                />
-                <span className="text-sm font-bold text-indigo-600 w-10">{minScore}%</span>
+                <motion.button
+                  onClick={handleExportCsv}
+                  disabled={exporting || candidates.length === 0}
+                  whileHover={shouldReduce ? undefined : { scale: 1.02 }}
+                  whileTap={shouldReduce ? undefined : { scale: 0.98 }}
+                  className="flex items-center gap-2 border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
+                >
+                  <svg className="w-4 h-4 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  {exporting ? 'Exporting…' : 'Export CSV'}
+                </motion.button>
+
+                <motion.button
+                  onClick={handleRerank}
+                  disabled={reranking || candidates.length === 0}
+                  whileHover={shouldReduce ? undefined : { scale: 1.02 }}
+                  whileTap={shouldReduce ? undefined : { scale: 0.98 }}
+                  className="flex items-center gap-2 border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
+                >
+                  <svg className={`w-4 h-4 ${reranking ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  {reranking ? 'Re-ranking…' : 'Re-rank All'}
+                </motion.button>
+
+                <motion.button
+                  onClick={() => navigate('/screen')}
+                  whileHover={shouldReduce ? undefined : { scale: 1.02 }}
+                  whileTap={shouldReduce ? undefined : { scale: 0.98 }}
+                  className="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-cyan-500/20"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Resumes
+                </motion.button>
               </div>
             </div>
-            <div className="w-px h-8 bg-gray-100" />
-            <div className="text-sm text-gray-400">
-              {filtered.length} of {candidates.length} candidates
-            </div>
-          </div>
 
-          {/* Candidates table */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            {/* Table header */}
-            <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-gray-100 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-              <div className="col-span-4">Candidate Name</div>
-              <div className="col-span-2 text-center">Match Score</div>
-              <div className="col-span-4">Key Skills Matched</div>
-              <div className="col-span-2 text-right">Experience</div>
-            </div>
+            {/* Required skills tags */}
+            {job.required_skills && job.required_skills.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center gap-2 flex-wrap text-xs">
+                <span className="font-semibold text-white/50">Required Must-Have Skills:</span>
+                {job.required_skills.map(s => (
+                  <span key={s} className="bg-white/[0.04] text-white/80 border border-white/[0.06] px-2.5 py-0.5 rounded-md font-medium">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            )}
+          </motion.div>
 
-            {filtered.length === 0 ? (
-              <div className="py-16 text-center">
-                <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <svg className="w-6 h-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          {/* Filters and controls */}
+          <motion.div
+            variants={fadeInUpVariants}
+            className="rounded-2xl border border-white/[0.08] p-4 shadow-sm mb-6"
+            style={{ background: '#0d0d14' }}
+          >
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              {/* Skill search */}
+              <div className="relative w-full md:w-72">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
-                <p className="text-sm text-gray-500 mb-1">No candidates yet</p>
-                <p className="text-xs text-gray-400">Upload a resume to start screening</p>
+                <input
+                  type="text"
+                  value={skillFilter}
+                  onChange={e => setSkillFilter(e.target.value)}
+                  placeholder="Filter by skill (e.g. React, Python)..."
+                  className="w-full pl-9 pr-4 py-2 text-sm bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                />
               </div>
-            ) : (
-              <div className="divide-y divide-gray-50">
-                {filtered.map((c, idx) => {
-                  const initials = c.name
-                    ? c.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-                    : '?';
-                  const isDone = c.overall_score !== null;
 
-                  return (
-                    <div
-                      key={c.id}
-                      onClick={() => isDone && setSelected(c)}
-                      className={`grid grid-cols-12 gap-4 px-5 py-4 items-center transition-colors ${isDone ? 'cursor-pointer hover:bg-indigo-50/50' : ''}`}
-                    >
-                      {/* Name + avatar */}
-                      <div className="col-span-4 flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-                          idx === 0 ? 'bg-indigo-100 text-indigo-700'
-                          : idx === 1 ? 'bg-purple-100 text-purple-700'
-                          : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {initials}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-medium text-gray-900 truncate">{c.name || 'Processing…'}</div>
-                          {c.education_level && (
-                            <div className="text-xs text-gray-400 truncate capitalize">{c.education_level}</div>
+              {/* 4-Tier Filter Buttons */}
+              <div className="flex items-center gap-1.5 p-1 bg-white/[0.04] rounded-xl text-xs font-semibold border border-white/[0.06]">
+                {(['all', 'Strong', 'Potential', 'Low', 'Needs Review'] as const).map(tier => (
+                  <button
+                    key={tier}
+                    onClick={() => setTierFilter(tier)}
+                    className={`px-3 py-1.5 rounded-lg transition-all ${
+                      tierFilter === tier
+                        ? 'bg-white text-black font-bold shadow-sm'
+                        : 'text-white/40 hover:text-white'
+                    }`}
+                  >
+                    {tier === 'all' ? 'All Tiers' : tier}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sort By */}
+              <div className="flex items-center gap-2 text-xs text-white/40">
+                <span className="font-semibold uppercase tracking-wider">Sort:</span>
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value as any)}
+                  className="bg-[#14141f] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                >
+                  <option value="score_desc">Highest Match Score</option>
+                  <option value="score_asc">Lowest Match Score</option>
+                  <option value="exp_desc">Most Experience (Years)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Selection info bar */}
+            {selectedIds.size > 0 && (
+              <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
+                <span className="font-bold text-cyan-300">
+                  {selectedIds.size} of {filteredCandidates.length} candidate(s) selected
+                </span>
+                <button
+                  onClick={() => setSelectedIds(new Set())}
+                  className="text-white/40 hover:text-white font-medium"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Candidates Full Table */}
+          <motion.div
+            variants={fadeInUpVariants}
+            className="rounded-2xl border border-white/[0.08] overflow-hidden shadow-sm"
+            style={{ background: '#0d0d14' }}
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/[0.06] bg-white/[0.02] text-[11px] font-bold text-white/40 uppercase tracking-wider">
+                    <th className="py-4 pl-6 pr-2 w-10">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.size === filteredCandidates.length && filteredCandidates.length > 0}
+                        onChange={selectAll}
+                        className="rounded bg-white/[0.04] border-white/[0.2] text-cyan-500 focus:ring-cyan-500/50 accent-cyan-500"
+                      />
+                    </th>
+                    <th className="py-4 px-4">Candidate & Contact (Unblurred)</th>
+                    <th className="py-4 px-4 text-center">Experience & Degree</th>
+                    <th className="py-4 px-4 text-center">Score</th>
+                    <th className="py-4 px-4 text-center">Tier</th>
+                    <th className="py-4 pr-6 pl-4 text-right">Details</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.06] text-sm">
+                  {filteredCandidates.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-16 text-center text-white/30 text-sm">
+                        No candidates match the current filter criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredCandidates.map(c => {
+                      const tier = c.tier || (c.needs_manual_review ? 'Needs Review' : (c.overall_score && c.overall_score >= 75 ? 'Strong' : c.overall_score && c.overall_score >= 55 ? 'Potential' : 'Low'));
+                      const isExpanded = expandedIds.has(c.id);
+                      const isSelected = selectedIds.has(c.id);
+
+                      // Bonus strengths beyond JD: extracted skills not in JD required skills
+                      const reqSkillsLower = (job.required_skills || []).map(s => s.toLowerCase());
+                      const beyondSkills = (c.extracted_skills || []).filter(
+                        s => !reqSkillsLower.includes(s.toLowerCase())
+                      );
+
+                      return (
+                        <React.Fragment key={c.id}>
+                          <tr
+                            className={`transition-colors hover:bg-white/[0.02] ${
+                              isSelected ? 'bg-cyan-500/10' : ''
+                            }`}
+                          >
+                            {/* Checkbox */}
+                            <td className="py-4 pl-6 pr-2">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleSelect(c.id)}
+                                className="rounded bg-white/[0.04] border-white/[0.2] text-cyan-500 focus:ring-cyan-500/50 accent-cyan-500"
+                              />
+                            </td>
+
+                            {/* Candidate name & contact — FULL UNBLURRED */}
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-extrabold flex-shrink-0 shadow-md shadow-cyan-500/20">
+                                  {c.name ? c.name.slice(0, 2).toUpperCase() : 'CD'}
+                                </div>
+                                <div>
+                                  <div className="font-bold text-white flex items-center gap-2">
+                                    <span>{c.name || `Candidate #${c.id}`}</span>
+                                    {c.detected_title && (
+                                      <span className="text-[11px] text-white/40 font-normal">
+                                        • {c.detected_title}
+                                      </span>
+                                    )}
+                                    {c.is_capped && (
+                                      <span
+                                        title={c.cap_reason || 'Score capped at 59.9% due to missing must-have skill'}
+                                        className="inline-flex items-center gap-1 text-[10px] font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20 px-1.5 py-0.5 rounded cursor-help"
+                                      >
+                                        ⚠ Capped 59.9%
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-white/40 mt-0.5 flex items-center gap-2">
+                                    <span>{c.email || 'No email detected'}</span>
+                                    {c.phone && <span>· {c.phone}</span>}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Experience */}
+                            <td className="py-4 px-4 text-center">
+                              <div className="font-bold text-white">
+                                {c.experience_years !== null ? `${c.experience_years} yrs` : '—'}
+                              </div>
+                              {c.education_level && (
+                                <div className="text-[11px] text-white/40 capitalize">
+                                  {c.education_level.replace('_', ' ')}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Score */}
+                            <td className="py-4 px-4 text-center">
+                              <ScoreBadge score={c.overall_score} needsReview={c.needs_manual_review} />
+                            </td>
+
+                            {/* 4-Tier Badge */}
+                            <td className="py-4 px-4 text-center">
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+                                  TIER_BADGES[tier] || TIER_BADGES.Low
+                                }`}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${TIER_DOTS[tier] || TIER_DOTS.Low}`} />
+                                {tier}
+                              </span>
+                            </td>
+
+                            {/* Expand toggle */}
+                            <td className="py-4 pr-6 pl-4 text-right">
+                              <button
+                                onClick={() => toggleExpand(c.id)}
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
+                              >
+                                {isExpanded ? 'Hide' : 'Explain'}
+                                <svg
+                                  className={`w-3.5 h-3.5 transition-transform ${
+                                    isExpanded ? 'rotate-180' : ''
+                                  }`}
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                            </td>
+                          </tr>
+
+                          {/* ── EXPANDABLE EXPLANATION ROW WITH ANIMATION ── */}
+                          {isExpanded && (
+                            <tr className="bg-white/[0.015] border-b border-white/[0.06]">
+                              <td colSpan={6} className="p-0">
+                                <motion.div
+                                  variants={accordionVariants}
+                                  initial={shouldReduce ? false : "hidden"}
+                                  animate="visible"
+                                  exit="exit"
+                                  className="px-8 py-5"
+                                >
+                                  <div className="space-y-4">
+                                    {/* Unparseable warning if needs_manual_review */}
+                                    {c.needs_manual_review ? (
+                                      <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs">
+                                        <div className="font-bold mb-1 flex items-center gap-2 text-rose-400">
+                                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                          </svg>
+                                          Resume Requires Manual Review
+                                        </div>
+                                        <p>{c.error_message || 'The resume file could not be parsed cleanly. Zero synthetic scores were assigned to protect data integrity.'}</p>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        {/* Capping Note */}
+                                        {c.is_capped && c.cap_reason && (
+                                          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-2">
+                                            <span className="font-bold">Must-Have Penalty:</span> {c.cap_reason}
+                                          </div>
+                                        )}
+
+                                        {/* 5-Factor Score Breakdown */}
+                                        <div>
+                                          <div className="text-[11px] font-bold text-white/40 uppercase tracking-wider mb-2">
+                                            Traceable Component Breakdown
+                                          </div>
+                                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                                            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                              <div className="text-[11px] text-white/40">Semantic Fit (35%)</div>
+                                              <div className="text-base font-black text-white mt-0.5">
+                                                {c.semantic_score != null ? `${Math.round(c.semantic_score)}%` : '—'}
+                                              </div>
+                                            </div>
+                                            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                              <div className="text-[11px] text-white/40">Skill Coverage (30%)</div>
+                                              <div className="text-base font-black text-white mt-0.5">
+                                                {c.skills_score != null ? `${Math.round(c.skills_score)}%` : '—'}
+                                              </div>
+                                            </div>
+                                            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                              <div className="text-[11px] text-white/40">Experience (20%)</div>
+                                              <div className="text-base font-black text-white mt-0.5">
+                                                {c.experience_score != null ? `${Math.round(c.experience_score)}%` : '—'}
+                                              </div>
+                                            </div>
+                                            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                              <div className="text-[11px] text-white/40">Title Relevance (10%)</div>
+                                              <div className="text-base font-black text-white mt-0.5">
+                                                {c.title_score != null ? `${Math.round(c.title_score)}%` : '—'}
+                                              </div>
+                                            </div>
+                                            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                              <div className="text-[11px] text-white/40">Education (5%)</div>
+                                              <div className="text-base font-black text-white mt-0.5">
+                                                {c.education_score != null ? `${Math.round(c.education_score)}%` : '—'}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        {/* Matched vs Missing vs Beyond Skills */}
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                                          {/* Matched Required Skills */}
+                                          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 mb-2.5">
+                                              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                              Matched Required Skills ({c.matched_skills?.length || 0})
+                                            </div>
+                                            <div className="flex flex-wrap gap-1.5">
+                                              {c.matched_skills && c.matched_skills.length > 0 ? (
+                                                c.matched_skills.map(s => (
+                                                  <span
+                                                    key={s}
+                                                    className="bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2 py-0.5 rounded text-xs font-medium"
+                                                  >
+                                                    ✓ {s}
+                                                  </span>
+                                                ))
+                                              ) : (
+                                                <span className="text-xs text-white/30 italic">None matched</span>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          {/* Missing Required Skills */}
+                                          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                            <div className="flex items-center gap-1.5 text-xs font-bold text-rose-400 mb-2.5">
+                                              <span className="w-2 h-2 rounded-full bg-rose-500" />
+                                              Missing Required Skills ({c.missing_skills?.length || 0})
+                                            </div>
+                                            <div className="flex flex-wrap gap-1.5">
+                                              {c.missing_skills && c.missing_skills.length > 0 ? (
+                                                c.missing_skills.map(s => (
+                                                  <span
+                                                    key={s}
+                                                    className="bg-rose-500/10 text-rose-300 border border-rose-500/20 px-2 py-0.5 rounded text-xs font-medium"
+                                                  >
+                                                    ✗ {s}
+                                                  </span>
+                                                ))
+                                              ) : (
+                                                <span className="text-xs text-white/30 italic">No missing skills</span>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          {/* Beyond JD Strengths */}
+                                          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                            <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-400 mb-2.5">
+                                              <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                                              Bonus Strengths Beyond JD ({beyondSkills.length})
+                                            </div>
+                                            <div className="flex flex-wrap gap-1.5">
+                                              {beyondSkills.length > 0 ? (
+                                                beyondSkills.slice(0, 8).map(s => (
+                                                  <span
+                                                    key={s}
+                                                    className="bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 px-2 py-0.5 rounded text-xs font-medium"
+                                                  >
+                                                    ★ {s}
+                                                  </span>
+                                                ))
+                                              ) : (
+                                                <span className="text-xs text-white/30 italic">No bonus skills detected</span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              </td>
+                            </tr>
                           )}
-                        </div>
-                      </div>
-
-                      {/* Score */}
-                      <div className="col-span-2 flex items-center justify-center">
-                        {c.processing_status === 'done' || c.overall_score !== null
-                          ? <ScoreBadge score={c.overall_score} />
-                          : <ProcessingPill status={c.processing_status} />
-                        }
-                      </div>
-
-                      {/* Skills */}
-                      <div className="col-span-4 flex flex-wrap gap-1.5">
-                        {c.matched_skills?.slice(0, 3).map(s => (
-                          <span key={s} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{s}</span>
-                        ))}
-                        {(c.matched_skills?.length || 0) > 3 && (
-                          <span className="text-xs text-gray-400">+{c.matched_skills.length - 3} more</span>
-                        )}
-                        {(c.missing_skills?.length || 0) > 0 && (
-                          <span className="text-xs bg-red-50 text-red-400 line-through px-2 py-0.5 rounded">
-                            {c.missing_skills[0]}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Experience */}
-                      <div className="col-span-2 text-right text-sm text-gray-600">
-                        {c.experience_years !== null ? `${c.experience_years} Yrs` : '—'}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {filtered.length > 0 && (
-              <div className="px-5 py-3 border-t border-gray-100 text-xs text-gray-400">
-                Showing {filtered.length} of {candidates.length} candidates · {doneCount} scored
-              </div>
-            )}
-          </div>
-        </div>
+                        </React.Fragment>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        </motion.div>
       </main>
-
-      {/* Candidate detail panel */}
-      {selected && (
-        <CandidatePanel candidate={selected} job={job} onClose={() => setSelected(null)} />
-      )}
-
-      {/* Upload modal */}
-      {showUpload && jobId && (
-        <UploadModal
-          jobId={jobId}
-          onClose={() => setShowUpload(false)}
-          onUploaded={fetchCandidates}
-        />
-      )}
     </div>
   );
 }

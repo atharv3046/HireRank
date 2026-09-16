@@ -3,8 +3,17 @@
 @tailwind utilities;
 
 body {
-  @apply bg-gray-50 text-gray-900;
+  background-color: #0a0a0f;
+  color: #ffffff;
   font-feature-settings: "cv11", "ss01";
+}
+
+/* ── Accent gradient text ───────────────────────────────────────────── */
+.text-gradient {
+  background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* ── Slide-in panel from right ─────────────────────────────────────── */

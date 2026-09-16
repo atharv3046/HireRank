@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -17,9 +17,12 @@ class Candidate(Base):
     experience_years = Column(Float, nullable=True)
     education_level = Column(String, nullable=True)  # phd/masters/bachelors/associate/high_school
     education_details = Column(Text, nullable=True)
+    detected_title = Column(String, nullable=True)
     raw_text = Column(Text, nullable=True)
-    _embedding = Column("embedding", Text, nullable=True)  # JSON list of floats for SQLite
-    processing_status = Column(String, default="uploaded")  # uploaded/extracting/extracted/scoring/done/error/needs_ocr
+    _embedding = Column("embedding", Text, nullable=True)  # JSON list of floats
+    needs_manual_review = Column(Boolean, default=False)
+    processing_status = Column(String, default="uploaded")  # uploaded/parsing/extracting/scoring/done/error/needs_manual_review
+    pipeline_status = Column(String, default="Screened")  # Screened / Invited / Hire / No Hire
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, Query, Response
 from sqlalchemy.orm import Session
-from typing import List
-import os, shutil, uuid
+from typing import List, Optional
+import os, shutil, uuid, csv, io
 from app.core.database import get_db, SessionLocal
 from app.core.config import settings
 from app.models.candidate import Candidate
 from app.models.job_posting import JobPosting
-from app.schemas.candidate import CandidateRead
+from app.models.match_score import MatchScore
+from app.schemas.candidate import CandidateRead, CandidateWithScore
 from app.routers.auth import get_current_user
 from app.models.user import User
 
@@ -117,4 +118,271 @@ def get_candidate_status(candidate_id: int, db: Session = Depends(get_db), curre
     candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
-    return {"candidate_id": candidate_id, "status": candidate.processing_status, "error": candidate.error_message}
+
+    # Also pull the overall_score from match_scores if available
+    from app.models.match_score import MatchScore
+    ms = db.query(MatchScore).filter(MatchScore.candidate_id == candidate_id).first()
+
+    return {
+        "candidate_id": candidate_id,
+        "processing_status": candidate.processing_status,   # frontend reads this key
+        "status": candidate.processing_status,              # keep for backwards compat
+        "error": candidate.error_message,
+        "overall_score": ms.overall_score if ms else None,
+    }
+
+
+@router.get("/candidates", response_model=List[CandidateWithScore])
+def list_all_candidates(
+    search: Optional[str] = Query(None),
+    tier: Optional[str] = Query(None),
+    skill: Optional[str] = Query(None),
+    job_id: Optional[int] = Query(None),
+    pipeline_status: Optional[str] = Query(None),
+    sort_by: str = Query("score_desc"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Cross-batch candidate query across all job postings belonging to the logged-in recruiter.
+    Supports search (name, email, skills, job title), tier filter, pipeline status filter, job filter, and sorting.
+    """
+    jobs = db.query(JobPosting).filter(JobPosting.recruiter_id == current_user.id).all()
+    job_map = {j.id: j for j in jobs}
+    if not job_map:
+        return []
+
+    rows = (
+        db.query(Candidate, MatchScore)
+        .outerjoin(MatchScore, (MatchScore.candidate_id == Candidate.id) & (MatchScore.job_posting_id == Candidate.job_posting_id))
+        .filter(Candidate.job_posting_id.in_(list(job_map.keys())))
+        .all()
+    )
+
+    results = []
+    for c, ms in rows:
+        job = job_map.get(c.job_posting_id)
+        job_title = job.title if job else f"Job #{c.job_posting_id}"
+
+        score_val = ms.overall_score if ms else None
+        t = ms.tier if (ms and ms.tier) else ("Needs Review" if c.needs_manual_review else ("Strong" if score_val and score_val >= 75 else ("Potential" if score_val and score_val >= 55 else "Low")))
+        c_status = getattr(c, "pipeline_status", "Screened") or "Screened"
+
+        item = {
+            "id": c.id,
+            "job_posting_id": c.job_posting_id,
+            "name": c.name,
+            "email": c.email,
+            "phone": c.phone,
+            "extracted_skills": c.extracted_skills or [],
+            "experience_years": c.experience_years,
+            "education_level": c.education_level,
+            "education_details": c.education_details,
+            "detected_title": c.detected_title,
+            "needs_manual_review": c.needs_manual_review,
+            "processing_status": c.processing_status,
+            "pipeline_status": c_status,
+            "error_message": c.error_message,
+            "created_at": c.created_at,
+            "overall_score": score_val,
+            "semantic_score": ms.semantic_score if ms else None,
+            "skills_score": ms.skills_score if ms else None,
+            "experience_score": ms.experience_score if ms else None,
+            "title_score": ms.title_score if ms else None,
+            "education_score": ms.education_score if ms else None,
+            "tier": t,
+            "is_capped": ms.is_capped if ms else False,
+            "cap_reason": ms.cap_reason if ms else None,
+            "matched_skills": ms.matched_skills if ms else [],
+            "missing_skills": ms.missing_skills if ms else [],
+            "matched_preferred_skills": ms.matched_preferred_skills if ms else [],
+            "missing_preferred_skills": ms.missing_preferred_skills if ms else [],
+            "summary": ms.summary if ms else None,
+            "explanation_json": ms.explanation_json if ms else {},
+            "job_title": job_title,
+        }
+
+        # Per-job filter
+        if job_id and c.job_posting_id != job_id:
+            continue
+
+        # Pipeline status filter (All, Invited, Hire, No Hire)
+        if pipeline_status and pipeline_status.lower() not in ("all", "all candidates"):
+            norm_filter = pipeline_status.lower().replace(" ", "").replace("_", "")
+            norm_status = c_status.lower().replace(" ", "").replace("_", "")
+            if norm_filter != norm_status:
+                continue
+
+        # Tier filtering
+        if tier and tier.lower() != "all" and t.lower() != tier.lower():
+            continue
+
+        if skill and skill.strip():
+            sq = skill.lower().strip()
+            has_sk = any(sq in s.lower() for s in item["extracted_skills"]) or any(sq in s.lower() for s in item["matched_skills"])
+            if not has_sk:
+                continue
+
+        if search and search.strip():
+            sq = search.lower().strip()
+            name_m = bool(item["name"] and sq in item["name"].lower())
+            email_m = bool(item["email"] and sq in item["email"].lower())
+            title_m = bool(sq in job_title.lower())
+            skill_m = any(sq in s.lower() for s in item["extracted_skills"]) or any(sq in s.lower() for s in item["matched_skills"])
+            if not (name_m or email_m or title_m or skill_m):
+                continue
+
+        results.append(item)
+
+    # Sorting
+    if sort_by == "score_desc":
+        results.sort(key=lambda x: (x["overall_score"] is not None, x["overall_score"] or 0), reverse=True)
+    elif sort_by == "score_asc":
+        results.sort(key=lambda x: (x["overall_score"] is None, x["overall_score"] if x["overall_score"] is not None else 999))
+    elif sort_by == "exp_desc":
+        results.sort(key=lambda x: x["experience_years"] or 0, reverse=True)
+    elif sort_by == "newest":
+        results.sort(key=lambda x: x["created_at"], reverse=True)
+
+    return results
+
+
+@router.post("/candidates/export")
+def export_candidates_csv(
+    candidate_ids: Optional[List[int]] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Export selected or all candidates for the recruiter to CSV.
+    """
+    jobs = db.query(JobPosting).filter(JobPosting.recruiter_id == current_user.id).all()
+    job_map = {j.id: j for j in jobs}
+    if not job_map:
+        raise HTTPException(status_code=400, detail="No job postings found")
+
+    query = (
+        db.query(Candidate, MatchScore)
+        .outerjoin(MatchScore, (MatchScore.candidate_id == Candidate.id) & (MatchScore.job_posting_id == Candidate.job_posting_id))
+        .filter(Candidate.job_posting_id.in_(list(job_map.keys())))
+    )
+    if candidate_ids:
+        query = query.filter(Candidate.id.in_(candidate_ids))
+
+    rows = query.all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Candidate ID", "Batch Title", "Name", "Email", "Phone", "Detected Title",
+        "Experience (Years)", "Education Level", "Overall Score", "Tier",
+        "Semantic Score", "Skills Score", "Experience Score", "Title Score", "Education Score",
+        "Matched Skills", "Missing Skills", "Is Capped", "Cap Reason"
+    ])
+
+    for c, ms in rows:
+        job = job_map.get(c.job_posting_id)
+        job_title = job.title if job else "N/A"
+        score = ms.overall_score if ms else None
+        tier = ms.tier if (ms and ms.tier) else ("Needs Review" if c.needs_manual_review else ("Strong" if score and score >= 75 else ("Potential" if score and score >= 55 else "Low")))
+
+        writer.writerow([
+            c.id,
+            job_title,
+            c.name or f"Candidate #{c.id}",
+            c.email or "N/A",
+            c.phone or "N/A",
+            c.detected_title or "N/A",
+            c.experience_years if c.experience_years is not None else "N/A",
+            c.education_level or "N/A",
+            round(score, 1) if score is not None else "N/A",
+            tier,
+            round(ms.semantic_score, 1) if ms and ms.semantic_score is not None else "N/A",
+            round(ms.skills_score, 1) if ms and ms.skills_score is not None else "N/A",
+            round(ms.experience_score, 1) if ms and ms.experience_score is not None else "N/A",
+            round(ms.title_score, 1) if ms and ms.title_score is not None else "N/A",
+            round(ms.education_score, 1) if ms and ms.education_score is not None else "N/A",
+            "; ".join(ms.matched_skills) if ms and ms.matched_skills else "None",
+            "; ".join(ms.missing_skills) if ms and ms.missing_skills else "None",
+            "Yes" if ms and ms.is_capped else "No",
+            ms.cap_reason if ms and ms.cap_reason else ""
+        ])
+
+    csv_data = output.getvalue()
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=hirerank_candidates.csv"}
+    )
+
+
+from pydantic import BaseModel
+
+class BulkInviteRequest(BaseModel):
+    candidate_ids: List[int]
+    message: Optional[str] = None
+    stage: Optional[str] = "assessment"
+
+@router.post("/candidates/bulk-invite")
+def bulk_invite_candidates(
+    req: BulkInviteRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Simulates sending interview or assessment invitations to a batch of candidates.
+    Validates candidates belong to recruiter's jobs and marks them as 'Invited'.
+    """
+    jobs = db.query(JobPosting).filter(JobPosting.recruiter_id == current_user.id).all()
+    job_ids = [j.id for j in jobs]
+    
+    candidates = (
+        db.query(Candidate)
+        .filter(Candidate.id.in_(req.candidate_ids), Candidate.job_posting_id.in_(job_ids))
+        .all()
+    )
+    
+    if not candidates:
+        raise HTTPException(status_code=404, detail="No matching candidates found for this recruiter")
+        
+    for c in candidates:
+        c.pipeline_status = "Invited"
+    db.commit()
+
+    invited_count = len(candidates)
+    return {
+        "success": True,
+        "invited_count": invited_count,
+        "candidate_ids": [c.id for c in candidates],
+        "message": f"Successfully queued invitations for {invited_count} candidate(s)"
+    }
+
+
+class UpdatePipelineStatusRequest(BaseModel):
+    pipeline_status: str  # Screened / Invited / Hire / No Hire
+
+@router.patch("/candidates/{candidate_id}/pipeline-status")
+def update_candidate_pipeline_status(
+    candidate_id: int,
+    req: UpdatePipelineStatusRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update a candidate's pipeline status (Screened, Invited, Hire, No Hire).
+    """
+    jobs = db.query(JobPosting).filter(JobPosting.recruiter_id == current_user.id).all()
+    job_ids = [j.id for j in jobs]
+    candidate = db.query(Candidate).filter(Candidate.id == candidate_id, Candidate.job_posting_id.in_(job_ids)).first()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    
+    candidate.pipeline_status = req.pipeline_status
+    db.commit()
+    db.refresh(candidate)
+    return {
+        "id": candidate.id,
+        "pipeline_status": candidate.pipeline_status,
+        "message": f"Status updated to {candidate.pipeline_status}"
+    }
+

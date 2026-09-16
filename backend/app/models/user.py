@@ -11,6 +11,7 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     role = Column(String, default="recruiter")  # recruiter / admin
     company_name = Column(String, nullable=True)
+    domain = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     job_postings = relationship("JobPosting", back_populates="recruiter")
