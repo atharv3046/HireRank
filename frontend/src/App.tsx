@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -14,6 +15,7 @@ import ResumeScreeningsPage from './pages/ResumeScreeningsPage'
 import CandidatePipelinePage from './pages/CandidatePipelinePage'
 import SettingsPage from './pages/SettingsPage'
 import AssessmentsPage from './pages/AssessmentsPage'
+import AcceptInvitePage from './pages/AcceptInvitePage'
 
 // New guest flow (Screens 1-4)
 import LandingPage          from './pages/LandingPage'
@@ -22,8 +24,10 @@ import ProcessingPage       from './pages/ProcessingPage'
 import ResultsPreviewPage   from './pages/ResultsPreviewPage'
 import MarketingPage        from './pages/MarketingPage'
 
+const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID || import.meta.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '') as string;
+
 export default function App() {
-  return (
+  const routes = (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
@@ -33,6 +37,7 @@ export default function App() {
           <Route path="/screen"                element={<GuestTriagePage />} />
           <Route path="/processing/:sessionId" element={<ProcessingPage />} />
           <Route path="/results/:sessionId"    element={<ResultsPreviewPage />} />
+          <Route path="/accept-invite"         element={<AcceptInvitePage />} />
 
           {/* ── Auth ───────────────────────────────────────────────── */}
           <Route path="/login"  element={<LoginPage />} />
@@ -51,5 +56,11 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
-  )
+  );
+
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || 'placeholder-id'}>
+      {routes}
+    </GoogleOAuthProvider>
+  );
 }

@@ -116,3 +116,55 @@ def test_billing_and_plan_metrics(test_user):
     assert "team_seats" in data["usage"]
     assert len(data["plans"]) == 3
     assert data["plans"][0]["is_current"] is True
+
+
+def test_invite_token_verification_and_acceptance(test_user):
+    headers = test_user["auth_headers"]
+    invite_email = f"invited_{uuid.uuid4().hex[:6]}@partner.org"
+    
+    # 1. Invite team member
+    res = client.post(
+        "/settings/team/invite",
+        json={"name": "Sarah Connor", "email": invite_email, "role": "Recruiter"},
+        headers=headers
+    )
+    assert res.status_code == 200
+    member = res.json()
+    assert member["status"] == "Invited"
+    assert member["invite_token"] is not None
+    assert "/accept-invite?token=" in member["invite_url"]
+    token = member["invite_token"]
+
+    # 2. Get invite link via endpoint
+    link_res = client.get(f"/settings/team/members/{member['id']}/invite-link", headers=headers)
+    assert link_res.status_code == 200
+    assert link_res.json()["invite_token"] == token
+
+    # 3. Verify public invite token
+    verify_res = client.get(f"/settings/team/invite/verify?token={token}")
+    assert verify_res.status_code == 200
+    verify_data = verify_res.json()
+    assert verify_data["valid"] is True
+    assert verify_data["email"] == invite_email
+    assert verify_data["workspace_name"] == "Acme Innovations"
+
+    # 4. Accept invitation and complete signup
+    accept_res = client.post(
+        "/settings/team/invite/accept",
+        json={"token": token, "password": "securepassword123", "name": "Sarah Connor"}
+    )
+    assert accept_res.status_code == 200
+    accept_data = accept_res.json()
+    assert "access_token" in accept_data
+    assert accept_data["email"] == invite_email
+
+    # 5. Member is now Active in team list
+    team_res = client.get("/settings/team", headers=headers)
+    assert team_res.status_code == 200
+    updated_m = next(m for m in team_res.json()["members"] if m["id"] == member["id"])
+    assert updated_m["status"] == "Active"
+
+    # 6. Verify token is cleared (cannot be reused)
+    reverify_res = client.get(f"/settings/team/invite/verify?token={token}")
+    assert reverify_res.status_code == 404
+

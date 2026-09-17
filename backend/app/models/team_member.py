@@ -11,4 +11,6 @@ class TeamMember(Base):
     email = Column(String, nullable=False)
     role = Column(String, default="Recruiter")  # Admin / Recruiter / Reviewer
     status = Column(String, default="Active")  # Active / Invited
+    invite_token = Column(String, nullable=True, unique=True, index=True)
+    invite_expires_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

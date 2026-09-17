@@ -41,15 +41,22 @@ install_log.txt
 # Databases & local files
 *.sqlite3
 *.db
+*.db*
+*.bak*
 backend/resume_screening.db
 backend/uploads/*
 !backend/uploads/.gitkeep
 
 # Environment variables
 .env
-backend/.env
+.env.*
 !.env.example
+backend/.env
+backend/.env.*
 !backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
 
 # IDE & OS
 .vscode/

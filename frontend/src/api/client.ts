@@ -113,10 +113,15 @@ export const api = {
     const res = await client.post('/auth/login', { email, password });
     return res.data;
   },
+  googleSignin: async (credential: string, company_name?: string) => {
+    const res = await client.post('/auth/google', { credential, company_name });
+    return res.data;
+  },
   demoLogin: async () => {
     const res = await client.post('/auth/demo-login');
     return res.data;
   },
+
   getJobs: async () => {
     const res = await client.get('/jobs/');
     return res.data;
@@ -205,6 +210,14 @@ export const api = {
     const res = await client.post('/candidates/bulk-invite', { candidate_ids: candidateIds, message });
     return res.data;
   },
+  deleteCandidate: async (candidateId: number): Promise<{ message: string; candidate_id: number }> => {
+    const res = await client.delete(`/candidates/${candidateId}`);
+    return res.data;
+  },
+  deleteCandidatesBulk: async (candidateIds: number[]): Promise<{ message: string; deleted_ids: number[] }> => {
+    const res = await client.post('/candidates/bulk-delete', { candidate_ids: candidateIds });
+    return res.data;
+  },
   getCompanyProfile: async (): Promise<CompanyProfile> => {
     const res = await client.get('/settings/profile');
     return res.data;
@@ -219,6 +232,18 @@ export const api = {
   },
   inviteTeamMember: async (data: { email: string; role: string; name?: string }): Promise<TeamMember> => {
     const res = await client.post('/settings/team/invite', data);
+    return res.data;
+  },
+  getMemberInviteLink: async (memberId: number): Promise<{ invite_token: string; invite_url: string; email: string; name?: string; role: string }> => {
+    const res = await client.get(`/settings/team/members/${memberId}/invite-link`);
+    return res.data;
+  },
+  verifyInviteToken: async (token: string): Promise<{ valid: boolean; email: string; name?: string; role: string; workspace_name: string; inviter_email?: string }> => {
+    const res = await client.get('/settings/team/invite/verify', { params: { token } });
+    return res.data;
+  },
+  acceptTeamInvite: async (data: { token: string; password: string; name?: string }): Promise<{ access_token: string; user_id: number; email: string; role: string; workspace_name: string; message: string }> => {
+    const res = await client.post('/settings/team/invite/accept', data);
     return res.data;
   },
   removeTeamMember: async (memberId: number): Promise<{ success: boolean; message: string }> => {
@@ -271,6 +296,10 @@ export interface TeamMember {
   status: string;
   is_primary: boolean;
   created_at: string;
+  invite_token?: string | null;
+  invite_url?: string | null;
+  email_sent?: boolean;
+  email_error?: string | null;
 }
 
 export interface TeamResponse {

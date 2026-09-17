@@ -92,9 +92,13 @@ app.add_middleware(
 
 # Register routers
 app.include_router(auth.router)
+app.include_router(auth.router, prefix="/api")
 app.include_router(jobs.router)
+app.include_router(jobs.router, prefix="/api")
 app.include_router(candidates.router)
+app.include_router(candidates.router, prefix="/api")
 app.include_router(scoring.router)
+app.include_router(scoring.router, prefix="/api")
 app.include_router(guest_router.router)   # /guest/* — anonymous screening sessions
 app.include_router(guest_router.router, prefix="/api") # /api/guest/* — direct API alias
 app.include_router(internal.router)       # /internal/* — maintenance & cleanup tasks
@@ -113,6 +117,7 @@ def root():
     return {"message": "Resume Screening API", "docs": "/docs"}
 
 @app.post("/auth/demo-login")
+@app.post("/api/auth/demo-login")
 def demo_login():
     """One-click demo access — returns a token for the pre-seeded demo account."""
     from app.models.user import User

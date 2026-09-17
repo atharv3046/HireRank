@@ -324,3 +324,40 @@ def test_cross_batch_export_csv(setup_workspace_data):
     assert res.status_code == 200
     assert "Alice Johnson" in res.text
     assert "Backend Lead" in res.text
+
+
+def test_delete_candidate_endpoint(setup_workspace_data):
+    """Test DELETE /candidates/{candidate_id} removes candidate and their match scores."""
+    token = setup_workspace_data["token"]
+    c4_id = setup_workspace_data["c4_id"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Verify candidate exists
+    res = client.get(f"/candidates/{c4_id}", headers=headers)
+    assert res.status_code == 200
+
+    # Delete candidate
+    del_res = client.delete(f"/candidates/{c4_id}", headers=headers)
+    assert del_res.status_code == 200
+    assert del_res.json()["candidate_id"] == c4_id
+
+    # Verify candidate is now 404
+    res_after = client.get(f"/candidates/{c4_id}", headers=headers)
+    assert res_after.status_code == 404
+
+
+def test_bulk_delete_candidates_endpoint(setup_workspace_data):
+    """Test POST /candidates/bulk-delete removes multiple candidates."""
+    token = setup_workspace_data["token"]
+    c2_id = setup_workspace_data["c2_id"]
+    c3_id = setup_workspace_data["c3_id"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    res = client.post("/candidates/bulk-delete", json={"candidate_ids": [c2_id, c3_id]}, headers=headers)
+    assert res.status_code == 200
+    assert res.json()["deleted_ids"] == [c2_id, c3_id]
+
+    # Verify they are gone
+    assert client.get(f"/candidates/{c2_id}", headers=headers).status_code == 404
+    assert client.get(f"/candidates/{c3_id}", headers=headers).status_code == 404
+

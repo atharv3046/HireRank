@@ -10,13 +10,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import { api, CandidateWithScore } from '../api/client';
 import {
   useReducedMotion,
   fadeInUpVariants,
   staggerContainerVariants,
+  modalBackdropVariants,
+  modalContentVariants,
 } from '../utils/animations';
 
 const TIER_STYLES: Record<string, string> = {
@@ -108,6 +110,86 @@ export default function CandidatesPage() {
       console.error('CSV export failed', err);
     } finally {
       setExporting(false);
+    }
+  };
+
+  const [deleting, setDeleting] = useState(false);
+
+  // ── Invite Modal State ───────────────────────────────────────────────────
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<CandidateWithScore | null>(null);
+  const [inviteName, setInviteName] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('Recruiter (Can screen & invite candidates)');
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState(false);
+
+  const handleOpenInviteModal = (candidate?: CandidateWithScore) => {
+    if (candidate) {
+      setSelectedCandidate(candidate);
+      setInviteName(candidate.name || '');
+      setInviteEmail(candidate.email || '');
+    } else {
+      setSelectedCandidate(null);
+      setInviteName('');
+      setInviteEmail('');
+    }
+    setInviteRole('Recruiter (Can screen & invite candidates)');
+    setInviteError(null);
+    setInviteSuccess(false);
+    setShowInviteModal(true);
+  };
+
+  const handleSendCandidateInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail.trim()) return;
+    setSendingInvite(true);
+    setInviteError(null);
+    try {
+      if (selectedCandidate) {
+        await api.bulkInviteCandidates([selectedCandidate.id], `Invited as ${inviteRole}`);
+        setCandidates(prev =>
+          prev.map(c => (c.id === selectedCandidate.id ? { ...c, pipeline_status: 'Invited' } : c))
+        );
+      } else {
+        const match = candidates.find(
+          c => (c.email || '').toLowerCase() === inviteEmail.trim().toLowerCase()
+        );
+        if (match) {
+          await api.bulkInviteCandidates([match.id], `Invited as ${inviteRole}`);
+          setCandidates(prev =>
+            prev.map(c => (c.id === match.id ? { ...c, pipeline_status: 'Invited' } : c))
+          );
+        }
+      }
+      setInviteSuccess(true);
+    } catch (err: any) {
+      console.error('Candidate invite failed', err);
+      setInviteError(err.response?.data?.detail || 'Failed to send invitation');
+    } finally {
+      setSendingInvite(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const count = selectedIds.size > 0 ? selectedIds.size : candidates.length;
+    const ids = selectedIds.size > 0 ? Array.from(selectedIds) : candidates.map(c => c.id);
+    if (ids.length === 0) return;
+
+    if (!window.confirm(`Are you sure you want to delete ${count} candidate(s) and their resume files? This action cannot be undone.`)) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      await api.deleteCandidatesBulk(ids);
+      setCandidates(prev => prev.filter(c => !ids.includes(c.id)));
+      setSelectedIds(new Set());
+    } catch (err) {
+      console.error('Failed to delete candidates', err);
+      alert('Failed to delete candidate(s)');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -212,6 +294,21 @@ export default function CandidatesPage() {
                 </svg>
                 {exporting ? 'Exporting…' : selectedIds.size > 0 ? `Export (${selectedIds.size})` : 'Export All'}
               </motion.button>
+
+              {candidates.length > 0 && (
+                <motion.button
+                  onClick={handleBulkDelete}
+                  disabled={deleting}
+                  whileHover={shouldReduce ? undefined : { scale: 1.02 }}
+                  whileTap={shouldReduce ? undefined : { scale: 0.98 }}
+                  className="flex items-center gap-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 px-3 py-1.5 rounded-xl font-semibold transition-colors disabled:opacity-50 text-xs ml-1"
+                >
+                  <svg className="w-3.5 h-3.5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  {deleting ? 'Deleting…' : selectedIds.size > 0 ? `Delete (${selectedIds.size})` : 'Delete Resumes'}
+                </motion.button>
+              )}
             </div>
           </motion.div>
 
@@ -267,6 +364,7 @@ export default function CandidatesPage() {
                     <th className="py-4 px-4 text-center">Score</th>
                     <th className="py-4 px-4 text-center">Tier</th>
                     <th className="py-4 pr-6 pl-4 text-center">Top Skills</th>
+                    <th className="py-4 pr-6 pl-2 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.06] text-sm">
@@ -366,6 +464,20 @@ export default function CandidatesPage() {
                             )}
                           </div>
                         </td>
+
+                        {/* Invite Action */}
+                        <td className="py-4 pr-6 pl-2 text-center" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleOpenInviteModal(c)}
+                            title="Invite candidate"
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-400 transition-colors mx-auto"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                            </svg>
+                            Invite
+                          </button>
+                        </td>
                       </motion.tr>
                     );
                   })}
@@ -379,6 +491,138 @@ export default function CandidatesPage() {
           )}
         </motion.div>
       </main>
+
+      {/* ── INVITE CANDIDATE MODAL ── */}
+      <AnimatePresence>
+        {showInviteModal && (
+          <motion.div
+            variants={modalBackdropVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          >
+            <motion.div
+              variants={modalContentVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="w-full max-w-md rounded-2xl border border-white/[0.1] p-6 shadow-2xl space-y-5"
+              style={{ background: '#0d0d14' }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
+                    CANDIDATE INVITATION
+                  </span>
+                  <h3 className="text-lg font-extrabold text-white">Invite to Assessment & Interview</h3>
+                </div>
+                <button
+                  onClick={() => setShowInviteModal(false)}
+                  className="w-8 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white flex items-center justify-center transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {inviteSuccess ? (
+                <div className="space-y-4 py-2">
+                  <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
+                      ✓
+                    </div>
+                    <div>
+                      <div className="font-bold text-white text-sm">Invitation Sent!</div>
+                      <p className="text-white/60 text-xs mt-1">
+                        <strong className="text-white">{inviteName || inviteEmail}</strong> has been marked as <span className="text-cyan-400 font-bold">Invited</span> in the pipeline.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end pt-2">
+                    <button
+                      onClick={() => setShowInviteModal(false)}
+                      className="px-5 py-2 rounded-xl text-xs font-bold bg-white/[0.08] hover:bg-white/[0.12] text-white transition-colors"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleSendCandidateInvite} className="space-y-4">
+                  {inviteError && (
+                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs">
+                      {inviteError}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">
+                      Candidate Name
+                    </label>
+                    <input
+                      type="text"
+                      value={inviteName}
+                      onChange={e => setInviteName(e.target.value)}
+                      placeholder="e.g. Sarah Connor"
+                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={inviteEmail}
+                      onChange={e => setInviteEmail(e.target.value)}
+                      placeholder="candidate@company.com"
+                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">
+                      Assessment Stage
+                    </label>
+                    <select
+                      value={inviteRole}
+                      onChange={e => setInviteRole(e.target.value)}
+                      className="w-full px-3.5 py-2 text-xs bg-[#14141f] border border-white/[0.1] rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50 cursor-pointer"
+                    >
+                      <option value="Screening">Screening</option>
+                      <option value="Technical Assessment">Technical Assessment</option>
+                      <option value="Interview">Interview</option>
+                      <option value="Recruiter (Can screen & invite candidates)">Full Pipeline Access</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2.5 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowInviteModal(false)}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-white/40 hover:text-white transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={sendingInvite}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 disabled:opacity-50 text-white shadow-lg shadow-cyan-500/20 transition-all"
+                    >
+                      {sendingInvite && (
+                        <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      )}
+                      Send Invitation
+                    </button>
+                  </div>
+                </form>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

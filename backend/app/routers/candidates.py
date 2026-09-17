@@ -10,6 +10,7 @@ from app.models.match_score import MatchScore
 from app.schemas.candidate import CandidateRead, CandidateWithScore
 from app.routers.auth import get_current_user
 from app.models.user import User
+from app.services.email import send_candidate_invite_email
 
 router = APIRouter(tags=["candidates"])
 
@@ -344,17 +345,36 @@ def bulk_invite_candidates(
     
     if not candidates:
         raise HTTPException(status_code=404, detail="No matching candidates found for this recruiter")
-        
+
+    # Map job titles for email content
+    job_map = {j.id: j.title for j in jobs}
+
+    emails_sent = 0
     for c in candidates:
         c.pipeline_status = "Invited"
+        if c.email and "@" in c.email:
+            job_title = job_map.get(c.job_posting_id, "Open Role")
+            sent, _ = send_candidate_invite_email(
+                to_email=c.email,
+                candidate_name=c.name,
+                job_title=job_title,
+                company_name=current_user.company_name or "HireRank",
+                recruiter_email=current_user.email,
+                message=req.message,
+                stage=req.stage or "assessment",
+            )
+            if sent:
+                emails_sent += 1
+
     db.commit()
 
     invited_count = len(candidates)
     return {
         "success": True,
         "invited_count": invited_count,
+        "emails_sent": emails_sent,
         "candidate_ids": [c.id for c in candidates],
-        "message": f"Successfully queued invitations for {invited_count} candidate(s)"
+        "message": f"Successfully invited {invited_count} candidate(s)" + (f" ({emails_sent} email(s) delivered)" if emails_sent > 0 else "")
     }
 
 
@@ -385,4 +405,71 @@ def update_candidate_pipeline_status(
         "pipeline_status": candidate.pipeline_status,
         "message": f"Status updated to {candidate.pipeline_status}"
     }
+
+
+class BulkDeleteCandidatesRequest(BaseModel):
+    candidate_ids: List[int]
+
+
+@router.delete("/candidates/{candidate_id}")
+def delete_candidate(
+    candidate_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Delete a candidate record, associated match score, and uploaded resume file.
+    """
+    jobs = db.query(JobPosting).filter(JobPosting.recruiter_id == current_user.id).all()
+    job_ids = [j.id for j in jobs]
+    candidate = db.query(Candidate).filter(Candidate.id == candidate_id, Candidate.job_posting_id.in_(job_ids)).first()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    if candidate.resume_file_path:
+        try:
+            p = os.path.normpath(candidate.resume_file_path)
+            if os.path.exists(p):
+                os.remove(p)
+        except Exception:
+            pass
+
+    db.query(MatchScore).filter(MatchScore.candidate_id == candidate_id).delete(synchronize_session=False)
+    db.delete(candidate)
+    db.commit()
+
+    return {"message": "Candidate deleted successfully", "candidate_id": candidate_id}
+
+
+@router.post("/candidates/bulk-delete")
+def bulk_delete_candidates(
+    req: BulkDeleteCandidatesRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Delete multiple candidates and their associated resume files and match scores.
+    """
+    jobs = db.query(JobPosting).filter(JobPosting.recruiter_id == current_user.id).all()
+    job_ids = [j.id for j in jobs]
+    candidates = db.query(Candidate).filter(Candidate.id.in_(req.candidate_ids), Candidate.job_posting_id.in_(job_ids)).all()
+    
+    deleted_ids = []
+    for cand in candidates:
+        if cand.resume_file_path:
+            try:
+                p = os.path.normpath(cand.resume_file_path)
+                if os.path.exists(p):
+                    os.remove(p)
+            except Exception:
+                pass
+        deleted_ids.append(cand.id)
+    
+    if deleted_ids:
+        db.query(MatchScore).filter(MatchScore.candidate_id.in_(deleted_ids)).delete(synchronize_session=False)
+        db.query(Candidate).filter(Candidate.id.in_(deleted_ids)).delete(synchronize_session=False)
+        db.commit()
+
+    return {"message": f"Deleted {len(deleted_ids)} candidate(s)", "deleted_ids": deleted_ids}
+
 

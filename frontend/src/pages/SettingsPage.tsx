@@ -45,6 +45,12 @@ export default function SettingsPage() {
   const [inviteRole, setInviteRole] = useState('Recruiter');
   const [sendingInvite, setSendingInvite] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [createdInviteLink, setCreatedInviteLink] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [invitedEmailTarget, setInvitedEmailTarget] = useState('');
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedMemberId, setCopiedMemberId] = useState<number | null>(null);
 
   // Load all data
   const loadData = useCallback(async () => {
@@ -125,7 +131,11 @@ export default function SettingsPage() {
         used: prev.used + 1,
         percentage: Math.round(((prev.used + 1) / prev.total) * 100),
       }));
-      setShowInviteModal(false);
+      const fullUrl = `${window.location.origin}${newMember.invite_url || `/accept-invite?token=${newMember.invite_token}`}`;
+      setCreatedInviteLink(fullUrl);
+      setEmailSent(!!newMember.email_sent);
+      setEmailError(newMember.email_error || null);
+      setInvitedEmailTarget(inviteEmail.trim());
       setInviteEmail('');
       setInviteName('');
       setInviteRole('Recruiter');
@@ -134,6 +144,33 @@ export default function SettingsPage() {
       setInviteError(err.response?.data?.detail || 'Failed to send invitation');
     } finally {
       setSendingInvite(false);
+    }
+  };
+
+  const handleCopyLink = (url: string, memberId?: number) => {
+    navigator.clipboard.writeText(url);
+    if (memberId) {
+      setCopiedMemberId(memberId);
+      setTimeout(() => setCopiedMemberId(null), 2000);
+    } else {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }
+  };
+
+  const handleCopyExistingMemberLink = async (member: TeamMember) => {
+    try {
+      let link = member.invite_token
+        ? `${window.location.origin}/accept-invite?token=${member.invite_token}`
+        : null;
+      if (!link) {
+        const res = await api.getMemberInviteLink(member.id);
+        link = `${window.location.origin}${res.invite_url}`;
+      }
+      handleCopyLink(link, member.id);
+    } catch (err) {
+      console.error('Failed to get invite link', err);
+      alert('Failed to retrieve invite link');
     }
   };
 
@@ -484,12 +521,25 @@ export default function SettingsPage() {
                                 {m.is_primary ? (
                                   <span className="text-white/20 italic">Primary</span>
                                 ) : (
-                                  <button
-                                    onClick={() => handleRemoveMember(m.id)}
-                                    className="text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors"
-                                  >
-                                    Remove
-                                  </button>
+                                  <div className="flex items-center justify-end gap-3">
+                                    {m.status === 'Invited' && (
+                                      <button
+                                        onClick={() => handleCopyExistingMemberLink(m)}
+                                        className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1"
+                                      >
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                        {copiedMemberId === m.id ? 'Copied!' : 'Copy Link'}
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => handleRemoveMember(m.id)}
+                                      className="text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
                                 )}
                               </td>
                             </motion.tr>
@@ -531,7 +581,11 @@ export default function SettingsPage() {
                   <h3 className="text-lg font-extrabold text-white">Invite Team Member</h3>
                 </div>
                 <button
-                  onClick={() => setShowInviteModal(false)}
+                  onClick={() => {
+                    setCreatedInviteLink(null);
+                    setEmailError(null);
+                    setShowInviteModal(false);
+                  }}
                   className="w-8 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white flex items-center justify-center transition-colors"
                 >
                   ✕
@@ -544,69 +598,138 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              <form onSubmit={handleInviteMember} className="space-y-4">
-                <div>
-                  <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">
-                    Member Name
-                  </label>
-                  <input
-                    type="text"
-                    value={inviteName}
-                    onChange={e => setInviteName(e.target.value)}
-                    placeholder="e.g. Sarah Connor"
-                    className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
-                  />
-                </div>
+              {createdInviteLink ? (
+                <div className="space-y-4 py-2">
+                  <div className={`p-4 rounded-xl border text-xs flex items-start gap-3 ${
+                    emailSent
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                      : emailError
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                      : 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300'
+                  }`}>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 font-bold ${
+                      emailSent ? 'bg-emerald-500/20 text-emerald-400' : emailError ? 'bg-amber-500/20 text-amber-400' : 'bg-cyan-500/20 text-cyan-400'
+                    }`}>
+                      {emailSent ? '✉' : emailError ? '!' : '✓'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-white text-sm">
+                        {emailSent ? 'Invitation Email Delivered! ✓' : emailError ? 'Invite Created (Email Not Sent)' : 'Invitation Created!'}
+                      </div>
+                      <p className="text-white/70 text-xs mt-1 leading-relaxed">
+                        {emailSent
+                          ? `An email with the invitation link has been delivered to ${invitedEmailTarget || 'the invitee'}.`
+                          : emailError
+                          ? <>Email delivery failed (<span className="text-amber-300 font-mono">{emailError}</span>). Share this link directly with your colleague:</>
+                          : 'Email sending is not configured. Share this invitation link directly with your colleague:'}
+                      </p>
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={inviteEmail}
-                    onChange={e => setInviteEmail(e.target.value)}
-                    placeholder="colleague@company.com"
-                    className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
-                  />
-                </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider">
+                      Invitation Link (Valid for 7 days)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={createdInviteLink}
+                        className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white select-all font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleCopyLink(createdInviteLink)}
+                        className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                          copiedLink
+                            ? 'bg-emerald-500 text-black shadow-emerald-500/20 shadow-lg'
+                            : 'bg-cyan-500 hover:bg-cyan-400 text-black shadow-cyan-500/20 shadow-lg'
+                        }`}
+                      >
+                        {copiedLink ? 'Copied!' : 'Copy Link'}
+                      </button>
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">
-                    Workspace Role
-                  </label>
-                  <select
-                    value={inviteRole}
-                    onChange={e => setInviteRole(e.target.value)}
-                    className="w-full px-3.5 py-2 text-xs bg-[#14141f] border border-white/[0.1] rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50 cursor-pointer"
-                  >
-                    <option value="Recruiter">Recruiter (Can screen & invite candidates)</option>
-                    <option value="Admin">Admin (Full workspace access)</option>
-                    <option value="Reviewer">Reviewer (Read-only ranking access)</option>
-                  </select>
+                  <div className="flex justify-end pt-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreatedInviteLink(null);
+                        setEmailError(null);
+                        setShowInviteModal(false);
+                      }}
+                      className="px-5 py-2 rounded-xl text-xs font-bold bg-white/[0.08] hover:bg-white/[0.12] text-white transition-colors"
+                    >
+                      Done
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <form onSubmit={handleInviteMember} className="space-y-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">
+                      Member Name
+                    </label>
+                    <input
+                      type="text"
+                      value={inviteName}
+                      onChange={e => setInviteName(e.target.value)}
+                      placeholder="e.g. Sarah Connor"
+                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                    />
+                  </div>
 
-                <div className="flex items-center justify-end gap-2.5 pt-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowInviteModal(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white/40 hover:text-white transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={sendingInvite}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 disabled:opacity-50 text-white shadow-lg shadow-cyan-500/20 transition-all"
-                  >
-                    {sendingInvite && (
-                      <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    )}
-                    Send Invitation
-                  </button>
-                </div>
-              </form>
+                  <div>
+                    <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={inviteEmail}
+                      onChange={e => setInviteEmail(e.target.value)}
+                      placeholder="colleague@company.com"
+                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">
+                      Workspace Role
+                    </label>
+                    <select
+                      value={inviteRole}
+                      onChange={e => setInviteRole(e.target.value)}
+                      className="w-full px-3.5 py-2 text-xs bg-[#14141f] border border-white/[0.1] rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50 cursor-pointer"
+                    >
+                      <option value="Recruiter">Recruiter (Can screen & invite candidates)</option>
+                      <option value="Admin">Admin (Full workspace access)</option>
+                      <option value="Reviewer">Reviewer (Read-only ranking access)</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2.5 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowInviteModal(false)}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-white/40 hover:text-white transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={sendingInvite}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 disabled:opacity-50 text-white shadow-lg shadow-cyan-500/20 transition-all"
+                    >
+                      {sendingInvite && (
+                        <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      )}
+                      Send Invitation
+                    </button>
+                  </div>
+                </form>
+              )}
             </motion.div>
           </motion.div>
         )}

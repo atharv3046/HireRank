@@ -1,8 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from datetime import datetime, timedelta, timezone
+import uuid
+import os
 from pydantic import BaseModel, EmailStr
 from app.core.database import get_db
+from app.core.security import hash_password, create_access_token
 from app.models.user import User
 from app.models.job_posting import JobPosting
 from app.models.candidate import Candidate
@@ -10,6 +14,7 @@ from app.models.match_score import MatchScore
 from app.models.team_member import TeamMember
 from app.routers.auth import get_current_user
 from app.services.aggregates import compute_batch_aggregates
+from app.services.email import send_team_invite_email
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -36,6 +41,10 @@ class TeamMemberRead(BaseModel):
     status: str
     is_primary: bool = False
     created_at: str
+    invite_token: Optional[str] = None
+    invite_url: Optional[str] = None
+    email_sent: bool = False
+    email_error: Optional[str] = None
 
 class TeamResponse(BaseModel):
     seat_usage: dict
@@ -44,6 +53,11 @@ class TeamResponse(BaseModel):
 class InviteTeamMemberRequest(BaseModel):
     email: EmailStr
     role: str = "Recruiter"
+    name: Optional[str] = None
+
+class AcceptInviteRequest(BaseModel):
+    token: str
+    password: str
     name: Optional[str] = None
 
 class UpdateTeamMemberRequest(BaseModel):
@@ -130,7 +144,9 @@ def get_team_members(
             role=m.role,
             status=m.status,
             is_primary=(m.email == current_user.email),
-            created_at=m.created_at.strftime("%d %b %Y") if m.created_at else "Recent"
+            created_at=m.created_at.strftime("%d %b %Y") if m.created_at else "Recent",
+            invite_token=m.invite_token,
+            invite_url=f"/accept-invite?token={m.invite_token}" if m.invite_token else None
         )
         for m in members
     ]
@@ -152,6 +168,7 @@ def invite_team_member(
 ):
     """
     Invite a new team member. Validates seat capacity (5-seat limit).
+    Generates a secure invitation token and URL.
     """
     # Ensure primary admin is seeded
     admin_exists = db.query(TeamMember).filter(TeamMember.org_user_id == current_user.id).first()
@@ -180,16 +197,36 @@ def invite_team_member(
     if already_invited:
         raise HTTPException(status_code=400, detail=f"Team member with email {req.email} already exists")
 
+    token = str(uuid.uuid4())
+    expires = datetime.now(timezone.utc) + timedelta(days=7)
+
     member = TeamMember(
         org_user_id=current_user.id,
         name=req.name or req.email.split("@")[0].title(),
         email=req.email,
         role=req.role,
-        status="Invited"
+        status="Invited",
+        invite_token=token,
+        invite_expires_at=expires
     )
     db.add(member)
     db.commit()
     db.refresh(member)
+
+    # ── Build full invite URL ─────────────────────────────────────────
+    base_url = os.getenv("APP_BASE_URL", "http://localhost:5173").rstrip("/")
+    full_invite_url = f"{base_url}/accept-invite?token={member.invite_token}"
+
+    # ── Send invitation email (non-blocking; failure doesn’t abort the invite) ─
+    workspace_name = current_user.company_name or "HireRank Workspace"
+    email_sent, email_err = send_team_invite_email(
+        to_email=member.email,
+        to_name=member.name,
+        invite_url=full_invite_url,
+        workspace_name=workspace_name,
+        inviter_email=current_user.email,
+        role=member.role,
+    )
 
     return TeamMemberRead(
         id=member.id,
@@ -198,8 +235,134 @@ def invite_team_member(
         role=member.role,
         status=member.status,
         is_primary=False,
-        created_at=member.created_at.strftime("%d %b %Y") if member.created_at else "Today"
+        created_at=member.created_at.strftime("%d %b %Y") if member.created_at else "Today",
+        invite_token=member.invite_token,
+        invite_url=f"/accept-invite?token={member.invite_token}",
+        email_sent=email_sent,
+        email_error=email_err,
     )
+
+
+@router.get("/team/members/{member_id}/invite-link")
+def get_member_invite_link(
+    member_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retrieve or regenerate the invitation link for an invited team member.
+    """
+    member = db.query(TeamMember).filter(
+        TeamMember.id == member_id,
+        TeamMember.org_user_id == current_user.id
+    ).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+    if member.status != "Invited":
+        raise HTTPException(status_code=400, detail="Team member is already Active")
+
+    if not member.invite_token:
+        member.invite_token = str(uuid.uuid4())
+        member.invite_expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        db.commit()
+        db.refresh(member)
+
+    return {
+        "invite_token": member.invite_token,
+        "invite_url": f"/accept-invite?token={member.invite_token}",
+        "email": member.email,
+        "name": member.name,
+        "role": member.role
+    }
+
+
+@router.get("/team/invite/verify")
+def verify_invite_token(token: str = Query(...), db: Session = Depends(get_db)):
+    """
+    Public endpoint to verify an invitation token before showing the acceptance form.
+    """
+    member = db.query(TeamMember).filter(TeamMember.invite_token == token).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Invalid invitation link")
+
+    if member.invite_expires_at:
+        exp = member.invite_expires_at
+        if exp.tzinfo is None:
+            exp = exp.replace(tzinfo=timezone.utc)
+        if exp < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="This invitation link has expired. Please request a new invite.")
+
+    if member.status == "Active":
+        raise HTTPException(status_code=400, detail="This invitation has already been accepted. Please sign in.")
+
+    org_user = db.query(User).filter(User.id == member.org_user_id).first()
+    workspace_name = (org_user.company_name if org_user and org_user.company_name else "HireRank Workspace")
+
+    return {
+        "valid": True,
+        "email": member.email,
+        "name": member.name,
+        "role": member.role,
+        "workspace_name": workspace_name,
+        "inviter_email": org_user.email if org_user else None
+    }
+
+
+@router.post("/team/invite/accept")
+def accept_team_invite(req: AcceptInviteRequest, db: Session = Depends(get_db)):
+    """
+    Public endpoint: Accepts an invitation, creates or updates the user account,
+    sets team member status to Active, and logs the user in immediately.
+    """
+    member = db.query(TeamMember).filter(TeamMember.invite_token == req.token).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Invalid invitation link")
+
+    if member.invite_expires_at:
+        exp = member.invite_expires_at
+        if exp.tzinfo is None:
+            exp = exp.replace(tzinfo=timezone.utc)
+        if exp < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="This invitation link has expired")
+
+    org_user = db.query(User).filter(User.id == member.org_user_id).first()
+    workspace_name = (org_user.company_name if org_user and org_user.company_name else "HireRank Workspace")
+
+    # Find or create user
+    user = db.query(User).filter(User.email == member.email).first()
+    if not user:
+        user = User(
+            email=member.email,
+            password_hash=hash_password(req.password),
+            role=member.role.lower(),
+            company_name=workspace_name
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    else:
+        user.password_hash = hash_password(req.password)
+        if workspace_name:
+            user.company_name = workspace_name
+        db.commit()
+
+    # Update team member status to Active
+    member.status = "Active"
+    if req.name and req.name.strip():
+        member.name = req.name.strip()
+    member.invite_token = None
+    db.commit()
+
+    # Generate token for immediate login
+    access_token = create_access_token({"sub": str(user.id)})
+    return {
+        "access_token": access_token,
+        "user_id": user.id,
+        "email": user.email,
+        "role": user.role,
+        "workspace_name": workspace_name,
+        "message": f"Welcome to {workspace_name}! Your invitation is accepted."
+    }
 
 
 @router.delete("/team/members/{member_id}")

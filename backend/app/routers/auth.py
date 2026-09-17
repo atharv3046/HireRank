@@ -4,6 +4,9 @@ from app.core.database import get_db
 from app.core.security import hash_password, verify_password, create_access_token
 from app.models.user import User
 from app.schemas.auth import SignupRequest, LoginRequest, TokenResponse
+from app.core.config import settings
+import os, httpx
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -50,3 +53,79 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_access_token({"sub": str(user.id)})
     return TokenResponse(access_token=token, user_id=user.id, email=user.email, role=user.role)
+
+
+# ── Native Google OAuth ───────────────────────────────────────────────────────
+
+class GoogleSigninRequest(BaseModel):
+    credential: str          # Google OAuth Access Token or ID Token
+    company_name: str | None = None
+
+@router.post("/google", response_model=TokenResponse)
+def google_signin(req: GoogleSigninRequest, db: Session = Depends(get_db)):
+    """
+    Verifies a Google OAuth token directly via Google's API,
+    locates or creates the HireRank User, and returns a standard JWT.
+    """
+    token = req.credential.strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="Missing Google credential token")
+
+    email = None
+    name = None
+
+    # 1. First attempt: Treat as OAuth2 access_token -> Google userinfo endpoint
+    try:
+        resp = httpx.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            email = data.get("email")
+            name = data.get("name")
+    except Exception:
+        pass
+
+    # 2. Second attempt: Treat as OpenID Connect ID Token -> Google tokeninfo endpoint
+    if not email:
+        try:
+            resp = httpx.get(
+                "https://oauth2.googleapis.com/tokeninfo",
+                params={"id_token": token},
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                email = data.get("email")
+                name = data.get("name")
+        except Exception:
+            pass
+
+    if not email:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid Google credential or token could not be verified with Google."
+        )
+
+    # ── Find or create HireRank user ──────────────────────────────────────
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        user = User(
+            email=email,
+            password_hash=hash_password(os.urandom(32).hex()),
+            role="recruiter",
+            company_name=req.company_name or (name or email.split("@")[0].title()),
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    access_token = create_access_token({"sub": str(user.id)})
+    return TokenResponse(
+        access_token=access_token,
+        user_id=user.id,
+        email=user.email,
+        role=user.role,
+    )
