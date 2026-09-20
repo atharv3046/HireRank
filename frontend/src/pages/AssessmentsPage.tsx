@@ -9,7 +9,7 @@ import {
 } from '../utils/animations';
 import {
   api,
-  ScreeningBatchOption,
+  JobPosting,
   ExtractedBlueprintResponse,
   BlueprintData,
   PassRatePreview,
@@ -23,15 +23,28 @@ export default function AssessmentsPage() {
 
   // Wizard state: 1 = Basics & JD, 2 = Tune & Blueprint, 3 = Confirm & Launch, 4 = Past Assessments
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [maxStepReached, setMaxStepReached] = useState<number>(1);
 
-  // Batches for import dropdown
-  const [batches, setBatches] = useState<ScreeningBatchOption[]>([]);
+  // Batches for import dropdown (reusing JobPosting from api.getJobs())
+  const [batches, setBatches] = useState<JobPosting[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null);
+  const [importedBatchTitle, setImportedBatchTitle] = useState<string | null>(null);
+  const [importAnimationKey, setImportAnimationKey] = useState<number>(0);
 
   // Step 1 input
   const [jobDescription, setJobDescription] = useState<string>('');
   const [isExtracting, setIsExtracting] = useState<boolean>(false);
   const [extractError, setExtractError] = useState<string | null>(null);
+
+  // Step 1: Live preview state (debounced 500ms + race condition handling)
+  const [livePreview, setLivePreview] = useState<{
+    detectedTitle: string;
+    skills: string[];
+    fullResponse: ExtractedBlueprintResponse;
+  } | null>(null);
+  const [isLiveAnalyzing, setIsLiveAnalyzing] = useState<boolean>(false);
+  const [liveAnalyzeError, setLiveAnalyzeError] = useState<string | null>(null);
+  const extractionVersionRef = React.useRef<number>(0);
 
   // Step 2 inputs & blueprint state
   const [roleTitle, setRoleTitle] = useState<string>('');
@@ -52,20 +65,17 @@ export default function AssessmentsPage() {
   const [pastAssessments, setPastAssessments] = useState<AssessmentRead[]>([]);
   const [isLoadingPast, setIsLoadingPast] = useState<boolean>(false);
 
-  // Load importable screening batches on mount
+  // Load importable screening batches & past assessments on mount
   useEffect(() => {
     loadBatches();
+    loadPastAssessments();
   }, []);
 
   const loadBatches = async () => {
     try {
-      const data = await api.getImportableBatches();
-      setBatches(data);
-      if (data.length > 0 && !selectedBatchId) {
-        // Pre-select first batch if available
-        setSelectedBatchId(data[0].id);
-        setJobDescription(data[0].description);
-      }
+      // Reusing authoritative api.getJobs() — identical to /resume-screenings and /dashboard
+      const data = await api.getJobs();
+      setBatches(data || []);
     } catch (err) {
       console.error('Failed to load screening batches', err);
     }
@@ -87,30 +97,97 @@ export default function AssessmentsPage() {
   const handleBatchSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     if (!val) {
-      setSelectedBatchId(null);
+      handleClearImport();
       return;
     }
     const id = parseInt(val, 10);
     setSelectedBatchId(id);
     const found = batches.find((b) => b.id === id);
     if (found) {
-      setJobDescription(found.description);
+      setJobDescription(found.description || '');
+      setImportedBatchTitle(found.title);
+      setImportAnimationKey((k) => k + 1);
+      setExtractError(null);
     }
   };
 
+  // Clear imported JD and reset import state
+  const handleClearImport = () => {
+    setSelectedBatchId(null);
+    setImportedBatchTitle(null);
+    setJobDescription('');
+    setExtractError(null);
+    setLivePreview(null);
+  };
+
+  // Live Requirement Preview (500ms debounce + race condition prevention)
+  useEffect(() => {
+    const trimmedJD = jobDescription.trim();
+    if (trimmedJD.length < 20) {
+      extractionVersionRef.current++;
+      setLivePreview(null);
+      setIsLiveAnalyzing(false);
+      setLiveAnalyzeError(null);
+      return;
+    }
+
+    const currentVersion = ++extractionVersionRef.current;
+    setIsLiveAnalyzing(true);
+    setLiveAnalyzeError(null);
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.extractBlueprint({
+          job_description: trimmedJD,
+          batch_id: selectedBatchId || undefined,
+        });
+
+        // Prevent race condition: discard if a newer request was dispatched while waiting
+        if (currentVersion === extractionVersionRef.current) {
+          setLivePreview({
+            detectedTitle: res.detected_title,
+            skills: res.required_skills,
+            fullResponse: res,
+          });
+          setIsLiveAnalyzing(false);
+        }
+      } catch (err: any) {
+        if (currentVersion === extractionVersionRef.current) {
+          setLiveAnalyzeError('Preview unavailable');
+          setIsLiveAnalyzing(false);
+        }
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [jobDescription, selectedBatchId]);
+
   // Step 1 -> Step 2: Extract details & build blueprint
   const handleExtractBlueprint = async () => {
-    if (!jobDescription.trim() || jobDescription.trim().length < 20) {
+    const trimmedJD = jobDescription.trim();
+    if (!trimmedJD || trimmedJD.length < 20) {
       setExtractError('Please enter a job description of at least 20 characters.');
       return;
     }
     setExtractError(null);
     setIsExtracting(true);
     try {
-      const res: ExtractedBlueprintResponse = await api.extractBlueprint({
-        job_description: jobDescription,
-        batch_id: selectedBatchId || undefined
-      });
+      let res: ExtractedBlueprintResponse;
+      // If live preview has already analyzed this JD, reuse it immediately!
+      if (
+        livePreview?.fullResponse &&
+        livePreview.fullResponse.detected_title &&
+        livePreview.fullResponse.blueprint
+      ) {
+        res = livePreview.fullResponse;
+      } else {
+        res = await api.extractBlueprint({
+          job_description: trimmedJD,
+          batch_id: selectedBatchId || undefined
+        });
+      }
 
       setRoleTitle(res.detected_title);
       setMinExperience(res.min_experience_years);
@@ -119,6 +196,7 @@ export default function AssessmentsPage() {
       setBlueprint(res.blueprint);
       setPassPreview(res.pass_preview);
 
+      setMaxStepReached((prev) => Math.max(prev, 2));
       setStep(2);
     } catch (err: any) {
       setExtractError(err?.response?.data?.detail || 'Failed to extract blueprint. Please try again.');
@@ -241,29 +319,63 @@ export default function AssessmentsPage() {
         <main className="flex-1 px-8 py-10 max-w-5xl w-full mx-auto">
           {step !== 4 && (
             <>
-              {/* Title Section */}
-              <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold text-white tracking-tight">
+              {/* Title Section with Staggered Entrance */}
+              <motion.div
+                initial={shouldReduce ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+                className="text-center mb-8"
+              >
+                <motion.h1
+                  initial={shouldReduce ? false : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, ease: 'easeOut' }}
+                  className="text-3xl font-bold text-white tracking-tight"
+                >
                   AI-Powered Assessment Planner
-                </h1>
-                <p className="text-sm text-white/50 mt-1.5">
+                </motion.h1>
+                <motion.p
+                  initial={shouldReduce ? false : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: 0.08, ease: 'easeOut' }}
+                  className="text-sm text-white/50 mt-1.5"
+                >
                   Define your job description and preview your exact question breakdown in real time.
-                </p>
-              </div>
+                </motion.p>
+              </motion.div>
 
               {/* Step Navigation Bar */}
               <div className="flex items-center justify-center max-w-xl mx-auto mb-10">
                 {/* Step 1 */}
                 <div className="flex flex-col items-center">
-                  <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    disabled={step === 1}
+                    aria-label="Step 1: Basics & Job Description"
+                    className={`relative w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400/50 ${
                       step === 1
                         ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-400/40'
-                        : step > 1
-                        ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40'
-                        : 'bg-white/5 text-white/30 border border-white/10'
+                        : maxStepReached >= 1
+                        ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 hover:bg-indigo-500/30 cursor-pointer'
+                        : 'bg-white/5 text-white/30 border border-white/10 cursor-not-allowed'
                     }`}
                   >
+                    {/* Active pulsing ring (only while step 1 is active, disabled on reduced motion) */}
+                    {step === 1 && !shouldReduce && (
+                      <motion.div
+                        className="absolute -inset-1 rounded-full border border-indigo-400/50 pointer-events-none"
+                        animate={{
+                          scale: [1, 1.25, 1],
+                          opacity: [0.8, 0, 0.8],
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                        }}
+                      />
+                    )}
                     {step > 1 ? (
                       <svg className="w-4 h-4 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -271,7 +383,7 @@ export default function AssessmentsPage() {
                     ) : (
                       '1'
                     )}
-                  </div>
+                  </button>
                   <span
                     className={`text-xs mt-2 font-medium ${
                       step === 1 ? 'text-white' : 'text-white/40'
@@ -282,23 +394,48 @@ export default function AssessmentsPage() {
                 </div>
 
                 {/* Connector 1 */}
-                <div
-                  className={`flex-1 h-[2px] mx-4 -mt-5 transition-colors ${
-                    step > 1 ? 'bg-indigo-500/50' : 'bg-white/10'
-                  }`}
-                />
+                <div className="flex-1 h-[2px] mx-4 -mt-5 bg-white/10 relative overflow-hidden rounded-full">
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500"
+                    initial={false}
+                    animate={{ scaleX: step > 1 ? 1 : 0 }}
+                    style={{ transformOrigin: 'left' }}
+                    transition={shouldReduce ? { duration: 0 } : { duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                </div>
 
                 {/* Step 2 */}
                 <div className="flex flex-col items-center">
-                  <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (maxStepReached >= 2) setStep(2);
+                    }}
+                    disabled={maxStepReached < 2 || step === 2}
+                    aria-label="Step 2: Tune & Blueprint"
+                    className={`relative w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400/50 ${
                       step === 2
                         ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-400/40'
-                        : step > 2
-                        ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40'
-                        : 'bg-white/5 text-white/30 border border-white/10'
+                        : step > 2 || maxStepReached >= 2
+                        ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 hover:bg-indigo-500/30 cursor-pointer'
+                        : 'bg-white/5 text-white/30 border border-white/10 cursor-not-allowed'
                     }`}
                   >
+                    {/* Active pulsing ring (only while step 2 is active, disabled on reduced motion) */}
+                    {step === 2 && !shouldReduce && (
+                      <motion.div
+                        className="absolute -inset-1 rounded-full border border-indigo-400/50 pointer-events-none"
+                        animate={{
+                          scale: [1, 1.25, 1],
+                          opacity: [0.8, 0, 0.8],
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                        }}
+                      />
+                    )}
                     {step > 2 ? (
                       <svg className="w-4 h-4 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -306,7 +443,7 @@ export default function AssessmentsPage() {
                     ) : (
                       '2'
                     )}
-                  </div>
+                  </button>
                   <span
                     className={`text-xs mt-2 font-medium ${
                       step === 2 ? 'text-white' : 'text-white/40'
@@ -317,23 +454,50 @@ export default function AssessmentsPage() {
                 </div>
 
                 {/* Connector 2 */}
-                <div
-                  className={`flex-1 h-[2px] mx-4 -mt-5 transition-colors ${
-                    step > 2 ? 'bg-indigo-500/50' : 'bg-white/10'
-                  }`}
-                />
+                <div className="flex-1 h-[2px] mx-4 -mt-5 bg-white/10 relative overflow-hidden rounded-full">
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-purple-500 to-indigo-500"
+                    initial={false}
+                    animate={{ scaleX: step > 2 ? 1 : 0 }}
+                    style={{ transformOrigin: 'left' }}
+                    transition={shouldReduce ? { duration: 0 } : { duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                </div>
 
                 {/* Step 3 */}
                 <div className="flex flex-col items-center">
-                  <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (maxStepReached >= 3) setStep(3);
+                    }}
+                    disabled={maxStepReached < 3 || step === 3}
+                    aria-label="Step 3: Confirm & Launch"
+                    className={`relative w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400/50 ${
                       step === 3
                         ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-400/40'
-                        : 'bg-white/5 text-white/30 border border-white/10'
+                        : maxStepReached >= 3
+                        ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 hover:bg-indigo-500/30 cursor-pointer'
+                        : 'bg-white/5 text-white/30 border border-white/10 cursor-not-allowed'
                     }`}
                   >
+                    {/* Active pulsing ring (only while step 3 is active, disabled on reduced motion) */}
+                    {step === 3 && !shouldReduce && (
+                      <motion.div
+                        className="absolute -inset-1 rounded-full border border-indigo-400/50 pointer-events-none"
+                        animate={{
+                          scale: [1, 1.25, 1],
+                          opacity: [0.8, 0, 0.8],
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                        }}
+                      />
+                    )}
                     3
-                  </div>
+                  </button>
                   <span
                     className={`text-xs mt-2 font-medium ${
                       step === 3 ? 'text-white' : 'text-white/40'
@@ -374,9 +538,13 @@ export default function AssessmentsPage() {
                 </div>
               </div>
 
-              {/* Import from Screening Batch Dropdown */}
-              <div className="mb-6 p-4 rounded-xl bg-indigo-500/[0.04] border border-indigo-500/20">
-                <label className="flex items-center gap-2 text-xs font-medium text-indigo-300 mb-2">
+              {/* Import from Screening Batch Dropdown Card (Phase 2.8 hover lift) */}
+              <motion.div
+                whileHover={shouldReduce ? undefined : { y: -2 }}
+                transition={{ duration: 0.2 }}
+                className="mb-6 p-4 rounded-xl bg-indigo-500/[0.04] border border-indigo-500/20 transition-colors hover:border-indigo-500/35"
+              >
+                <label htmlFor="import-batch-select" className="flex items-center gap-2 text-xs font-medium text-indigo-300 mb-2">
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
@@ -384,6 +552,7 @@ export default function AssessmentsPage() {
                 </label>
                 <div className="relative">
                   <select
+                    id="import-batch-select"
                     value={selectedBatchId || ''}
                     onChange={handleBatchSelect}
                     className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 focus:outline-none appearance-none cursor-pointer transition-colors"
@@ -391,7 +560,7 @@ export default function AssessmentsPage() {
                     <option value="">Select a previous candidate screening batch to import...</option>
                     {batches.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.title} ({b.candidate_count} candidate{b.candidate_count === 1 ? '' : 's'})
+                        {b.title} ({b.candidate_count ?? 0} candidate{(b.candidate_count ?? 0) === 1 ? '' : 's'})
                       </option>
                     ))}
                   </select>
@@ -401,28 +570,163 @@ export default function AssessmentsPage() {
                     </svg>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
-              {/* Job Description Textarea */}
-              <div className="mb-6">
+              {/* Imported Confirmation Chip (Phase 1.2) */}
+              <AnimatePresence>
+                {importedBatchTitle && (
+                  <motion.div
+                    initial={shouldReduce ? false : { opacity: 0, y: -4, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/25 text-xs text-cyan-300 mb-4"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <svg className="w-4 h-4 text-cyan-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="truncate">
+                        ✓ Imported from <strong className="text-white font-semibold">{importedBatchTitle}</strong> batch
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearImport}
+                      aria-label="Clear imported job description"
+                      title="Clear imported job description"
+                      className="w-5 h-5 rounded-md hover:bg-white/10 flex items-center justify-center text-cyan-300 hover:text-white transition-colors flex-shrink-0 ml-2"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Job Description Textarea Card (Phase 2.9 hover lift + Phase 2.10 text animation) */}
+              <motion.div
+                whileHover={shouldReduce ? undefined : { y: -2 }}
+                transition={{ duration: 0.2 }}
+                className="mb-6 p-4 rounded-xl bg-white/[0.02] border border-white/[0.08] transition-colors hover:border-white/[0.14]"
+              >
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold text-white/80">Job Description</label>
+                  <label htmlFor="jd-textarea" className="text-xs font-semibold text-white/80">Job Description</label>
                   <span className="text-[11px] text-white/35 italic">
                     Paste LinkedIn or Job Board description to auto-generate custom rubric and blueprint
                   </span>
                 </div>
-                <textarea
-                  rows={11}
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  placeholder="e.g. We are seeking a Senior Backend Engineer with 5+ years of experience in Python, FastAPI, distributed systems, and PostgreSQL..."
-                  className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl p-4 text-sm text-white/90 placeholder-white/20 focus:border-indigo-500 focus:outline-none transition-colors leading-relaxed font-sans resize-y"
-                />
-                <div className="flex justify-between items-center text-[11px] text-white/30 mt-1">
-                  <span>Minimum 20 characters required</span>
-                  <span>{jobDescription.length} characters</span>
+                <motion.div
+                  key={importAnimationKey}
+                  initial={shouldReduce ? false : { opacity: 0.75, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                >
+                  <textarea
+                    id="jd-textarea"
+                    rows={11}
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                    placeholder="e.g. We are seeking a Senior Backend Engineer with 5+ years of experience in Python, FastAPI, distributed systems, and PostgreSQL..."
+                    className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl p-4 text-sm text-white/90 placeholder-white/20 focus:border-indigo-500 focus:outline-none transition-colors leading-relaxed font-sans resize-y"
+                  />
+                </motion.div>
+
+                {/* Character Counter with Animated Transition (Phase 1.3 & 2.12) */}
+                <div className="flex justify-between items-center text-[11px] mt-2">
+                  <span className={jobDescription.trim().length >= 20 ? 'text-white/40' : 'text-amber-400/90 font-medium'}>
+                    {jobDescription.trim().length >= 20
+                      ? 'Minimum 20 characters met'
+                      : 'At least 20 characters required to build blueprint'}
+                  </span>
+                  <motion.span
+                    animate={{ color: jobDescription.trim().length >= 20 ? '#34d399' : '#f59e0b' }}
+                    transition={{ duration: 0.2 }}
+                    className="font-mono text-xs font-semibold"
+                  >
+                    {jobDescription.trim().length >= 20
+                      ? `${jobDescription.length} characters`
+                      : `${jobDescription.length} / 20 characters`}
+                  </motion.span>
                 </div>
-              </div>
+              </motion.div>
+
+              {/* Live Requirement Preview (Phase 1.4 & 2.11) */}
+              <AnimatePresence>
+                {jobDescription.trim().length >= 20 && (
+                  <motion.div
+                    initial={shouldReduce ? false : { opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    transition={{ duration: 0.25 }}
+                    className="mb-6 p-4 rounded-xl bg-gradient-to-b from-white/[0.03] to-white/[0.01] border border-indigo-500/25 shadow-lg shadow-black/40"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2 text-xs font-bold text-indigo-300">
+                        <svg className="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                        </svg>
+                        <span>✨ Live Requirement Preview</span>
+                      </div>
+                      {isLiveAnalyzing && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-indigo-300/70">
+                          <div className="w-3 h-3 border-2 border-indigo-400/40 border-t-indigo-400 rounded-full animate-spin" />
+                          <span>Analyzing requirements…</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {livePreview ? (
+                      <div className="space-y-3">
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
+                            Detected Role
+                          </div>
+                          <div className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-500/20 text-indigo-200 border border-indigo-500/30">
+                            {livePreview.detectedTitle || 'Technical Role'}
+                          </div>
+                        </div>
+
+                        {livePreview.skills && livePreview.skills.length > 0 && (
+                          <div>
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">
+                              Likely Required Skills
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {livePreview.skills.slice(0, 8).map((skill, idx) => (
+                                <motion.span
+                                  key={skill}
+                                  initial={shouldReduce ? false : { opacity: 0, scale: 0.85, y: 6 }}
+                                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                                  transition={{
+                                    delay: Math.min(idx, 8) * 0.04,
+                                    type: 'spring',
+                                    stiffness: 420,
+                                    damping: 24,
+                                  }}
+                                  className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-white/[0.05] text-white/80 border border-white/10"
+                                >
+                                  {skill}
+                                </motion.span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : isLiveAnalyzing ? (
+                      <div className="py-2 flex items-center gap-2 text-xs text-white/40">
+                        <div className="w-3.5 h-3.5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                        <span>Analyzing requirements & building blueprint preview…</span>
+                      </div>
+                    ) : liveAnalyzeError ? (
+                      <div className="text-xs text-white/30 italic py-1">
+                        {liveAnalyzeError}
+                      </div>
+                    ) : null}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {extractError && (
                 <div className="mb-6 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
@@ -433,34 +737,51 @@ export default function AssessmentsPage() {
                 </div>
               )}
 
-              {/* Bottom Actions Bar */}
+              {/* Bottom Actions Bar with Tooltip (Phase 1.3) */}
               <div className="flex items-center justify-between pt-4 border-t border-white/[0.06]">
                 <button
+                  type="button"
                   disabled
                   className="px-5 py-2.5 rounded-xl text-xs font-medium text-white/20 border border-white/5 cursor-not-allowed"
                 >
                   &lt; Back
                 </button>
 
-                <button
-                  onClick={handleExtractBlueprint}
-                  disabled={isExtracting || jobDescription.trim().length < 20}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/25 transition-all"
-                >
-                  {isExtracting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Analyzing & Calibrating...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                      </svg>
-                      Extract Details & Build Blueprint
-                    </>
+                <div className="relative group inline-block">
+                  <button
+                    type="button"
+                    onClick={handleExtractBlueprint}
+                    disabled={isExtracting || jobDescription.trim().length < 20}
+                    aria-disabled={isExtracting || jobDescription.trim().length < 20}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                      jobDescription.trim().length >= 20 && !isExtracting
+                        ? 'text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-indigo-500/25 cursor-pointer'
+                        : 'text-white/30 bg-white/[0.04] border border-white/[0.08] cursor-not-allowed opacity-60'
+                    }`}
+                  >
+                    {isExtracting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Analyzing & Calibrating...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                        </svg>
+                        Extract Details & Build Blueprint
+                      </>
+                    )}
+                  </button>
+                  {jobDescription.trim().length < 20 && !isExtracting && (
+                    <div
+                      role="tooltip"
+                      className="pointer-events-none absolute bottom-full mb-2 right-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-30 px-3 py-1.5 rounded-lg bg-gray-950 border border-white/10 text-[11px] text-white/90 whitespace-nowrap shadow-xl"
+                    >
+                      Enter at least 20 characters to continue.
+                    </div>
                   )}
-                </button>
+                </div>
               </div>
             </motion.div>
           )}
@@ -694,7 +1015,10 @@ export default function AssessmentsPage() {
                   </button>
 
                   <button
-                    onClick={() => setStep(3)}
+                    onClick={() => {
+                      setMaxStepReached((prev) => Math.max(prev, 3));
+                      setStep(3);
+                    }}
                     className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-indigo-500/25 transition-all"
                   >
                     Continue to Confirm & Launch &gt;

@@ -1,6 +1,8 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useReducedMotion } from '../utils/animations';
 
 const navItems = [
   {
@@ -64,6 +66,8 @@ const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  const shouldReduce = useReducedMotion();
+
   return (
     <div
       className="w-60 flex-shrink-0 flex flex-col h-screen sticky top-0 border-r border-white/[0.06]"
@@ -107,19 +111,24 @@ const Sidebar: React.FC = () => {
             key={item.label}
             to={item.to}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                isActive
-                  ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/20'
-                  : 'text-white/40 hover:bg-white/[0.04] hover:text-white/70 border border-transparent'
+              `relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                isActive ? 'text-cyan-300 font-semibold' : 'text-white/40 hover:text-white/70 hover:bg-white/[0.03]'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <span className={isActive ? 'text-cyan-400' : 'text-white/30'}>
+                {isActive && (
+                  <motion.div
+                    layoutId={shouldReduce ? undefined : "active-nav"}
+                    className="absolute inset-0 rounded-xl bg-cyan-500/10 border border-cyan-500/20"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <span className={`relative z-10 transition-colors ${isActive ? 'text-cyan-400' : 'text-white/30'}`}>
                   {item.icon}
                 </span>
-                {item.label}
+                <span className="relative z-10">{item.label}</span>
               </>
             )}
           </NavLink>

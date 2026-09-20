@@ -151,13 +151,10 @@ const SignupPage = () => {
           await axios.post(
             `/api/guest/session/${guestSessionId}/claim`,
             null,
-            {
-              params: { user_id: data.user_id },
-              headers: { Authorization: `Bearer ${data.access_token}` },
-            }
+            { headers: { Authorization: `Bearer ${data.access_token}` } }
           );
         } catch {
-          // session expired — not a blocker
+          // session expired or already claimed — not a blocker
         } finally {
           localStorage.removeItem('guest_session_id');
         }

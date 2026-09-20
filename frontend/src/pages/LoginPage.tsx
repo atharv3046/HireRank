@@ -11,6 +11,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { Zap, BarChart3, Shield, Brain, ArrowLeft, ArrowRight } from 'lucide-react';
@@ -80,6 +81,9 @@ export default function LoginPage() {
   const navigate   = useNavigate();
   const shouldReduce = useReducedMotion();
 
+  // Did the user arrive here after a guest screening session?
+  const guestSessionId = localStorage.getItem('guest_session_id');
+
   const hasGoogleClientId = Boolean(
     import.meta.env.VITE_GOOGLE_CLIENT_ID || import.meta.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
   );
@@ -91,6 +95,7 @@ export default function LoginPage() {
       try {
         const data = await api.googleSignin(tokenResponse.access_token);
         login(data.access_token, { id: data.user_id, email: data.email, role: data.role });
+        await claimGuestSession(data.access_token);
         navigate('/dashboard');
       } catch (err: any) {
         setError(err?.response?.data?.detail || 'Google sign-in failed. Please try again.');
@@ -113,12 +118,31 @@ export default function LoginPage() {
     googleLogin();
   };
 
+  // Claim any pending guest screening session after login.
+  // Identity is derived from the JWT on the server — no user_id param sent.
+  const claimGuestSession = async (accessToken: string) => {
+    const guestSessionId = localStorage.getItem('guest_session_id');
+    if (!guestSessionId) return;
+    try {
+      await axios.post(
+        `/api/guest/session/${guestSessionId}/claim`,
+        null,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+    } catch {
+      // Session may have already expired or been claimed — not a login blocker
+    } finally {
+      localStorage.removeItem('guest_session_id');
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true); setError('');
     try {
       const data = await api.login(email, password);
       login(data.access_token, { id: data.user_id, email: data.email, role: data.role });
+      await claimGuestSession(data.access_token);
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Invalid email or password.');
@@ -132,6 +156,7 @@ export default function LoginPage() {
     try {
       const data = await api.demoLogin();
       login(data.access_token, { id: data.user_id, email: data.email, role: data.role });
+      await claimGuestSession(data.access_token);
       navigate('/dashboard');
     } catch {
       setError('Demo login failed. Make sure the backend is running.');
@@ -219,6 +244,30 @@ export default function LoginPage() {
           transition={{ delay: 0.1 }}
           className="w-full"
         >
+          {/* Guest session banner */}
+          <AnimatePresence>
+            {guestSessionId && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="mb-4 flex items-start gap-3 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl px-5 py-4"
+              >
+                <div className="w-5 h-5 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg className="w-3 h-3 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-cyan-300">Your screening results are ready</p>
+                  <p className="text-xs text-cyan-400/60 mt-0.5">
+                    Log in and they'll be transferred to your account instantly — no reprocessing.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div
             className="relative rounded-2xl border border-white/[0.08] p-8 overflow-hidden"
             style={{

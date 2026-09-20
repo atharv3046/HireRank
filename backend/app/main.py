@@ -1,5 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from app.core.database import Base, engine, SessionLocal
 from app.routers import auth, jobs, candidates, scoring, internal, settings as settings_router, assessments as assessments_router
 from app.routers import guest as guest_router
@@ -81,6 +84,16 @@ app = FastAPI(
     description="AI-powered resume screening and candidate ranking system",
     version="1.0.0"
 )
+
+# Fix 5: Register slowapi rate limiter (limits POST /api/guest/screen to 5/hour per IP)
+app.state.limiter = guest_router.limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Fix 4: Start the hourly guest session cleanup scheduler
+@app.on_event("startup")
+def start_scheduler():
+    from app.tasks.cleanup import start_cleanup_scheduler
+    start_cleanup_scheduler()
 
 app.add_middleware(
     CORSMiddleware,

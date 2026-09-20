@@ -67,24 +67,38 @@ async def upload_resume(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """
+    Upload a single resume (PDF/DOCX, max 10 MB server-side) for an authenticated job.
+    Fix 8: file size is validated server-side here, matching the guest endpoint and frontend limits.
+    """
     job = db.query(JobPosting).filter(JobPosting.id == job_id, JobPosting.recruiter_id == current_user.id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    
+
     ext = os.path.splitext(file.filename or "")[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"File type not supported. Allowed: {ALLOWED_EXTENSIONS}")
-    
+
+    # Fix 8: Read fully into memory first so we can check size before touching disk.
+    # Frontend enforces 10 MB but server-side is the authoritative check.
+    MAX_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
+    contents = await file.read()
+    if len(contents) > MAX_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File '{file.filename}' exceeds the 10 MB size limit ({len(contents) // (1024 * 1024)} MB uploaded)."
+        )
+
     # Save file
     file_id = str(uuid.uuid4())
     file_path = os.path.join(settings.UPLOAD_DIR, f"{file_id}{ext}")
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     with open(file_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-    
+        f.write(contents)
+
     # Extract text synchronously (fast — just PDF/DOCX parsing)
     raw_text, status = _extract_text_from_file(file_path)
-    
+
     candidate = Candidate(
         job_posting_id=job_id,
         resume_file_path=file_path,
@@ -94,11 +108,11 @@ async def upload_resume(
     db.add(candidate)
     db.commit()
     db.refresh(candidate)
-    
+
     # Kick off NLP + scoring in background — returns response immediately
     if status == "extracted" and raw_text:
         background_tasks.add_task(_run_pipeline_in_background, candidate.id, job_id)
-    
+
     return {
         "candidate_id": candidate.id,
         "processing_status": candidate.processing_status,
@@ -134,6 +148,7 @@ def get_candidate_status(candidate_id: int, db: Session = Depends(get_db), curre
 
 
 @router.get("/candidates", response_model=List[CandidateWithScore])
+@router.get("/candidates/", response_model=List[CandidateWithScore], include_in_schema=False)
 def list_all_candidates(
     search: Optional[str] = Query(None),
     tier: Optional[str] = Query(None),

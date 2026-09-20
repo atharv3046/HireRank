@@ -16,12 +16,12 @@ client.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Only redirect if token is actually missing/expired — not on network glitches
-      const token = localStorage.getItem('token');
-      if (!token) {
-        window.location.href = '/login';
-      } else {
-        // Token present but rejected — clear and redirect
+      const url = error.config?.url || '';
+      const isAuthOrGuest = url.includes('/auth/login') ||
+                            url.includes('/auth/signup') ||
+                            url.includes('/auth/google') ||
+                            url.includes('/guest/');
+      if (!isAuthOrGuest) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login';

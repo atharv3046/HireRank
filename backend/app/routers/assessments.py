@@ -279,7 +279,8 @@ def simulate_pass_rate(
     return _compute_pass_preview(req.required_skills, req.min_experience_years, candidates, score_map)
 
 
-@router.post("/", response_model=AssessmentRead)
+@router.post("", response_model=AssessmentRead)
+@router.post("/", response_model=AssessmentRead, include_in_schema=False)
 def create_assessment(
     req: CreateAssessmentRequest,
     db: Session = Depends(get_db),
@@ -313,11 +314,12 @@ def create_assessment(
         education_requirement=assessment.education_requirement,
         blueprint_json=assessment.blueprint_json,
         status=assessment.status,
-        created_at=assessment.created_at.strftime("%d %b %Y")
+        created_at=assessment.created_at.strftime("%d %b %Y") if assessment.created_at else ""
     )
 
 
-@router.get("/", response_model=List[AssessmentRead])
+@router.get("", response_model=List[AssessmentRead])
+@router.get("/", response_model=List[AssessmentRead], include_in_schema=False)
 def list_assessments(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -325,7 +327,7 @@ def list_assessments(
     """
     List assessments created by recruiter.
     """
-    items = db.query(Assessment).filter(Assessment.recruiter_id == current_user.id).all()
+    items = db.query(Assessment).filter(Assessment.recruiter_id == current_user.id).order_by(Assessment.created_at.desc()).all()
     return [
         AssessmentRead(
             id=a.id,
@@ -337,7 +339,7 @@ def list_assessments(
             education_requirement=a.education_requirement,
             blueprint_json=a.blueprint_json,
             status=a.status,
-            created_at=a.created_at.strftime("%d %b %Y")
+            created_at=a.created_at.strftime("%d %b %Y") if a.created_at else ""
         )
         for a in items
     ]

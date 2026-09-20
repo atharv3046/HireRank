@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 import {
   useReducedMotion,
   fadeInUpVariants,
@@ -323,14 +324,48 @@ export default function ResultsPreviewPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const shouldReduce = useReducedMotion();
+  const { isAuthenticated, user, token } = useAuth();
 
   const [data, setData]         = useState<PreviewData | null>(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [claiming, setClaiming] = useState(false);
+
+  // If the user is already logged in, auto-claim this session and redirect
+  useEffect(() => {
+    if (!sessionId || !isAuthenticated || !user || !token) return;
+
+    const doClaimAndRedirect = async () => {
+      setClaiming(true);
+      try {
+        const res = await axios.post(
+          `/api/guest/session/${sessionId}/claim`,
+          null,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        localStorage.removeItem('guest_session_id');
+        const jobId = res.data?.job_id;
+        navigate(jobId ? `/resume-screenings?batch=${jobId}` : '/resume-screenings', { replace: true });
+      } catch (err: any) {
+        // Session may already be claimed or expired — still redirect to dashboard
+        localStorage.removeItem('guest_session_id');
+        // Try to find the job from the session data we already fetched
+        if (data?.job_id) {
+          navigate(`/resume-screenings?batch=${data.job_id}`, { replace: true });
+        } else {
+          navigate('/resume-screenings', { replace: true });
+        }
+      }
+    };
+
+    doClaimAndRedirect();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user, token, sessionId]);
 
   useEffect(() => {
     if (!sessionId) return;
+    if (isAuthenticated) return; // handled by the claim effect above
     axios.get(`/api/guest/session/${sessionId}/results`)
       .then(res => { setData(res.data); setLoading(false); })
       .catch(err => {
@@ -352,6 +387,21 @@ export default function ResultsPreviewPage() {
     }
     navigate('/signup');
   };
+
+  // Show a brief redirecting state while claim is in progress
+  if (claiming) return (
+    <div className="min-h-screen flex flex-col font-sans" style={{ background: '#0a0a0f' }}>
+      <header className="border-b border-white/[0.06] px-8 py-4">
+        <Logo onClick={() => navigate('/')} />
+      </header>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-white/50">Transferring your results to your workspace…</p>
+        </div>
+      </div>
+    </div>
+  );
 
   /* ── Loading ─────────────────────────────────────────────────────────── */
   if (loading) return (

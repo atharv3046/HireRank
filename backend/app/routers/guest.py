@@ -5,13 +5,20 @@ Handles:
   1. POST /guest/screen              -> Upload JD + resumes, initiate background pipeline
   2. GET  /guest/session/{id}/status -> Poll pipeline progress (real stages, not a timer)
   3. GET  /guest/session/{id}/results -> Ranked masked candidates + shared aggregate metrics
-  4. GET  /guest/session/{id}/preview -> Alias for /results
-  5. POST /guest/session/{id}/claim   -> Attach session to registered user (no rescoring)
+  4. POST /guest/session/{id}/claim   -> Attach session to registered user (no rescoring)
 
-Fully wired to the standalone scoring/ package (ResumeParser, ResumeExtractor, HybridScorer).
+Security notes:
+  - /screen is rate-limited to 5 requests per IP per hour (slowapi)
+    because it triggers an expensive unauthenticated NLP pipeline.
+  - /claim derives the acting user ONLY from the JWT sub claim.
+    No user_id is accepted as input — clients cannot spoof identity.
+  - /claim returns 409 if the session is already owned by a different user.
+  - The /preview alias has been removed. Use /results exclusively.
+
+Scoring:
+  - Uses app.services.scoring_shared.score_and_save — the one canonical
+    HybridScorer call shared with the authenticated upload pipeline.
 """
-
-from __future__ import annotations
 
 import logging
 import os
@@ -21,16 +28,17 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal, get_db
 from app.models.user import User
 from app.models.job_posting import JobPosting
 from app.models.candidate import Candidate
 from app.models.match_score import MatchScore
 from app.models.guest_session import GuestSession
+from app.routers.auth import get_current_user
 from app.services.aggregates import compute_batch_aggregates
 from app.services.jd_parser import JDParser
 
@@ -42,6 +50,12 @@ from scoring import (
     JobCriteria,
     Tier,
 )
+
+# Rate limiter (Fix 5: protect the expensive unauthenticated pipeline)
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/guest", tags=["guest"])
@@ -92,12 +106,18 @@ def _get_or_create_guest_user(db: Session) -> User:
 
 def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
     """
-    Background pipeline wired to standalone scoring/ package:
-    1. Parsing (pdfplumber + pypdf fallback, docx, handles unparseable with needs_manual_review)
-    2. Extracting (spaCy NER, overlapping timeline arithmetic, 530 skills taxonomy with rapidfuzz)
-    3. Scoring (all-MiniLM-L6-v2 embeddings, trapezoidal experience, 59.9 must-have cap)
-    4. Ranking & tier assignment
+    Background pipeline wired to the shared scoring_shared.score_and_save
+    function, which uses HybridScorer (standalone scoring/ package):
+      1. Parsing  (pdfplumber + pypdf fallback, docx, scanned-image detection)
+      2. Extracting (spaCy NER, 530-skill taxonomy, timeline deduplication)
+      3. Scoring via score_and_save (HybridScorer, 59.9 must-have cap)
+      4. Ranking & tier assignment
+
+    Scoring is identical to the authenticated upload path — both call
+    app.services.scoring_shared.score_and_save.
     """
+    from app.services.scoring_shared import score_and_save
+
     sess = _SESSIONS.get(session_id)
     db = SessionLocal()
     try:
@@ -111,21 +131,7 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
                 db.commit()
             return
 
-        scorer = HybridScorer()
         extractor = ResumeExtractor()
-
-        job_criteria = JobCriteria(
-            title=job.title,
-            description=job.description,
-            required_skills=job.required_skills,
-            preferred_skills=job.preferred_skills,
-            min_years=job.min_experience_years,
-            max_years=job.max_experience_years,
-            required_education=job.education_requirement,
-            weights=job.weights,
-        )
-
-        job_embedding = scorer.embedder.encode(f"{job.title}\n{job.description}")
         total = len(candidate_ids)
 
         for i, cid in enumerate(candidate_ids):
@@ -135,7 +141,7 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
 
             file_path = Path(candidate.resume_file_path) if candidate.resume_file_path else None
 
-            # ── Stage 1: Parsing ─────────────────────────────────────────────
+            # ── Stage 1: Parsing ──────────────────────────────────────────────
             if sess:
                 sess["stage"] = "parsing"
             if sess_row:
@@ -147,7 +153,7 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
             else:
                 parsed = ResumeParser.parse(candidate.resume_file_path or "")
 
-            # Discard raw file bytes immediately after text extraction succeeds (Guest Data Retention Policy)
+            # Discard raw file bytes immediately after text extraction (Guest Data Retention Policy)
             if file_path and file_path.exists():
                 try:
                     file_path.unlink(missing_ok=True)
@@ -160,48 +166,37 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
                 candidate.processing_status = "needs_manual_review"
                 candidate.raw_text = parsed.raw_text
                 candidate.error_message = "; ".join(parsed.parse_notes)
+                candidate.extracted_skills = []
+                candidate.experience_years = 0.0
+                candidate.education_level = None
+                candidate.education_details = ""
+                candidate.detected_title = ""
                 db.commit()
 
-                # Score unparseable candidate with null score & Needs Review tier
-                breakdown = scorer.score_candidate(
-                    candidate=extractor.extract_profile(parsed),
-                    job=job_criteria,
-                    needs_manual_review=True
-                )
-
-                score_row = db.query(MatchScore).filter(
-                    MatchScore.candidate_id == cid,
-                    MatchScore.job_posting_id == job_id
-                ).first()
-                if not score_row:
-                    score_row = MatchScore(candidate_id=cid, job_posting_id=job_id)
-                    db.add(score_row)
-
-                score_row.overall_score = None
-                score_row.tier = Tier.NEEDS_REVIEW.value
-                score_row.summary = "Unable to parse — review manually"
-                score_row.explanation_json = breakdown.to_dict()
-                db.commit()
-
+                # Score as needs_manual_review
+                score_and_save(cid, job_id, db)
                 if sess:
+                    sess["skipped"] = sess.get("skipped", 0) + 1
                     sess["done"] = i + 1
                 if sess_row:
+                    sess_row.skipped = sess_row.skipped + 1
                     sess_row.done = i + 1
                     db.commit()
                 continue
 
             candidate.raw_text = parsed.raw_text
-            candidate.processing_status = "parsed"
             db.commit()
 
-            # ── Stage 2: Extracting ──────────────────────────────────────────
+            # ── Stage 2: Extracting ───────────────────────────────────────────
             if sess:
                 sess["stage"] = "extracting"
             if sess_row:
                 sess_row.stage = "extracting"
                 db.commit()
-            profile = extractor.extract_profile(parsed)
 
+            profile = extractor.extract_from_text(parsed.raw_text)
+
+            # Backfill candidate fields
             if profile.name and not candidate.name:
                 candidate.name = profile.name
             if profile.email and not candidate.email:
@@ -217,55 +212,20 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
             candidate.processing_status = "extracted"
             db.commit()
 
-            # ── Stage 3: Scoring & Embedding ─────────────────────────────────
+            # ── Stage 3 & 4: Score + Rank via the shared canonical function ───
             if sess:
                 sess["stage"] = "scoring"
             if sess_row:
                 sess_row.stage = "scoring"
                 db.commit()
-            cand_embedding = scorer.embedder.encode(candidate.raw_text)
-            candidate.embedding = cand_embedding
 
-            breakdown = scorer.score_candidate(
-                candidate=profile,
-                job=job_criteria,
-                candidate_embedding=cand_embedding,
-                job_embedding=job_embedding,
-                needs_manual_review=False
-            )
+            score_and_save(cid, job_id, db)
 
-            # ── Stage 4: Ranking & Saving ────────────────────────────────────
             if sess:
                 sess["stage"] = "ranking"
             if sess_row:
                 sess_row.stage = "ranking"
                 db.commit()
-            score_row = db.query(MatchScore).filter(
-                MatchScore.candidate_id == cid,
-                MatchScore.job_posting_id == job_id
-            ).first()
-            if not score_row:
-                score_row = MatchScore(candidate_id=cid, job_posting_id=job_id)
-                db.add(score_row)
-
-            score_row.overall_score = breakdown.final_score
-            score_row.semantic_score = breakdown.semantic_score
-            score_row.skills_score = breakdown.skills_score
-            score_row.experience_score = breakdown.experience_score
-            score_row.title_score = breakdown.title_score
-            score_row.education_score = breakdown.education_score
-            score_row.tier = breakdown.tier.value
-            score_row.is_capped = breakdown.is_capped
-            score_row.cap_reason = breakdown.cap_reason
-            score_row.matched_skills = breakdown.matched_required_skills
-            score_row.missing_skills = breakdown.missing_required_skills
-            score_row.matched_preferred_skills = breakdown.matched_preferred_skills
-            score_row.missing_preferred_skills = breakdown.missing_preferred_skills
-            score_row.explanation_json = breakdown.to_dict()
-            score_row.summary = f"Overall: {breakdown.final_score}% ({breakdown.tier.value})"
-
-            candidate.processing_status = "done"
-            db.commit()
 
             if sess:
                 sess["done"] = i + 1
@@ -280,38 +240,40 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
 
         if sess:
             sess["stage"] = "done"
-            sess["status"] = "done"
-            sess["done"] = total
+            sess["status"] = "completed"
         if sess_row:
             sess_row.stage = "done"
-            sess_row.status = "done"
-            sess_row.done = total
+            sess_row.status = "completed"
             db.commit()
 
-    except Exception as e:
-        logger.error("Guest pipeline exception for session %s: %s", session_id, e, exc_info=True)
+    except Exception as exc:
+        logger.error("Guest pipeline failed for session %s: %s", session_id, exc, exc_info=True)
         if sess:
             sess["status"] = "error"
+            sess["error"] = str(exc)
         if sess_row:
             sess_row.status = "error"
+            sess_row.error_message = str(exc)
             db.commit()
     finally:
         db.close()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 1. POST /guest/screen
+# 1. POST /guest/screen  (rate-limited: 5/hour per IP)
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.post("/screen")
+@limiter.limit("5/hour")
 async def guest_screen(
+    request: Request,
     background_tasks: BackgroundTasks,
     job_description: str = Form(...),
-    files: List[UploadFile] = File(...),
+    files: List[UploadFile] = File(default=[]),
 ):
     """
     Accepts raw JD + up to 10 resume files (PDF/DOCX, max 10MB each).
-    Creates an anonymous JobPosting and candidate records, initiates background pipeline.
+    Rate-limited to 5 requests per IP per hour to protect the NLP pipeline.
     """
     cleaned_jd = job_description.strip()
     if len(cleaned_jd) < MIN_JD_LENGTH:
@@ -342,7 +304,6 @@ async def guest_screen(
     try:
         guest_user = _get_or_create_guest_user(db)
 
-        # Parse JD using JDParser
         parsed_jd = JDParser().parse(cleaned_jd)
 
         job = JobPosting(
@@ -369,6 +330,7 @@ async def guest_screen(
             fpath = tmp_dir / fname
 
             contents = await upload.read()
+            # Fix 8 (guest side): server-side size check matching frontend limit
             if len(contents) > MAX_FILE_MB * 1024 * 1024:
                 skipped.append(f"{upload.filename} exceeds {MAX_FILE_MB} MB limit.")
                 continue
@@ -385,7 +347,6 @@ async def guest_screen(
             db.refresh(candidate)
             candidate_ids.append(candidate.id)
 
-        # Initialize session state tracking
         _SESSIONS[session_id] = {
             "job_id": job.id,
             "candidate_ids": candidate_ids,
@@ -396,7 +357,6 @@ async def guest_screen(
             "skipped": skipped,
         }
 
-        # Persist GuestSession database row with 24-hour TTL
         now = datetime.now(timezone.utc)
         guest_session_record = GuestSession(
             id=session_id,
@@ -413,7 +373,6 @@ async def guest_screen(
         db.add(guest_session_record)
         db.commit()
 
-        # Fire pipeline in background
         background_tasks.add_task(_run_guest_pipeline, session_id, job.id, candidate_ids)
 
         return {
@@ -437,10 +396,7 @@ async def guest_screen(
 
 @router.get("/session/{session_id}/status")
 def guest_session_status(session_id: str):
-    """
-    Poll pipeline progress for Screen 3.
-    Updates reflect actual backend progress across parsing, extracting, scoring, and ranking.
-    """
+    """Poll pipeline progress for the processing screen."""
     db = SessionLocal()
     try:
         sess = _SESSIONS.get(session_id)
@@ -478,7 +434,8 @@ def guest_session_status(session_id: str):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3. GET /guest/session/{session_id}/results  (and /preview alias)
+# 3. GET /guest/session/{session_id}/results  (single canonical route)
+# Fix 6: /preview alias removed — use /results exclusively.
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _build_session_results(session_id: str) -> Dict[str, Any]:
@@ -519,11 +476,9 @@ def _build_session_results(session_id: str) -> Dict[str, Any]:
             return local[0] + "****@" + domain
 
         candidates_out = []
-
         for i, (c, ms) in enumerate(rows):
             score = ms.overall_score if ms else None
             tier = ms.tier if ms and ms.tier else ("Needs Review" if c.needs_manual_review else "Low")
-
             candidates_out.append({
                 "id": c.id,
                 "name_masked": f"Candidate #{i + 1}",
@@ -539,20 +494,13 @@ def _build_session_results(session_id: str) -> Dict[str, Any]:
                 "explanation": ms.explanation_json if ms else {},
             })
 
-        # Rank candidates: numeric scores sorted descending; unparseable at bottom
         candidates_out.sort(
-            key=lambda x: (
-                x["score"] is not None,
-                x["score"] if x["score"] is not None else -1
-            ),
-            reverse=True
+            key=lambda x: (x["score"] is not None, x["score"] if x["score"] is not None else -1),
+            reverse=True,
         )
-
-        # Re-number masked names after sorting to reflect rankings
         for rank_idx, cand in enumerate(candidates_out, start=1):
             cand["name_masked"] = f"Candidate #{rank_idx}"
 
-        # Calculate aggregate stats using shared aggregation function
         stats = compute_batch_aggregates(candidates_out)
 
         return {
@@ -572,59 +520,75 @@ def guest_session_results(session_id: str):
     return _build_session_results(session_id)
 
 
-@router.get("/session/{session_id}/preview")
-def guest_session_preview(session_id: str):
-    """Backward-compatible alias for /results."""
-    return _build_session_results(session_id)
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. POST /guest/session/{session_id}/claim
+#
+# Fix 1: user_id query param removed. Identity derived from JWT sub only.
+# Fix 2: 409 Conflict if already claimed by a different user.
+#         200 (idempotent) if claimed by the same user again.
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.post("/session/{session_id}/claim")
-def claim_session(session_id: str, user_id: int):
+def claim_session(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """
     Transfers ownership of the anonymous screening batch from the guest user
-    to the newly registered user. Zero re-processing or re-scoring occurs.
-    Atomically sets claimed_by_org_id = user_id and expires_at = None in the same database transaction.
+    to the authenticated user (identity from JWT, never from client input).
+
+    Returns:
+      200 — claimed successfully, or already owned by this same user (idempotent)
+      404 — session not found or expired
+      409 — session already claimed by a DIFFERENT user
     """
-    db = SessionLocal()
-    try:
-        sess = _SESSIONS.get(session_id)
-        guest_sess = db.query(GuestSession).filter(GuestSession.id == session_id).first()
+    sess = _SESSIONS.get(session_id)
+    guest_sess = db.query(GuestSession).filter(GuestSession.id == session_id).first()
 
-        if not sess and not guest_sess:
-            raise HTTPException(status_code=404, detail="Session not found or already claimed.")
+    if not sess and not guest_sess:
+        raise HTTPException(status_code=404, detail="Session not found or already claimed.")
 
-        if _is_session_expired(guest_sess):
-            raise HTTPException(status_code=404, detail="Session expired and cannot be claimed.")
+    if _is_session_expired(guest_sess):
+        raise HTTPException(status_code=404, detail="Session expired and cannot be claimed.")
 
-        job_id = guest_sess.job_id if guest_sess else sess["job_id"]
-        job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
-        if not job:
-            raise HTTPException(status_code=404, detail="Associated job posting not found.")
+    # Fix 2: ownership check before any transfer
+    if guest_sess and guest_sess.claimed_by_org_id is not None:
+        if guest_sess.claimed_by_org_id == current_user.id:
+            # Idempotent — same user claiming again (e.g. page refresh)
+            job_id = guest_sess.job_id
+            return {
+                "claimed": True,
+                "job_id": job_id,
+                "candidate_count": guest_sess.total,
+                "already_owned": True,
+            }
+        else:
+            # Different user — refuse with 409
+            raise HTTPException(
+                status_code=409,
+                detail="This screening session has already been claimed by another account.",
+            )
 
-        # ATOMIC TRANSACTION:
-        # 1. Transfer job ownership to registered recruiter
-        job.recruiter_id = user_id
+    job_id = guest_sess.job_id if guest_sess else sess["job_id"]
+    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Associated job posting not found.")
 
-        # 2. Mark guest session as claimed and clear expiry
-        if guest_sess:
-            guest_sess.claimed_by_org_id = user_id
-            guest_sess.expires_at = None
+    # ATOMIC TRANSACTION: transfer ownership + clear expiry
+    job.recruiter_id = current_user.id
 
-        db.commit()
+    if guest_sess:
+        guest_sess.claimed_by_org_id = current_user.id
+        guest_sess.expires_at = None
 
-        total = guest_sess.total if guest_sess else (sess.get("total", 0) if sess else 0)
+    db.commit()
 
-        # Clear session from in-memory registry after successful ownership transfer
-        _SESSIONS.pop(session_id, None)
+    total = guest_sess.total if guest_sess else (sess.get("total", 0) if sess else 0)
+    _SESSIONS.pop(session_id, None)
 
-        return {
-            "claimed": True,
-            "job_id": job.id,
-            "candidate_count": total,
-        }
-    finally:
-        db.close()
+    return {
+        "claimed": True,
+        "job_id": job.id,
+        "candidate_count": total,
+    }

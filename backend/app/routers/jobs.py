@@ -10,7 +10,8 @@ from app.models.user import User
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
-@router.post("/", response_model=JobPostingRead)
+@router.post("", response_model=JobPostingRead)
+@router.post("/", response_model=JobPostingRead, include_in_schema=False)
 def create_job(req: JobPostingCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     job = JobPosting(
         recruiter_id=current_user.id,
@@ -26,7 +27,8 @@ def create_job(req: JobPostingCreate, db: Session = Depends(get_db), current_use
     db.refresh(job)
     return _job_to_read(job, db)
 
-@router.get("/", response_model=List[JobPostingRead])
+@router.get("", response_model=List[JobPostingRead])
+@router.get("/", response_model=List[JobPostingRead], include_in_schema=False)
 def list_jobs(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     jobs = db.query(JobPosting).filter(JobPosting.recruiter_id == current_user.id).all()
     return [_job_to_read(j, db) for j in jobs]
