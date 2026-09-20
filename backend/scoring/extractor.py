@@ -335,3 +335,9 @@ class ResumeExtractor:
             detected_title=detected_title,
             timeline_intervals=intervals,
         )
+
+    def extract_from_text(self, text: str) -> ExtractedProfile:
+        """Extract candidate profile directly from a raw text string."""
+        parsed = ParsedResume(raw_text=text or "")
+        return self.extract_profile(parsed)
+

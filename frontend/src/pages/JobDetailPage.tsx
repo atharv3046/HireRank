@@ -318,7 +318,7 @@ export default function JobDetailPage() {
                 </motion.button>
 
                 <motion.button
-                  onClick={() => navigate('/screen')}
+                  onClick={() => navigate(`/jobs/${jobId}/upload`)}
                   whileHover={shouldReduce ? undefined : { scale: 1.02 }}
                   whileTap={shouldReduce ? undefined : { scale: 0.98 }}
                   className="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-cyan-500/20"
@@ -443,8 +443,33 @@ export default function JobDetailPage() {
                 <tbody className="divide-y divide-white/[0.06] text-sm">
                   {filteredCandidates.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-16 text-center text-white/30 text-sm">
-                        No candidates match the current filter criteria.
+                      <td colSpan={6} className="py-16 text-center">
+                        <div className="max-w-md mx-auto space-y-3">
+                          <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mx-auto text-cyan-400">
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <p className="text-base font-bold text-white">
+                            {candidates.length === 0 ? 'No resumes uploaded yet' : 'No candidates match filter'}
+                          </p>
+                          <p className="text-xs text-white/40 leading-relaxed">
+                            {candidates.length === 0
+                              ? 'Upload candidate resumes (PDF or DOCX) to automatically score and rank them against this role’s criteria.'
+                              : 'Try adjusting your search query or tier filters above.'}
+                          </p>
+                          {candidates.length === 0 && (
+                            <button
+                              onClick={() => navigate(`/jobs/${jobId}/upload`)}
+                              className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all shadow-md shadow-cyan-500/20 mt-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                              Upload Resumes for this Job
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ) : (

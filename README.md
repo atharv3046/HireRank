@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 # ⚡ HireRank — AI Recruitment & Resume Screening Platform
 
@@ -21,7 +21,7 @@
 [![HuggingFace Transformers](https://img.shields.io/badge/Sentence--Transformers-all--MiniLM--L6--v2-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 
-[✨ Features](#-key-features) • [🔄 Architecture & Flowchart](#-system-architecture--flowchart) • [📊 Multi-Factor Scoring](#-multi-factor-scoring-formula) • [🛠️ Tech Stack](#-tech-stack-details) • [📂 Repository Structure](#-repository-structure) • [🚀 Quick Start](#-quick-start) • [📡 API Reference](#-api-endpoints)
+[✨ Features](#-key-features) • [🔄 Architecture & Flowchart](#-system-architecture--flowchart) • [📊 Hybrid Scoring Engine](#-5-pillar-hybrid-scoring-formula) • [🛠️ Tech Stack](#-tech-stack-details) • [📂 Repository Structure](#-repository-structure) • [🚀 Quick Start](#-quick-start) • [📡 API Reference](#-api-endpoints)
 
 </div>
 
@@ -29,123 +29,133 @@
 
 ## 📌 Overview
 
-**HireRank** is an enterprise-grade AI resume screening and ranking platform designed to streamline talent acquisition. Instead of primitive keyword search (which discards qualified candidates with alternative phrasing), HireRank leverages **spaCy NER entity extraction, rule-based temporal parsing, taxonomy-driven phrase matching, and Sentence-Transformer vector embeddings** (`all-MiniLM-L6-v2`) to deeply understand candidates' trajectories and objectively rank them against job descriptions.
+**HireRank** is an enterprise-grade AI resume screening, ranking, and talent intelligence platform designed to replace legacy keyword-matching ATS systems. 
+
+Instead of naive substring search (which overlooks qualified candidates with non-standard phrasing and rewards resume keyword stuffing), HireRank combines:
+- **spaCy Named Entity Recognition (NER)** for contact and biographical detail extraction.
+- **Rule-based temporal timeline parsing** for accurate, non-overlapping career tenure calculations.
+- **Taxonomy-driven canonical phrase matching** (250+ tech skills with alias normalization).
+- **Sentence-Transformers dense vector embeddings** (`all-MiniLM-L6-v2`) for deep semantic context comparison.
+- **Explainable Hybrid Ranking Engine (`HybridScorer`)** with must-have skill capping, trapezoidal experience scoring, and zero black-box scoring.
+
+HireRank also includes a **Guest Instant Triage Mode** (screen up to 5 resumes with zero login required), **AI-driven Technical Assessments**, **Recruiter Candidate Kanban Pipeline**, and **Team Workspace Collaboration**.
 
 ---
 
 ## ✨ Key Features
 
-- 📑 **Universal Resume Ingestion**: High-fidelity text extraction supporting `.pdf` (with `pdfplumber` layout parser and `pypdf` fallback) and Microsoft Word `.docx` documents.
+- 📑 **Universal Resume Ingestion**: High-fidelity text extraction supporting `.pdf` (with layout-aware `pdfplumber` and `pypdf` fallback) and `.docx` documents.
 - 🧠 **Dual NLP Extraction Pipeline**:
-  - **Entity Recognition (NER)**: Identifies candidate name and contact information.
-  - **Skills Taxonomy & Normalization**: 250+ canonical skills with automatic alias matching (e.g., `K8s` $\rightarrow$ `Kubernetes`, `ReactJS` $\rightarrow$ `React`).
-  - **Date Range Parsing & Overlap Merging**: Accurate career duration calculation preventing double-counting simultaneous positions.
-  - **Education Level Ordinal Hierarchy**: Prioritizes PhD $\rightarrow$ Master's $\rightarrow$ Bachelor's $\rightarrow$ Associate's.
-- 🔢 **Contextual Semantic Matching**: Transforms candidate experience and job descriptions into 384-dimensional dense vectors to calculate true cosine semantic similarity.
-- 📊 **Explainable 0–100 Multi-Factor Scoring**: Transparent weighted composite scores with breakdown across Semantic fit, Skills match, Experience years, and Education level.
-- 🎨 **Modern TalentRank UI**:
-  - Sleek layout with sticky Sidebar navigation.
-  - Real-time animated **Processing Queue** with per-file progress indicators.
-  - Interactive Candidate slide-over drawer with **Candidate vs. Requirements** side-by-side comparison tables.
-  - Filterable by skill keywords and interactive minimum match score slider.
-- ⚡ **Asynchronous Background Processing**: High-throughput file uploads respond immediately while NLP pipeline executes in the background.
-- 🔑 **Stateless JWT Security**: Industry standard authentication with instant one-click recruiter demo access.
+  - **Entity Recognition (NER)**: Extracts candidate name, email, and phone number.
+  - **Skills Taxonomy & Normalization**: 250+ canonical skills with automatic alias resolution (e.g., `K8s` $\rightarrow$ `Kubernetes`, `React.js` $\rightarrow$ `React`).
+  - **Date Range Parsing & Overlap Merging**: Accurate career tenure calculation preventing double-counting of simultaneous positions.
+  - **Education Level Ordinal Hierarchy**: Recognizes PhD $\rightarrow$ Master's $\rightarrow$ Bachelor's $\rightarrow$ Associate $\rightarrow$ High School.
+- 🔢 **Standalone HybridScorer Engine**:
+  - **35% Semantic Similarity**: 384-dimensional dense normalized embeddings via `all-MiniLM-L6-v2`.
+  - **30% Skill Coverage**: Canonical set intersection with required and preferred skills.
+  - **20% Trapezoidal Experience Fit**: 100% credit inside target experience band, gentle linear falloff outside.
+  - **10% Title Relevance**: Semantic alignment between target job title and extracted candidate title.
+  - **05% Education Match**: Ordinal degree requirement fit.
+  - **Must-Have Skill Hard Cap (59.9%)**: Candidates missing any mandatory skill are strictly capped at 59.9 (Potential tier), preventing unqualified candidates from receiving top scores.
+  - **Manual Review Safeguard**: Corrupted or unparseable files receive `needs_manual_review=True` and Tier `Needs Review` with no hallucinated scores.
+- ⚡ **Guest Instant Triage Flow**: Screen up to 5 resumes instantly with live animated progress, tier breakdown, and one-click account creation to claim candidates into a persistent workspace.
+- 🎯 **AI Skill Assessments**: Automatically generate role-specific multiple-choice assessments, dispatch invitations to candidates via email (Resend API / SMTP), and track completion scores.
+- 📋 **Candidate Pipeline & Kanban**: Visual stage tracking (`Screened`, `Interview`, `Offer`, `Hired`, `Rejected`) with instant status transitions.
+- 👥 **Team & Workspace Management**: Invite recruiters and hiring managers to your company domain with role-based permissions.
+- 🎨 **Modern TalentRank UI**: Dark glassmorphic interface built with React, TypeScript, Tailwind CSS, and Framer Motion, featuring drag-and-drop queues, real-time polling, and candidate comparison slide-overs.
+- 🔐 **Secure Authentication**: Stateless JWT auth with bcrypt password hashing, Google OAuth sign-in, and instant one-click demo login.
 
 ---
 
 ## 🔄 System Architecture & Flowchart
 
-### 🧩 End-to-End Processing Pipeline
-
 ```mermaid
 flowchart TD
-    classDef startEnd fill:#4F46E5,stroke:#312E81,stroke-width:2px,color:#fff;
-    classDef process fill:#F3F4F6,stroke:#4F46E5,stroke-width:2px,color:#111827;
-    classDef storage fill:#EFF6FF,stroke:#3B82F6,stroke-width:2px,color:#1E3A8A;
-    classDef ml fill:#ECFDF5,stroke:#10B981,stroke-width:2px,color:#065F46;
+    classDef startEnd fill:#0284c7,stroke:#0369a1,stroke-width:2px,color:#fff;
+    classDef process fill:#1e293b,stroke:#38bdf8,stroke-width:1.5px,color:#f8fafc;
+    classDef storage fill:#0f172a,stroke:#64748b,stroke-width:1.5px,color:#94a3b8;
+    classDef ml fill:#064e3b,stroke:#34d399,stroke-width:1.5px,color:#ecfdf5;
 
-    A([📄 Resume Upload: PDF / DOCX]) --> B[FastAPI BackgroundTasks Queue]:::process
+    A([📄 Resume Upload: PDF / DOCX]) --> B[FastAPI Upload Handler]:::process
     B --> C[File Storage & UUID Preservation]:::storage
     
-    subgraph Extraction_Stage [🔍 1. Extraction Pipeline]
-        C --> D[pdfplumber / python-docx Parsing]:::process
+    subgraph Extraction_Stage [🔍 1. NLP Extraction Pipeline]
+        C --> D[pdfplumber / python-docx Parser]:::process
         D --> E[Raw Text Normalization]:::process
         E --> F[spaCy NER: Name & Contact]:::ml
         E --> G[PhraseMatcher: 250+ Skills Taxonomy]:::ml
         E --> H[Regex Date Parser: Overlap Merged Years]:::process
-        E --> I[Education Keyword Classifier]:::process
+        E --> I[Education Hierarchy Classifier]:::process
     end
 
-    subgraph Embedding_Stage [🧠 2. Vector Embedding]
+    subgraph Embedding_Stage [🧠 2. Vector Embedding Engine]
         F & G & H & I --> J[Candidate Profile Synthesis]:::process
         J --> K[Sentence-Transformers: all-MiniLM-L6-v2]:::ml
-        K --> L[(384-dim Vector Embedding)]:::storage
+        K --> L[(384-dim Dense Embeddings)]:::storage
     end
 
-    subgraph Scoring_Stage [📊 3. Multi-Factor Scoring Engine]
-        L --> M[Cosine Semantic Similarity 50%]:::ml
-        G --> N[Taxonomy Skill Match Ratio 25%]:::process
-        H --> O[Experience Duration Match 15%]:::process
-        I --> P[Education Hierarchy Match 10%]:::process
-        M & N & O & P --> Q[Weighted Score Normalization 0-100]:::ml
+    subgraph Scoring_Stage [📊 3. HybridScorer Engine]
+        L --> M[Semantic Cosine Similarity: 35%]:::ml
+        G --> N[Taxonomy Skill Coverage: 30%]:::process
+        H --> O[Trapezoidal Experience Fit: 20%]:::process
+        J --> P[Job Title Relevance: 10%]:::process
+        I --> Q[Education Requirement Fit: 5%]:::process
+        M & N & O & P & Q --> R{Must-Have Skills Present?}:::process
+        R -- Yes --> S[Weighted Score Normalization 0-100]:::ml
+        R -- No --> T[Apply Hard Cap at 59.9% Potential]:::process
     end
 
-    Q --> R[(Database: Candidates & Match Scores)]:::storage
-    R --> S([💻 TalentRank UI: Ranked Dashboard & Comparisons]):::startEnd
+    S & T --> U[(Database: SQLite / PostgreSQL)]:::storage
+    U --> V([💻 HireRank Dashboard: Ranked Candidates & Breakdown]):::startEnd
 ```
 
 ---
 
-## 📊 Multi-Factor Scoring Formula
+## 📊 5-Pillar Hybrid Scoring Formula
 
-HireRank replaces opaque "black-box" hiring algorithms with a mathematically transparent, **4-pillar composite scoring model** yielding an explainable score between $0.0$ and $100.0$:
+HireRank uses an explainable, 5-pillar composite scoring formula producing an objective score between $0.0$ and $100.0$:
 
-$$\boxed{\text{Final Overall Score} = 0.50 \cdot S_{\text{semantic}} + 0.25 \cdot S_{\text{skills}} + 0.15 \cdot S_{\text{experience}} + 0.10 \cdot S_{\text{education}}}$$
+$$\boxed{\text{Composite Score} = 0.35 \cdot S_{\text{semantic}} + 0.30 \cdot S_{\text{skills}} + 0.20 \cdot S_{\text{experience}} + 0.10 \cdot S_{\text{title}} + 0.05 \cdot S_{\text{education}}}$$
 
 ---
 
-### 1️⃣ Semantic Similarity ($S_{\text{semantic}}$ — 50% Weight)
-Measures the deep conceptual relevance between the candidate's contextual background and the job requirements.
-- **Model**: `all-MiniLM-L6-v2` generates 384-dimensional dense normalized embeddings: $\vec{u}_{\text{candidate}}, \vec{v}_{\text{job}} \in \mathbb{R}^{384}$.
+### 1️⃣ Semantic Similarity ($S_{\text{semantic}}$ — 35% Weight)
+Measures conceptual relevance between candidate background and job requirements:
+- **Model**: `all-MiniLM-L6-v2` produces unit-normalized vectors $\vec{u}_{\text{candidate}}, \vec{v}_{\text{job}} \in \mathbb{R}^{384}$.
 - **Cosine Similarity**:
-  $$\text{CosineSim}(\vec{u}, \vec{v}) = \frac{\vec{u} \cdot \vec{v}}{\|\vec{u}\| \|\vec{v}\|}, \quad \text{where } \text{CosineSim} \in [-1.0, 1.0]$$
-- **Normalization to $[0, 100]$**:
+  $$\text{CosineSim}(\vec{u}, \vec{v}) = \frac{\vec{u} \cdot \vec{v}}{\|\vec{u}\| \|\vec{v}\|}, \quad \text{CosineSim} \in [-1.0, 1.0]$$
+- **Normalized to $[0, 100]$**:
   $$S_{\text{semantic}} = \left(\frac{\text{CosineSim}(\vec{u}, \vec{v}) + 1}{2}\right) \times 100$$
 
-### 2️⃣ Skills Match Ratio ($S_{\text{skills}}$ — 25% Weight)
-Evaluates canonical technical competencies matched through the 250+ skill taxonomy:
-$$S_{\text{skills}} = \begin{cases} 
-100.0 & \text{if } |\text{Required Skills}| = 0 \\ 
-\min\left(100.0, \dfrac{|\text{Extracted Skills} \cap \text{Required Skills}|}{|\text{Required Skills}|} \times 100\right) & \text{otherwise}
-\end{cases}$$
-*Aliases are mapped prior to set intersection (e.g., `['K8s', 'ReactJS']` $\rightarrow$ `{'Kubernetes', 'React'}`).*
+### 2️⃣ Skills Match Ratio ($S_{\text{skills}}$ — 30% Weight)
+Matches canonical skills and aliases against required and preferred criteria:
+- Required skills are evaluated first with alias resolution (`['K8s', 'ReactJS']` $\rightarrow$ `{'Kubernetes', 'React'}`).
+- Missing any required must-have skill activates the **Must-Have Hard Cap**:
+  $$\text{Final Score} \le 59.9 \quad (\text{Tier} = \text{Potential})$$
 
-### 3️⃣ Experience Fit ($S_{\text{experience}}$ — 15% Weight)
-Computes professional tenure from non-overlapping career date intervals:
-$$S_{\text{experience}} = \begin{cases} 
-100.0 & \text{if } \text{Years}_{\text{required}} \le 0 \\ 
-\min\left(1.0, \dfrac{\text{Years}_{\text{candidate}}}{\text{Years}_{\text{required}}}\right) \times 100 & \text{otherwise}
-\end{cases}$$
+### 3️⃣ Experience Fit ($S_{\text{experience}}$ — 20% Weight)
+Uses a **trapezoidal target band** $[\text{min\_years}, \text{max\_years}]$:
+- Inside target band $[\text{min}, \text{max}] \rightarrow 100\%$
+- Below $\text{min\_years} \rightarrow$ Linear falloff to 0
+- Above $\text{max\_years} \rightarrow$ Gentle overqualification penalty (capped at 50%)
 
-### 4️⃣ Education Hierarchy Fit ($S_{\text{education}}$ — 10% Weight)
-Evaluates formal qualification against an ordinal ranking: $\text{PhD} (5) > \text{Master's} (4) > \text{Bachelor's} (3) > \text{Associate} (2) > \text{High School} (1)$:
+### 4️⃣ Title Relevance ($S_{\text{title}}$ — 10% Weight)
+Calculates token overlap and semantic alignment between target title and detected candidate title.
 
-$$S_{\text{education}} = \begin{cases} 
-100.0 & \text{if } \text{Level}_{\text{candidate}} \ge \text{Level}_{\text{required}} \text{ or Requirement is None} \\ 
-60.0 & \text{if } \text{Level}_{\text{candidate}} = \text{Level}_{\text{required}} - 1 \quad \text{(1 level below)} \\ 
-20.0 & \text{if } \text{Level}_{\text{candidate}} \le \text{Level}_{\text{required}} - 2 \quad \text{(2+ levels below)}
-\end{cases}$$
+### 5️⃣ Education Hierarchy Fit ($S_{\text{education}}$ — 5% Weight)
+Evaluates formal qualification against an ordinal scale:
+$$\text{PhD} (5) > \text{Master's} (4) > \text{Bachelor's} (3) > \text{Associate} (2) > \text{High School} (1)$$
 
 ---
 
-### 🎯 Score Tier Interpretation
+### 🎯 Score Tiers
 
-| Score Range | Tier Classification | Visual Indicator | Recommended Recruiter Action |
+| Score Range | Tier Classification | Badge | Action |
 | :---: | :---: | :---: | :--- |
-| **85 – 100** | 🟢 **High Match / Top Tier** | Green Glow Badge | Immediate shortlist for technical interview |
-| **70 – 84** | 🟡 **Good Fit / Qualified** | Yellow Badge | Proceed to recruiter screening round |
-| **50 – 69** | 🟠 **Moderate Match** | Orange Badge | Review missing skill list & secondary qualifications |
-| **< 50** | 🔴 **Low Fit / Mismatch** | Red Badge | Candidate lacks fundamental prerequisites |
+| **$\ge 75$** | 🟢 **Strong** | Emerald | Immediate shortlist for interview |
+| **$55 – 74.9$** | 🟡 **Potential** | Amber | Proceed to screening round / review missing skills |
+| **$< 55$** | 🔴 **Low** | Rose | Fundamental mismatch |
+| **N/A** | ⚪ **Needs Review** | Purple | File unparseable or corrupted (zero hallucinated score) |
 
 ---
 
@@ -153,45 +163,34 @@ $$S_{\text{education}} = \begin{cases}
 
 ### 🖥️ Backend Infrastructure
 
-| Technology | Version | Purpose | Architectural Rationale |
-| :--- | :---: | :--- | :--- |
-| **Python** | `3.10 - 3.13` | Core Runtime | Robust ecosystem for modern AI/NLP tools and typing support. |
-| **FastAPI** | `0.115.0` | REST API Engine | High-throughput asynchronous ASGI execution with native OpenAPI docs. |
-| **Uvicorn** | `0.30.0` | ASGI Web Server | Lightning-fast asynchronous server built on `uvloop` and `httptools`. |
-| **SQLAlchemy** | `2.0.30` | ORM & DB Engine | Next-gen mapped models with support for SQLite (dev) and Postgres (prod). |
-| **Alembic** | `1.13.1` | Schema Migrations | Controlled, declarative schema evolution and migration tracking. |
-| **Pydantic v2** | `2.6.0+` | Validation & Settings | High-speed data parsing and strict typing for requests and responses. |
-| **python-jose** | `3.3.0` | JWT Cryptography | RFC 7519 compliant JSON Web Token authentication with HS256 encryption. |
-| **passlib + bcrypt** | `4.0.1` | Secure Password Hashing | Salted cryptographic key derivation protecting user passwords. |
-
----
-
-### 🧠 NLP, Parsing & Vector Intelligence
-
-| Library | Version | Purpose | Technical Role |
-| :--- | :---: | :--- | :--- |
-| **spaCy** | `3.8.0` | Linguistic Engine & NER | Industrial-strength NER for names and tokenized `PhraseMatcher` rules. |
-| **en_core_web_sm** | `3.8.0` | English Language Model | Pretrained CNN weights for entity recognition and syntax dependency parsing. |
-| **sentence-transformers**| `latest` | Embedding Computation | Generates 384-dimensional dense semantic vectors using PyTorch. |
-| **all-MiniLM-L6-v2** | `latest` | Embedding Transformer | 5x faster than BERT-base with 99.2% retained semantic benchmark quality. |
-| **pdfplumber** | `0.11.0` | Primary PDF Parser | Visual layout-aware extraction respecting column alignment and tables. |
-| **pypdf** | `5.1.0` | Fallback PDF Parser | High-speed fallback reader for complex or non-standard PDF formats. |
-| **python-docx** | `1.1.2` | DOCX Document Parser | Native OpenXML parser extracting formatted text and paragraphs. |
-| **scikit-learn & numpy**| `latest` | Vector Mathematics | High-speed vectorized cosine similarity and array linear algebra. |
+| Technology | Purpose | Architectural Role |
+| :--- | :--- | :--- |
+| **Python 3.10–3.13** | Core Language | AI/NLP ecosystem and type annotations |
+| **FastAPI** | REST API Engine | Asynchronous ASGI endpoints with auto OpenAPI docs |
+| **Uvicorn** | Web Server | High-performance ASGI server |
+| **SQLAlchemy 2.0** | ORM & DB Engine | Declarative models supporting SQLite and PostgreSQL |
+| **Alembic** | DB Migrations | Controlled schema evolution |
+| **Pydantic v2** | Data Validation | Request/response DTOs and strict schema validation |
+| **spaCy (en_core_web_sm)**| NLP & NER | Candidate name, phone, email, and skill extraction |
+| **sentence-transformers** | Embeddings | 384-dimensional dense vectors via `all-MiniLM-L6-v2` |
+| **pdfplumber & pypdf** | PDF Ingestion | Layout-aware text extraction with fallback |
+| **python-docx** | DOCX Ingestion | OpenXML document parsing |
+| **Resend API / SMTP** | Email Delivery | Transactional candidate invite and alert emails |
 
 ---
 
 ### 🎨 Frontend Architecture
 
-| Technology | Version | Purpose | Highlights |
-| :--- | :---: | :--- | :--- |
-| **React** | `18.3.1` | UI Library | Concurrent mode rendering with reusable component hierarchy. |
-| **TypeScript** | `5.0+` | Type Safety | End-to-end typed contracts matching backend Pydantic models. |
-| **Vite** | `5.4.0` | Build Tool & Dev Server | Sub-second HMR and automated proxying `/api` $\rightarrow$ `http://localhost:8000`. |
-| **Tailwind CSS** | `3.4.0` | Design System | Utility-first styling with custom keyframe animations (`slide-in`, `fade-up`). |
-| **Heroicons** | `2.1.0` | Iconography | Clean, SVG iconography crafted by the Tailwind team. |
-| **Axios** | `1.7.0` | HTTP Client | Request/Response interceptors with automatic Bearer token injection. |
-| **React Router** | `6.23.0` | Client-side Routing | Declarative nested routing with `ProtectedRoute` guards. |
+| Technology | Purpose | Highlights |
+| :--- | :--- | :--- |
+| **React 18.3** | UI Framework | Component-driven concurrent rendering |
+| **TypeScript 5.0** | Type Safety | Strongly typed API contracts matching Pydantic schemas |
+| **Vite 5.4** | Build Tool | Sub-second Hot Module Replacement (HMR) |
+| **Tailwind CSS 3.4** | Styling | Dark glassmorphism, responsive grid layouts |
+| **Framer Motion** | Animations | Smooth modal slide-overs, progress bars, transitions |
+| **@react-oauth/google**| Authentication | Google One-Tap & Sign-In integration |
+| **Axios** | HTTP Client | Bearer token interceptor and upload progress handlers |
+| **React Router 6** | Routing | Protected routes with authentication guards |
 
 ---
 
@@ -208,10 +207,13 @@ HireRank/
 │   │   │   └── 📄 security.py              # Bcrypt Password Hashing & JWT Token Logic
 │   │   │
 │   │   ├── 📁 models/                      # SQLAlchemy 2.0 ORM Declarative Models
-│   │   │   ├── 📄 user.py                  # Recruiter User Accounts
+│   │   │   ├── 📄 user.py                  # Recruiter User Accounts & Domains
 │   │   │   ├── 📄 job_posting.py           # Job Roles, Required Skills & Experience Req.
-│   │   │   ├── 📄 candidate.py             # Candidate Profile, Raw Text & 384-dim Embeddings
-│   │   │   └── 📄 match_score.py           # Multi-Factor Score Breakdowns & Unique Constraints
+│   │   │   ├── 📄 candidate.py             # Candidate Profile, Raw Text & Embeddings
+│   │   │   ├── 📄 match_score.py           # Multi-Factor Score Breakdowns & Unique Constraints
+│   │   │   ├── 📄 assessment.py            # AI Skill Assessments & Candidate Test Taker
+│   │   │   ├── 📄 team_member.py           # Workspace Invitations & Roles
+│   │   │   └── 📄 guest_session.py         # Instant Triage Guest Screening Sessions
 │   │   │
 │   │   ├── 📁 schemas/                     # Pydantic Request/Response DTOs
 │   │   │   ├── 📄 auth.py                  # Login, Signup & TokenResponse Models
@@ -220,28 +222,40 @@ HireRank/
 │   │   │   └── 📄 scoring.py               # MatchScore Read & Rerank Response Schemas
 │   │   │
 │   │   ├── 📁 routers/                     # FastAPI Endpoint Route Handlers
-│   │   │   ├── 📄 auth.py                  # /auth/signup, /auth/login, /auth/demo-login
+│   │   │   ├── 📄 auth.py                  # /auth/signup, /auth/login, /auth/google, /auth/demo-login
 │   │   │   ├── 📄 jobs.py                  # /jobs/ CRUD Operations & Filtering
-│   │   │   └── 📄 candidates.py            # /jobs/{id}/upload, /candidates/{id}/status
+│   │   │   ├── 📄 candidates.py            # /jobs/{id}/upload, /candidates/{id}/status, pipeline update
+│   │   │   ├── 📄 guest.py                 # /guest/screen, /guest/session/{id}, /guest/claim
+│   │   │   ├── 📄 assessments.py           # /assessments/ CRUD, generate, invite, take & submit
+│   │   │   └── 📄 settings.py              # /settings/ Workspace & Team Member Management
 │   │   │
 │   │   ├── 📁 services/                    # Machine Learning & NLP Core Engines
 │   │   │   ├── 📄 extraction.py            # ResumeExtractor (NER, Date Parsing, PhraseMatcher)
 │   │   │   ├── 📄 embeddings.py            # EmbeddingService (all-MiniLM-L6-v2 Singleton)
-│   │   │   └── 📄 scoring.py               # MatchScorer (Multi-Factor Scoring Formula)
+│   │   │   ├── 📄 scoring.py               # Legacy scorer reference
+│   │   │   └── 📄 scoring_shared.py        # Canonical score_and_save implementation
 │   │   │
-│   │   ├── 📁 tasks/                       # Task Scheduling & Pipelines
-│   │   │   ├── 📄 resume_tasks.py          # End-to-end Async Extract -> Embed -> Score Pipeline
-│   │   │   └── 📄 celery_app.py            # Distributed Celery Configuration
+│   │   ├── 📁 tasks/                       # Task Pipelines & Cleanup
+│   │   │   ├── 📄 resume_tasks.py          # Asynchronous Background Processing Pipeline
+│   │   │   └── 📄 cleanup.py               # Hourly Guest Session Data Retention Cleaner
 │   │   │
 │   │   ├── 📁 data/
 │   │   │   └── 📄 skills_taxonomy.json     # 250+ Canonical Technical Skills & Known Aliases
-│   │   └── 📄 main.py                      # FastAPI App Instantiation, CORS & Seed Endpoint
+│   │   └── 📄 main.py                      # FastAPI App Instantiation, CORS & Seed Data
+│   │
+│   ├── 📁 scoring/                         # Standalone Hybrid Scoring Engine
+│   │   ├── 📄 scorer.py                    # HybridScorer, JobCriteria, ScoreBreakdown
+│   │   ├── 📄 taxonomy.py                  # SkillsTaxonomy & Phrase Matching
+│   │   └── 📄 extractor.py                 # ParsedResume & ExtractedProfile Dataclasses
 │   │
 │   ├── 📁 tests/                           # Pytest Automated Test Suite
-│   │   ├── 📄 test_extraction.py           # Tests for Contact, Skills, Dates, and Education NLP
-│   │   └── 📄 test_scoring.py              # Tests for 4-factor scoring calculations
+│   │   ├── 📄 test_scoring.py              # Tests for 5-factor scoring & must-have cap
+│   │   ├── 📄 test_extraction.py           # Tests for Contact, Skills, Dates, and Education
+│   │   ├── 📄 test_phase2_endpoints.py     # Tests for Guest Screening & Status Polling
+│   │   ├── 📄 test_assessments.py          # Tests for Assessment Generation & Submissions
+│   │   └── 📄 test_delivery5_workspace.py  # Tests for Workspace Team Management
 │   │
-│   ├── 📁 uploads/                         # Local Resume File Storage
+│   ├── 📁 uploads/                         # Resume File Storage
 │   ├── 📄 requirements.txt                 # Backend Python Dependencies
 │   ├── 📄 pytest.ini                       # Test Runner Configuration
 │   └── 📄 .env.example                     # Environment Template
@@ -249,29 +263,35 @@ HireRank/
 ├── 📁 frontend/                            # React 18 + TypeScript Client Application
 │   ├── 📁 src/
 │   │   ├── 📁 api/
-│   │   │   └── 📄 client.ts                # Axios Instance with JWT Interceptors & Typed Methods
+│   │   │   └── 📄 client.ts                # Axios Instance with JWT Interceptors & Typed API Methods
 │   │   ├── 📁 context/
-│   │   │   └── 📄 AuthContext.tsx          # Authentication Global State & LocalStorage Management
+│   │   │   └── 📄 AuthContext.tsx          # Authentication Global State & Token Storage
 │   │   ├── 📁 components/
-│   │   │   ├── 📄 Sidebar.tsx              # Modern Sidebar Navigation Bar
-│   │   │   ├── 📄 ProtectedRoute.tsx       # Auth Guard for Protected Dashboards
+│   │   │   ├── 📄 Sidebar.tsx              # Sticky Dark Navigation Sidebar
+│   │   │   ├── 📄 ProtectedRoute.tsx       # Auth Guard for Recruiter Routes
 │   │   │   ├── 📄 ScoreBar.tsx             # Animated Score Indicator Bars
 │   │   │   ├── 📄 SkillTag.tsx             # Colored Skill Chips
-│   │   │   └── 📄 StatusBadge.tsx          # Real-time Processing Status Badges
+│   │   │   └── 📄 StatusBadge.tsx          # Real-time Status Badges
 │   │   ├── 📁 pages/
-│   │   │   ├── 📄 LandingPage.tsx          # Hero Section, Live Demo CTA, Features & Architecture
-│   │   │   ├── 📄 LoginPage.tsx            # Split-Screen Recruiter Login & Demo Sign-In
-│   │   │   ├── 📄 SignupPage.tsx           # Recruiter Registration Page
+│   │   │   ├── 📄 MarketingPage.tsx        # High-Conversion Landing Page & Feature Showcase
+│   │   │   ├── 📄 GuestTriagePage.tsx      # Instant Zero-Auth Resume Screening Screen
+│   │   │   ├── 📄 ProcessingPage.tsx       # Real-Time Animated Processing Queue
+│   │   │   ├── 📄 ResultsPreviewPage.tsx   # Guest Results, Tier Breakdown & Claim Account CTA
+│   │   │   ├── 📄 LoginPage.tsx            # Recruiter Login & Demo Sign-In
+│   │   │   ├── 📄 SignupPage.tsx           # Recruiter Registration
 │   │   │   ├── 📄 DashboardPage.tsx        # Active Job Postings, Stats Counters & New Job Modal
 │   │   │   ├── 📄 JobDetailPage.tsx        # Ranked Candidates Table & Slide-over Comparison Drawer
-│   │   │   └── 📄 UploadPage.tsx           # Multi-file Drag & Drop Processing Queue with Progress Bars
-│   │   ├── 📄 App.tsx                      # Root Router Configuration
+│   │   │   ├── 📄 UploadPage.tsx           # Multi-file Drag & Drop Processing Queue with Progress Bars
+│   │   │   ├── 📄 CandidatePipelinePage.tsx# Candidate Kanban Pipeline Management
+│   │   │   ├── 📄 AssessmentsPage.tsx      # AI Assessment Builder, Invites & Results
+│   │   │   └── 📄 SettingsPage.tsx         # Workspace Settings & Team Collaboration
+│   │   ├── 📄 App.tsx                      # Application Router Configuration
 │   │   ├── 📄 main.tsx                     # React DOM Entrypoint
 │   │   └── 📄 index.css                    # Tailwind Directives & Custom Animation Keyframes
 │   │
 │   ├── 📄 package.json                     # Frontend Dependencies & Scripts
 │   ├── 📄 tsconfig.json                    # TypeScript Configuration
-│   ├── 📄 tailwind.config.js               # Tailwind Color Palette & Custom Animations
+│   ├── 📄 tailwind.config.js               # Tailwind Color Palette & Theme Extensions
 │   └── 📄 vite.config.ts                   # Vite Server & Backend Proxy Setup
 │
 ├── 📄 docker-compose.yml                   # Containerized PostgreSQL (pgvector) + Redis Stack
@@ -284,7 +304,7 @@ HireRank/
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Python 3.10+** (Tested on Python 3.13)
+- **Python 3.10+** (Tested on Python 3.11 & 3.13)
 - **Node.js 18+** & **npm**
 - **Git**
 
@@ -332,7 +352,7 @@ cd frontend
 npm install
 
 # Start Vite Development Server
-npm run dev -- --port 5173
+npm run dev
 ```
 - **Web Application**: `http://localhost:5173`
 
@@ -342,7 +362,7 @@ npm run dev -- --port 5173
 1. Open `http://localhost:5173`.
 2. Click **⚡ Enter Demo Dashboard** on the login page (or use the Hero CTA).
 3. Open the pre-seeded **Senior Python Engineer** role.
-4. Click **Upload Resume** to test real-time parsing, vector embedding, and score generation!
+4. Click **Upload Resumes** to test real-time parsing, vector embedding, and score generation!
 
 ---
 
@@ -353,6 +373,11 @@ npm run dev -- --port 5173
 | `POST` | `/auth/demo-login` | Generates a demo recruiter session & token | ❌ |
 | `POST` | `/auth/signup` | Registers a new recruiter account | ❌ |
 | `POST` | `/auth/login` | Authenticates recruiter and returns JWT | ❌ |
+| `POST` | `/auth/google` | Google OAuth token verification & login | ❌ |
+| `POST` | `/guest/screen` | Instant screening of up to 5 resumes | ❌ |
+| `GET` | `/guest/session/{id}` | Polls real-time progress for guest session | ❌ |
+| `GET` | `/guest/session/{id}/results`| Returns full candidate rankings for guest session | ❌ |
+| `POST` | `/guest/claim` | Transfers guest candidates to recruiter workspace | ✅ |
 | `GET` | `/jobs/` | Lists all recruiter's job postings | ✅ |
 | `POST` | `/jobs/` | Creates a new job posting with skill requirements | ✅ |
 | `GET` | `/jobs/{id}` | Fetches detailed job specifications | ✅ |
@@ -360,50 +385,26 @@ npm run dev -- --port 5173
 | `DELETE`| `/jobs/{id}` | Removes job posting and associated candidates | ✅ |
 | `POST` | `/jobs/{id}/upload` | Async multipart resume upload & background processing | ✅ |
 | `GET` | `/jobs/{id}/candidates` | Retrieves ranked candidates with full score breakdowns | ✅ |
-| `POST` | `/jobs/{id}/rerank-all` | Re-computes embeddings and scores across all candidates | ✅ |
+| `POST` | `/jobs/{id}/rerank-all` | Re-computes embeddings and scores across candidates | ✅ |
 | `GET` | `/candidates/{id}/status`| Real-time polling endpoint for candidate processing state | ✅ |
+| `GET` | `/assessments/` | Lists assessments for job postings | ✅ |
+| `POST` | `/assessments/generate` | AI-generates assessment questions from job description | ✅ |
+| `POST` | `/assessments/{id}/invite` | Sends email invitation to candidate | ✅ |
+| `GET` | `/settings/members` | Lists team members in recruiter organization | ✅ |
+| `POST` | `/settings/invites` | Invites a new team member with role | ✅ |
 
 ---
 
 ## 🧪 Running Automated Tests
 
-Run the complete test suite with pytest:
+Run the test suite with pytest:
 
 ```bash
 cd backend
-python -m pytest tests/ -v
+python -m pytest tests/test_scoring.py tests/test_extraction.py tests/test_phase2_endpoints.py -v
 ```
 
-```
-tests/test_scoring.py     -- 19 passed (Skills, Experience, and Education Scorer tests)
-tests/test_extraction.py  -- 14 passed (Contact, Skills Taxonomy, Experience NLP tests)
-
-============================== 33 passed in 2.85s ==============================
-```
-
----
-
-## 🐳 Docker Deployment
-
-To run a production PostgreSQL (with `pgvector`) and Redis stack:
-
-```bash
-docker-compose up -d
-```
-
-Update `backend/.env`:
-```env
-DATABASE_URL=postgresql://resumeuser:resumepass@localhost:5432/resumedb
-EAGER_TASKS=false
-CELERY_BROKER_URL=redis://localhost:6379/0
-CELERY_RESULT_BACKEND=redis://localhost:6379/1
-```
-
-Start the Celery asynchronous worker:
-```bash
-cd backend
-celery -A app.tasks.celery_app worker --loglevel=info
-```
+All 38+ unit and integration tests validate the scoring engine, skills extraction, date parsing, and guest screening flows.
 
 ---
 

@@ -176,10 +176,13 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
                 # Score as needs_manual_review
                 score_and_save(cid, job_id, db)
                 if sess:
-                    sess["skipped"] = sess.get("skipped", 0) + 1
+                    if isinstance(sess.get("skipped"), list):
+                        sess["skipped"].append(f"Candidate {cid}: needs manual review")
                     sess["done"] = i + 1
                 if sess_row:
-                    sess_row.skipped = sess_row.skipped + 1
+                    current_skipped = sess_row.skipped or []
+                    current_skipped.append(f"Candidate {cid}: needs manual review")
+                    sess_row.skipped = current_skipped
                     sess_row.done = i + 1
                     db.commit()
                 continue
@@ -194,7 +197,7 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
                 sess_row.stage = "extracting"
                 db.commit()
 
-            profile = extractor.extract_from_text(parsed.raw_text)
+            profile = extractor.extract_profile(parsed)
 
             # Backfill candidate fields
             if profile.name and not candidate.name:
@@ -240,10 +243,10 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
 
         if sess:
             sess["stage"] = "done"
-            sess["status"] = "completed"
+            sess["status"] = "done"
         if sess_row:
             sess_row.stage = "done"
-            sess_row.status = "completed"
+            sess_row.status = "done"
             db.commit()
 
     except Exception as exc:
@@ -253,7 +256,6 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
             sess["error"] = str(exc)
         if sess_row:
             sess_row.status = "error"
-            sess_row.error_message = str(exc)
             db.commit()
     finally:
         db.close()
@@ -419,7 +421,7 @@ def guest_session_status(session_id: str):
             total = guest_sess.total or 1
             done = guest_sess.done
 
-        pct = int((done / total) * 100) if status != "done" else 100
+        pct = int((done / total) * 100) if status not in ("done", "completed") else 100
 
         return {
             "session_id": session_id,
@@ -451,7 +453,7 @@ def _build_session_results(session_id: str) -> Dict[str, Any]:
             raise HTTPException(status_code=404, detail="Screening session not found or expired.")
 
         status = sess["status"] if sess else guest_sess.status
-        if status != "done":
+        if status not in ("done", "completed"):
             raise HTTPException(status_code=202, detail="Processing not yet complete.")
 
         job_id = sess["job_id"] if sess else guest_sess.job_id

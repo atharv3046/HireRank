@@ -144,10 +144,7 @@ class TestPhase2Endpoints:
         assert stats["average_score"] == cand["score"]
         assert "tier_distribution" in stats
 
-        # Verify preview alias produces same result
-        preview_res = client.get(f"/guest/session/{session_id}/preview")
-        assert preview_res.status_code == 200
-        assert preview_res.json() == res_data
+        # Note: /preview alias has been removed in Fix 6 in favor of canonical /results
 
     def test_unparseable_corrupt_file_handled_gracefully(self):
         # Submit corrupted file

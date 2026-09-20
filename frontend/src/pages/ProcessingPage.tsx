@@ -107,7 +107,7 @@ export default function ProcessingPage() {
         const data: SessionStatus = res.data;
         setStatus(data);
 
-        if (data.status === 'done') {
+        if (data.status === 'done' || data.status === 'completed') {
           clearInterval(intervalRef.current!);
           setTimeout(() => navigate(`/results/${sessionId}`), 800);
         }
@@ -130,7 +130,7 @@ export default function ProcessingPage() {
     return () => clearInterval(intervalRef.current!);
   }, [sessionId, navigate]);
 
-  const allDone = status?.status === 'done';
+  const allDone = status?.status === 'done' || status?.status === 'completed';
   const currentPct = allDone ? 100 : (status?.progress_pct ?? 0);
   const animatedPct = useCountUp(currentPct, 0.6);
   const isReduced = Boolean(shouldReduce);
