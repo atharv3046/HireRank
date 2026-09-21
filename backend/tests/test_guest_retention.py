@@ -26,6 +26,7 @@ from app.models.match_score import MatchScore
 from app.models.guest_session import GuestSession
 from app.services.cleanup import cleanup_expired_guest_sessions
 from app.routers.guest import _run_guest_pipeline, _SESSIONS
+from app.core.security import create_access_token
 
 client = TestClient(app)
 
@@ -181,8 +182,12 @@ class TestGuestRetention:
             db.commit()
             db.refresh(new_user)
 
+            token = create_access_token({"sub": str(new_user.id)})
             # Claim the session
-            claim_res = client.post(f"/guest/session/{session_id}/claim?user_id={new_user.id}")
+            claim_res = client.post(
+                f"/guest/session/{session_id}/claim",
+                headers={"Authorization": f"Bearer {token}"}
+            )
             assert claim_res.status_code == 200
 
             # Verify in DB: claimed_by_org_id == new_user.id, expires_at is None
@@ -227,8 +232,12 @@ class TestGuestRetention:
             assert sess_before.expires_at is not None
             assert sess_before.claimed_by_org_id is None
 
+            token = create_access_token({"sub": str(user.id)})
             # Perform claim
-            claim_res = client.post(f"/guest/session/{session_id}/claim?user_id={user.id}")
+            claim_res = client.post(
+                f"/guest/session/{session_id}/claim",
+                headers={"Authorization": f"Bearer {token}"}
+            )
             assert claim_res.status_code == 200
 
             # Refresh test DB session identity map to see committed changes

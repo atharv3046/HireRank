@@ -85,6 +85,7 @@ export interface DashboardSummary {
   };
   efficiency_pct?: number;
   velocity?: { date: string; count: number }[];
+  velocity_hourly?: { hour: string; count: number }[];
 }
 
 export interface JobStats {

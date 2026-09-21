@@ -33,6 +33,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import SessionLocal, get_db
+from app.core.security import decode_access_token
 from app.models.user import User
 from app.models.job_posting import JobPosting
 from app.models.candidate import Candidate
@@ -265,8 +266,12 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
 # 1. POST /guest/screen  (rate-limited: 5/hour per IP)
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _is_authenticated_request(request: Request) -> bool:
+    auth = request.headers.get("Authorization", "")
+    return auth.startswith("Bearer ")
+
 @router.post("/screen")
-@limiter.limit("5/hour")
+@limiter.limit("5/hour", exempt_when=_is_authenticated_request)
 async def guest_screen(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -304,13 +309,26 @@ async def guest_screen(
 
     db = SessionLocal()
     try:
-        guest_user = _get_or_create_guest_user(db)
+        # Check if caller is an authenticated recruiter
+        auth_header = request.headers.get("Authorization")
+        authed_user = None
+        if auth_header and auth_header.startswith("Bearer "):
+            tok = auth_header.split(" ", 1)[1].strip()
+            payload = decode_access_token(tok)
+            if payload and payload.get("sub"):
+                try:
+                    uid = int(payload.get("sub"))
+                    authed_user = db.query(User).filter(User.id == uid).first()
+                except (TypeError, ValueError):
+                    pass
+
+        owner_user = authed_user if authed_user else _get_or_create_guest_user(db)
 
         parsed_jd = JDParser().parse(cleaned_jd)
 
         job = JobPosting(
-            recruiter_id=guest_user.id,
-            title=parsed_jd.title or "Guest Screening",
+            recruiter_id=owner_user.id,
+            title=parsed_jd.title or ("Instant Screening" if authed_user else "Guest Screening"),
             description=cleaned_jd,
             min_experience_years=parsed_jd.min_years,
             max_experience_years=parsed_jd.max_years if hasattr(parsed_jd, "max_years") else None,
@@ -364,8 +382,8 @@ async def guest_screen(
             id=session_id,
             job_id=job.id,
             created_at=now,
-            expires_at=now + timedelta(hours=24),
-            claimed_by_org_id=None,
+            expires_at=None if authed_user else (now + timedelta(hours=24)),
+            claimed_by_org_id=authed_user.id if authed_user else None,
             status="processing",
             stage="parsing",
             total=len(candidate_ids),

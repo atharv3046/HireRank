@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 import {
   useReducedMotion,
   fadeInUpVariants,
@@ -93,6 +94,7 @@ export default function ProcessingPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const shouldReduce = useReducedMotion();
+  const { user, isAuthenticated } = useAuth();
 
   const [status, setStatus] = useState<SessionStatus | null>(null);
   const [error, setError]   = useState<string | null>(null);
@@ -140,7 +142,7 @@ export default function ProcessingPage() {
 
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <header className="border-b border-white/[0.06] px-8 py-4 flex items-center justify-between">
-        <button onClick={() => navigate('/')} className="flex items-center gap-2.5 group">
+        <button onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')} className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -150,7 +152,14 @@ export default function ProcessingPage() {
             Hire<span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Rank</span>
           </span>
         </button>
-        <span className="text-xs font-mono text-white/30">Guest Session</span>
+        {isAuthenticated ? (
+          <div className="flex items-center gap-2 text-xs font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>Workspace Pipeline</span>
+          </div>
+        ) : (
+          <span className="text-xs font-mono text-white/30">Guest Session</span>
+        )}
       </header>
 
       {/* ── Content ──────────────────────────────────────────────────────── */}

@@ -28,6 +28,7 @@ import {
   animate,
 } from 'framer-motion';
 import { Zap, ArrowRight, Play, Shield, Brain, BarChart3, FileSearch } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 /* ── Reduced-motion hook ──────────────────────────────────────────────── */
 function usePrefersReducedMotion() {
@@ -253,6 +254,7 @@ const NAV_LINKS = [
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const { scrollY } = useScroll();
   const bgOpacity = useTransform(scrollY, [0, 120], [0, 0.85]);
   const blur = useTransform(scrollY, [0, 120], [0, 16]);
@@ -297,18 +299,29 @@ const Navbar = () => {
 
         {/* CTA */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/login')}
-            className="text-sm text-white/60 hover:text-white transition-colors px-3 py-1.5"
-          >
-            Sign in
-          </button>
-          <button
-            onClick={() => navigate('/screen')}
-            className="relative text-sm font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-500 px-5 py-2 rounded-xl hover:shadow-lg hover:shadow-cyan-500/25 transition-shadow"
-          >
-            Get started free
-          </button>
+          {isAuthenticated ? (
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="relative text-sm font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-500 px-5 py-2 rounded-xl hover:shadow-lg hover:shadow-cyan-500/25 transition-shadow flex items-center gap-1.5"
+            >
+              Dashboard →
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => navigate('/login')}
+                className="text-sm text-white/60 hover:text-white transition-colors px-3 py-1.5"
+              >
+                Sign in
+              </button>
+              <button
+                onClick={() => navigate('/screen')}
+                className="relative text-sm font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-500 px-5 py-2 rounded-xl hover:shadow-lg hover:shadow-cyan-500/25 transition-shadow"
+              >
+                Get started free
+              </button>
+            </>
+          )}
         </div>
       </div>
     </motion.nav>

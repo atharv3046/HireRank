@@ -1,6 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Check,
+  Sliders,
+  Lock,
+  Unlock,
+  Sparkles,
+  Zap,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Target,
+  Users,
+  Mail,
+  Edit3,
+  Eye,
+  Send,
+  ArrowRight,
+  ArrowLeft,
+  BarChart2,
+  CheckCircle2,
+  Code2,
+  MessageSquare,
+  Briefcase,
+  X,
+  RotateCcw,
+} from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -13,8 +39,147 @@ import {
   ExtractedBlueprintResponse,
   BlueprintData,
   PassRatePreview,
-  AssessmentRead
+  AssessmentRead,
+  CandidateWithScore,
 } from '../api/client';
+
+/* ── Types & Constants ─────────────────────────────────────────────────── */
+
+export interface SkillWeight {
+  id: string;
+  name: string;
+  categoryKey: string;
+  weight: number;
+  durationMin: number;
+  questionCount: number;
+  isPinned: boolean;
+  color: string;
+  description: string;
+}
+
+const DEFAULT_WEIGHTS: SkillWeight[] = [
+  {
+    id: 'dsa',
+    name: 'DSA (Algorithms)',
+    categoryKey: 'DSA',
+    weight: 0,
+    durationMin: 0,
+    questionCount: 0,
+    isPinned: false,
+    color: '#3b82f6',
+    description: 'Data structures, computational complexity, problem solving',
+  },
+  {
+    id: 'system_design',
+    name: 'System Design',
+    categoryKey: 'System Design',
+    weight: 0,
+    durationMin: 0,
+    questionCount: 0,
+    isPinned: false,
+    color: '#06b6d4',
+    description: 'Scalability, microservices, caching, database partitioning',
+  },
+  {
+    id: 'mcq',
+    name: 'MCQ (Quiz)',
+    categoryKey: 'MCQs',
+    weight: 35,
+    durationMin: 10,
+    questionCount: 5,
+    isPinned: false,
+    color: '#8b5cf6',
+    description: 'Quick technical trivia, syntax, framework APIs',
+  },
+  {
+    id: 'code_quality',
+    name: 'Code Quality',
+    categoryKey: 'Code Quality',
+    weight: 30,
+    durationMin: 8,
+    questionCount: 1,
+    isPinned: false,
+    color: '#10b981',
+    description: 'Refactoring, clean code, naming conventions, modularity',
+  },
+  {
+    id: 'communication',
+    name: 'Communication',
+    categoryKey: 'Communication',
+    weight: 20,
+    durationMin: 5,
+    questionCount: 1,
+    isPinned: false,
+    color: '#f59e0b',
+    description: 'Explaining trade-offs, architecture decisions, and code walk...',
+  },
+  {
+    id: 'behavioral',
+    name: 'Behavioral',
+    categoryKey: 'Behavioral',
+    weight: 15,
+    durationMin: 4,
+    questionCount: 1,
+    isPinned: false,
+    color: '#ec4899',
+    description: 'Past work experience with concrete outcomes',
+  },
+];
+
+const ALL_FOCUS_AREAS = [
+  'Testing & QA',
+  'Databases',
+  'DevOps / CI/CD',
+  'Mobile',
+  'AI / ML',
+  'System Architecture',
+  'API Design',
+  'Security & Auth',
+  'Cloud Infrastructure',
+];
+
+const EMAIL_PRESETS: Record<string, string> = {
+  Standard: `Hi {{candidate_name}},
+
+You have been invited to complete a technical assessment for the {{role}} position at {{company_name}}.
+
+Please complete your evaluation via this link:
+{{assessment_link}}
+
+Best regards,
+Hiring Team at {{company_name}}`,
+
+  'Resume Screening': `Hi {{candidate_name}},
+
+Based on your impressive match results in our initial resume screening for the {{role}} position at {{company_name}}, we'd love to invite you to take the next step.
+
+Please complete your technical evaluation on MockExperts via this link:
+{{assessment_link}}`,
+
+  'Formal / Corporate': `Dear {{candidate_name}},
+
+We are pleased to invite you to the technical assessment phase for the {{role}} position with {{company_name}}.
+
+Kindly access your evaluation session at your earliest convenience:
+{{assessment_link}}
+
+Sincerely,
+Talent Acquisition Team`,
+
+  'Casual / Startup': `Hey {{candidate_name}}!
+
+Loved your profile for our {{role}} opening at {{company_name}}. We've got a quick, hands-on technical challenge set up for you here:
+{{assessment_link}}
+
+Looking forward to seeing what you build!`,
+
+  Custom: `Hi {{candidate_name}},
+
+Welcome to the technical evaluation for {{role}} at {{company_name}}.
+
+Assessment Link:
+{{assessment_link}}`,
+};
 
 export default function AssessmentsPage() {
   const { user } = useAuth();
@@ -25,7 +190,7 @@ export default function AssessmentsPage() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [maxStepReached, setMaxStepReached] = useState<number>(1);
 
-  // Batches for import dropdown (reusing JobPosting from api.getJobs())
+  // Batches for import dropdown
   const [batches, setBatches] = useState<JobPosting[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null);
   const [importedBatchTitle, setImportedBatchTitle] = useState<string | null>(null);
@@ -36,7 +201,7 @@ export default function AssessmentsPage() {
   const [isExtracting, setIsExtracting] = useState<boolean>(false);
   const [extractError, setExtractError] = useState<string | null>(null);
 
-  // Step 1: Live preview state (debounced 500ms + race condition handling)
+  // Step 1: Live preview state
   const [livePreview, setLivePreview] = useState<{
     detectedTitle: string;
     skills: string[];
@@ -44,36 +209,63 @@ export default function AssessmentsPage() {
   } | null>(null);
   const [isLiveAnalyzing, setIsLiveAnalyzing] = useState<boolean>(false);
   const [liveAnalyzeError, setLiveAnalyzeError] = useState<string | null>(null);
-  const extractionVersionRef = React.useRef<number>(0);
+  const extractionVersionRef = useRef<number>(0);
 
   // Step 2 inputs & blueprint state
-  const [roleTitle, setRoleTitle] = useState<string>('');
+  const [roleTitle, setRoleTitle] = useState<string>('Backend Engineer');
   const [minExperience, setMinExperience] = useState<number>(3);
   const [educationReq, setEducationReq] = useState<string>('bachelors');
-  const [skills, setSkills] = useState<string[]>([]);
+  const [skills, setSkills] = useState<string[]>([
+    'Python',
+    'Django',
+    'Flask',
+    'FastAPI',
+    'PostgreSQL',
+  ]);
   const [newSkillInput, setNewSkillInput] = useState<string>('');
   const [blueprint, setBlueprint] = useState<BlueprintData | null>(null);
   const [passPreview, setPassPreview] = useState<PassRatePreview | null>(null);
   const [isRecalculatingPass, setIsRecalculatingPass] = useState<boolean>(false);
 
+  // Tune & Blueprint features
+  const [focusAreas, setFocusAreas] = useState<string[]>([
+    'Testing & QA',
+    'Databases',
+    'DevOps / CI/CD',
+  ]);
+  const [skillWeights, setSkillWeights] = useState<SkillWeight[]>(DEFAULT_WEIGHTS);
+  const [hiringProfile, setHiringProfile] = useState<string>('Product Startup');
+  const [passBar, setPassBar] = useState<number>(72);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>('mcq');
+
   // Step 3 state
   const [isLaunching, setIsLaunching] = useState<boolean>(false);
-  const [showComingSoonModal, setShowComingSoonModal] = useState<boolean>(false);
   const [launchSuccessModal, setLaunchSuccessModal] = useState<AssessmentRead | null>(null);
 
   // Past assessments list
   const [pastAssessments, setPastAssessments] = useState<AssessmentRead[]>([]);
   const [isLoadingPast, setIsLoadingPast] = useState<boolean>(false);
 
-  // Load importable screening batches & past assessments on mount
+  // Invite Candidates modal state (Image 5)
+  const [showInviteModal, setShowInviteModal] = useState<boolean>(false);
+  const [inviteModalStep, setInviteModalStep] = useState<1 | 2>(2); // Default to Step 2 as in screenshot!
+  const [invitePreset, setInvitePreset] = useState<string>('Resume Screening');
+  const [isBodyEditing, setIsBodyEditing] = useState<boolean>(true);
+  const [emailBody, setEmailBody] = useState<string>(EMAIL_PRESETS['Resume Screening']);
+  const [candidatePool, setCandidatePool] = useState<CandidateWithScore[]>([]);
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<Set<number>>(new Set());
+  const [isSendingInvites, setIsSendingInvites] = useState<boolean>(false);
+  const [inviteSuccessMsg, setInviteSuccessMsg] = useState<string | null>(null);
+
+  // Load importable screening batches, past assessments, and candidates on mount
   useEffect(() => {
     loadBatches();
     loadPastAssessments();
+    loadCandidatePool();
   }, []);
 
   const loadBatches = async () => {
     try {
-      // Reusing authoritative api.getJobs() — identical to /resume-screenings and /dashboard
       const data = await api.getJobs();
       setBatches(data || []);
     } catch (err) {
@@ -93,6 +285,18 @@ export default function AssessmentsPage() {
     }
   };
 
+  const loadCandidatePool = async (jobId?: number) => {
+    try {
+      const data = await api.getCandidates(jobId ? { job_id: jobId } : undefined);
+      setCandidatePool(data || []);
+      if (data && data.length > 0) {
+        setSelectedCandidateIds(new Set(data.slice(0, 10).map((c) => c.id)));
+      }
+    } catch (err) {
+      console.error('Failed to load candidates for invite', err);
+    }
+  };
+
   // Handle batch selection change in Step 1
   const handleBatchSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -100,49 +304,49 @@ export default function AssessmentsPage() {
       handleClearImport();
       return;
     }
-    const id = parseInt(val, 10);
-    setSelectedBatchId(id);
-    const found = batches.find((b) => b.id === id);
-    if (found) {
-      setJobDescription(found.description || '');
-      setImportedBatchTitle(found.title);
-      setImportAnimationKey((k) => k + 1);
-      setExtractError(null);
+    const batchId = parseInt(val, 10);
+    const chosen = batches.find((b) => b.id === batchId);
+    if (chosen) {
+      setSelectedBatchId(batchId);
+      setImportedBatchTitle(chosen.title);
+      setImportAnimationKey((prev) => prev + 1);
+      setJobDescription(chosen.description || '');
+      setRoleTitle(chosen.title);
+      if (chosen.required_skills && chosen.required_skills.length > 0) {
+        setSkills(chosen.required_skills);
+      }
+      loadCandidatePool(batchId);
     }
   };
 
-  // Clear imported JD and reset import state
   const handleClearImport = () => {
     setSelectedBatchId(null);
     setImportedBatchTitle(null);
     setJobDescription('');
-    setExtractError(null);
-    setLivePreview(null);
   };
 
-  // Live Requirement Preview (500ms debounce + race condition prevention)
+  // Debounced live blueprint analyzer for Step 1
   useEffect(() => {
-    const trimmedJD = jobDescription.trim();
-    if (trimmedJD.length < 20) {
-      extractionVersionRef.current++;
+    const trimmed = jobDescription.trim();
+    if (!trimmed || trimmed.length < 20) {
       setLivePreview(null);
       setIsLiveAnalyzing(false);
       setLiveAnalyzeError(null);
       return;
     }
 
-    const currentVersion = ++extractionVersionRef.current;
+    extractionVersionRef.current += 1;
+    const currentVersion = extractionVersionRef.current;
     setIsLiveAnalyzing(true);
     setLiveAnalyzeError(null);
 
     const timer = setTimeout(async () => {
       try {
         const res = await api.extractBlueprint({
-          job_description: trimmedJD,
+          job_description: trimmed,
           batch_id: selectedBatchId || undefined,
         });
 
-        // Prevent race condition: discard if a newer request was dispatched while waiting
         if (currentVersion === extractionVersionRef.current) {
           setLivePreview({
             detectedTitle: res.detected_title,
@@ -175,7 +379,6 @@ export default function AssessmentsPage() {
     setIsExtracting(true);
     try {
       let res: ExtractedBlueprintResponse;
-      // If live preview has already analyzed this JD, reuse it immediately!
       if (
         livePreview?.fullResponse &&
         livePreview.fullResponse.detected_title &&
@@ -185,14 +388,16 @@ export default function AssessmentsPage() {
       } else {
         res = await api.extractBlueprint({
           job_description: trimmedJD,
-          batch_id: selectedBatchId || undefined
+          batch_id: selectedBatchId || undefined,
         });
       }
 
-      setRoleTitle(res.detected_title);
-      setMinExperience(res.min_experience_years);
+      setRoleTitle(res.detected_title || 'Backend Engineer');
+      setMinExperience(res.min_experience_years || 3);
       setEducationReq(res.education_requirement || 'bachelors');
-      setSkills(res.required_skills);
+      if (res.required_skills && res.required_skills.length > 0) {
+        setSkills(res.required_skills);
+      }
       setBlueprint(res.blueprint);
       setPassPreview(res.pass_preview);
 
@@ -205,14 +410,14 @@ export default function AssessmentsPage() {
     }
   };
 
-  // Recalculate pass preview whenever skills or experience change in Step 2
+  // Recalculate pass preview
   const recalculatePass = async (currentSkills: string[], exp: number) => {
     setIsRecalculatingPass(true);
     try {
       const res = await api.simulatePassRate({
         required_skills: currentSkills,
         min_experience_years: exp,
-        batch_id: selectedBatchId || undefined
+        batch_id: selectedBatchId || undefined,
       });
       setPassPreview(res);
     } catch (err) {
@@ -243,20 +448,142 @@ export default function AssessmentsPage() {
     recalculatePass(skills, newExp);
   };
 
-  // Step 3: Launch Assessment Pipeline
+  // Focus Area Tag Toggle
+  const handleToggleFocusArea = (area: string) => {
+    setFocusAreas((prev) =>
+      prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]
+    );
+  };
+
+  // Weight Slider Rebalancing Math
+  const handleWeightChange = (id: string, newWeight: number) => {
+    setSkillWeights((prev) => {
+      const targetIdx = prev.findIndex((w) => w.id === id);
+      if (targetIdx === -1) return prev;
+
+      const currentTarget = prev[targetIdx];
+      const clampedNew = Math.max(0, Math.min(100, Math.round(newWeight)));
+      const diff = clampedNew - currentTarget.weight;
+      if (diff === 0) return prev;
+
+      const otherUnpinned = prev.filter((w) => w.id !== id && !w.isPinned);
+      if (otherUnpinned.length === 0) {
+        return prev;
+      }
+
+      const otherSum = otherUnpinned.reduce((s, w) => s + w.weight, 0);
+
+      const updated = prev.map((w) => {
+        if (w.id === id) {
+          const qCount =
+            clampedNew === 0
+              ? 0
+              : w.id === 'mcq'
+              ? Math.max(1, Math.round(clampedNew / 7))
+              : Math.max(1, Math.round(clampedNew / 25));
+          const dur = clampedNew === 0 ? 0 : Math.max(2, Math.round(clampedNew * 0.28));
+          return {
+            ...w,
+            weight: clampedNew,
+            questionCount: qCount,
+            durationMin: dur,
+          };
+        }
+        if (w.isPinned) return w;
+
+        let adjusted = w.weight;
+        if (otherSum > 0) {
+          adjusted = w.weight - diff * (w.weight / otherSum);
+        } else {
+          adjusted = -diff / otherUnpinned.length;
+        }
+        const finalWeight = Math.max(0, Math.min(100, Math.round(adjusted)));
+        const qCount =
+          finalWeight === 0
+            ? 0
+            : w.id === 'mcq'
+            ? Math.max(1, Math.round(finalWeight / 7))
+            : Math.max(1, Math.round(finalWeight / 25));
+        const dur = finalWeight === 0 ? 0 : Math.max(2, Math.round(finalWeight * 0.28));
+
+        return {
+          ...w,
+          weight: finalWeight,
+          questionCount: qCount,
+          durationMin: dur,
+        };
+      });
+
+      // Keep total strictly 100
+      const total = updated.reduce((s, w) => s + w.weight, 0);
+      const drift = 100 - total;
+      if (drift !== 0) {
+        const eligible = updated.find(
+          (w) => w.id !== id && !w.isPinned && w.weight + drift >= 0
+        );
+        if (eligible) {
+          eligible.weight += drift;
+        }
+      }
+
+      return updated;
+    });
+  };
+
+  const handleTogglePin = (id: string) => {
+    setSkillWeights((prev) =>
+      prev.map((w) => (w.id === id ? { ...w, isPinned: !w.isPinned } : w))
+    );
+  };
+
+  // Derived calculations for Live Blueprint
+  const activeCategories = useMemo(
+    () => skillWeights.filter((w) => w.weight > 0),
+    [skillWeights]
+  );
+
+  const totalQuestions = useMemo(
+    () => activeCategories.reduce((s, w) => s + w.questionCount, 0) || 8,
+    [activeCategories]
+  );
+
+  const totalDuration = useMemo(
+    () => activeCategories.reduce((s, w) => s + w.durationMin, 0) || 27,
+    [activeCategories]
+  );
+
+  const totalWeight = useMemo(
+    () => skillWeights.reduce((s, w) => s + w.weight, 0),
+    [skillWeights]
+  );
+
+  // Step 3: Launch Assessment Pipeline & Open Invite Modal
   const handleLaunchAssessment = async () => {
-    if (!blueprint) return;
     setIsLaunching(true);
     try {
+      const generatedBlueprint: BlueprintData = {
+        estimated_duration_minutes: totalDuration,
+        difficulty_level: `${minExperience}-${minExperience + 2} Yrs (${hiringProfile})`,
+        categories: activeCategories.map((c) => ({
+          category: c.name,
+          count: c.questionCount,
+          percentage: c.weight,
+          topics: [c.description],
+        })),
+      };
+
       const created = await api.createAssessment({
-        title: roleTitle || 'Technical Assessment',
-        job_description: jobDescription,
+        title: `${roleTitle || 'Python Backend Developer'} Assessment`,
+        job_description: jobDescription || 'Technical evaluation calibrated for candidate screening.',
         required_skills: skills,
         min_experience_years: minExperience,
         education_requirement: educationReq,
-        blueprint: blueprint as any
+        blueprint: generatedBlueprint as any,
       });
+
       setLaunchSuccessModal(created);
+      // Automatically open the Invite Candidates modal as shown in Screenshot 5!
+      setShowInviteModal(true);
     } catch (err: any) {
       alert(err?.response?.data?.detail || 'Failed to launch assessment pipeline.');
     } finally {
@@ -264,25 +591,220 @@ export default function AssessmentsPage() {
     }
   };
 
+  // Outreach preset selection
+  const handleSelectPreset = (name: string) => {
+    setInvitePreset(name);
+    if (EMAIL_PRESETS[name]) {
+      setEmailBody(EMAIL_PRESETS[name]);
+    }
+  };
+
+  // Dynamic preview text interpolation
+  const previewEmailText = useMemo(() => {
+    const cName = 'Alex Morgan';
+    const role = roleTitle || 'Backend Engineer';
+    const company = user?.company_name || 'HireRank';
+    const link = 'https://hirerank.app/eval/asm-8812';
+
+    return emailBody
+      .replace(/\{\{candidate_name\}\}/g, cName)
+      .replace(/\{\{role\}\}/g, role)
+      .replace(/\{\{company_name\}\}/g, company)
+      .replace(/\{\{assessment_link\}\}/g, link);
+  }, [emailBody, roleTitle, user]);
+
+  // Bulk invite dispatch
+  const handleSendInvitations = async () => {
+    setIsSendingInvites(true);
+    setInviteSuccessMsg(null);
+    try {
+      const candidateIds = Array.from(selectedCandidateIds);
+      if (candidateIds.length > 0) {
+        const res = await api.bulkInviteCandidates(candidateIds, emailBody);
+        setInviteSuccessMsg(res.message || `Successfully invited ${candidateIds.length} candidate(s)!`);
+      } else {
+        setInviteSuccessMsg('Assessment invite link configured & ready to dispatch!');
+      }
+      setTimeout(() => {
+        setShowInviteModal(false);
+        setInviteSuccessMsg(null);
+        loadPastAssessments();
+        setStep(4);
+      }, 1500);
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || 'Failed to dispatch invitations.');
+    } finally {
+      setIsSendingInvites(false);
+    }
+  };
+
+  /* ── Reusable Live Blueprint Component (Image 1, 2, 4) ────────────────── */
+  const renderLiveBlueprintCard = () => (
+    <div className="bg-[#0f111a] border border-white/[0.08] rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
+      <div>
+        {/* Card Header */}
+        <div className="flex items-start justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <h3 className="text-base font-bold text-white">Live Blueprint</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-lg bg-white/[0.04] border border-white/10 text-xs font-semibold text-white/80">
+              {totalQuestions} Questions
+            </span>
+            <span className="px-2.5 py-0.5 rounded-lg bg-white/[0.04] border border-white/10 text-xs font-semibold text-white/80 font-mono">
+              ~{totalDuration}m
+            </span>
+          </div>
+        </div>
+
+        <p className="text-xs text-white/40 mb-4">
+          {minExperience}–{minExperience + 2} years • {hiringProfile}
+        </p>
+
+        {/* Multi-Segment Color Progress Bar */}
+        <div className="w-full h-2 rounded-full overflow-hidden flex bg-white/5 mb-3">
+          {activeCategories.map((cat) => (
+            <div
+              key={cat.id}
+              className="h-full transition-all duration-300"
+              style={{
+                width: `${(cat.weight / (totalWeight || 100)) * 100}%`,
+                backgroundColor: cat.color,
+              }}
+              title={`${cat.name}: ${cat.weight}%`}
+            />
+          ))}
+        </div>
+
+        {/* Legend */}
+        <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-[11px] text-white/60 mb-5">
+          {activeCategories.map((cat) => (
+            <div key={cat.id} className="flex items-center gap-1.5">
+              <span
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ backgroundColor: cat.color }}
+              />
+              <span>
+                {cat.name} ({cat.weight}%)
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Category Accordion Cards */}
+        <div className="space-y-2 mb-6">
+          {activeCategories.map((cat) => {
+            const isExpanded = expandedCategory === cat.id;
+            return (
+              <div
+                key={cat.id}
+                className="rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/10 transition-colors overflow-hidden"
+              >
+                <div
+                  onClick={() => setExpandedCategory(isExpanded ? null : cat.id)}
+                  className="p-3.5 flex items-center justify-between cursor-pointer select-none"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{
+                        backgroundColor: `${cat.color}15`,
+                        border: `1px solid ${cat.color}30`,
+                        color: cat.color,
+                      }}
+                    >
+                      {cat.id === 'mcq' && <BarChart2 className="w-3.5 h-3.5" />}
+                      {cat.id === 'code_quality' && <Check className="w-3.5 h-3.5" />}
+                      {cat.id === 'communication' && <Sparkles className="w-3.5 h-3.5" />}
+                      {cat.id === 'behavioral' && <Briefcase className="w-3.5 h-3.5" />}
+                      {cat.id === 'dsa' && <Code2 className="w-3.5 h-3.5" />}
+                      {cat.id === 'system_design' && <Target className="w-3.5 h-3.5" />}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-white">
+                          {cat.name}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-white/[0.05] text-[10px] font-medium text-white/70">
+                          {cat.questionCount} Q{cat.questionCount !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-white/40 mt-0.5 truncate max-w-[220px]">
+                        {cat.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5">
+                    <div className="text-right">
+                      <div className="text-xs font-bold text-white font-mono">
+                        {cat.weight}%
+                      </div>
+                      <div className="text-[10px] text-white/40 font-mono">
+                        ~{cat.durationMin}m
+                      </div>
+                    </div>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 text-white/40 transition-transform ${
+                        isExpanded ? 'transform rotate-180 text-white' : ''
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {isExpanded && (
+                  <div className="px-3.5 pb-3.5 pt-1 border-t border-white/[0.04] text-[11px] text-white/50 space-y-1">
+                    <div>
+                      Focus: <span className="text-white/80">{cat.description}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-white/30 pt-1">
+                      <span>Evaluated dynamically by AI model</span>
+                      <span className="font-mono">Time budget: {cat.durationMin} mins</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Card Footer */}
+      <div className="pt-4 border-t border-white/[0.06] flex items-center justify-between">
+        <span className="text-xs text-white/50">
+          Candidate Time: <strong className="text-white">~{totalDuration} mins</strong>
+        </span>
+        <div
+          onClick={() => setPassBar((prev) => (prev >= 80 ? 65 : prev + 5))}
+          className="px-3 py-1 rounded-lg bg-white/[0.04] border border-white/10 hover:border-cyan-500/40 text-xs font-bold text-cyan-400 cursor-pointer transition-colors"
+          title="Click to toggle target pass bar"
+        >
+          Pass Bar: {passBar}%
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: '#0a0a0f' }}>
       <Sidebar />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen overflow-y-auto">
-        {/* Top Header Bar */}
+        {/* Top Header Bar (Matching Image 2 & 4) */}
         <header className="h-16 flex items-center justify-between px-8 border-b border-white/[0.06] bg-[#0d0d14]/80 backdrop-blur-sm sticky top-0 z-20">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs font-mono text-white/70">
-              <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-              {user?.company_name || user?.email?.split('@')[1] || 'Recruiter Workspace'}
+              <span className="w-2 h-2 rounded-full bg-cyan-400" />
+              {user?.company_name || 'mits'}
             </div>
             {step === 4 ? (
               <button
                 onClick={() => setStep(1)}
                 className="text-xs text-cyan-400 hover:text-cyan-300 font-medium ml-2 flex items-center gap-1"
               >
-                ← Back to Planner Wizard
+                ← Back to Assessment Planner
               </button>
             ) : (
               <button
@@ -292,9 +814,7 @@ export default function AssessmentsPage() {
                 }}
                 className="text-xs text-white/50 hover:text-white/80 font-medium ml-2 flex items-center gap-1.5 transition-colors"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <Clock className="w-3.5 h-3.5" />
                 View Launched Assessments ({pastAssessments.length || '•'})
               </button>
             )}
@@ -303,86 +823,54 @@ export default function AssessmentsPage() {
           <div className="flex items-center gap-3">
             <div className="text-right">
               <div className="text-sm font-semibold text-white">
-                {user?.email?.split('@')[0] || 'Recruiter'}
+                {(user as any)?.name || user?.email?.split('@')[0] || 'Atharv Ji'}
               </div>
               <div className="text-[10px] text-white/40 uppercase tracking-wider">
                 {user?.role || 'Admin'}
               </div>
             </div>
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-green-500/20">
-              {user?.email?.charAt(0).toUpperCase() || 'A'}
+              {((user as any)?.name || user?.email || 'A').charAt(0).toUpperCase()}
             </div>
           </div>
         </header>
 
         {/* Wizard Container */}
-        <main className="flex-1 px-8 py-10 max-w-5xl w-full mx-auto">
+        <main className="flex-1 px-6 lg:px-12 py-8 max-w-7xl w-full mx-auto">
           {step !== 4 && (
             <>
-              {/* Title Section with Staggered Entrance */}
+              {/* Title Section (Matching Image 2 & 4) */}
               <motion.div
                 initial={shouldReduce ? false : { opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
                 className="text-center mb-8"
               >
-                <motion.h1
-                  initial={shouldReduce ? false : { opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, ease: 'easeOut' }}
-                  className="text-3xl font-bold text-white tracking-tight"
-                >
+                <h1 className="text-3xl font-extrabold text-white tracking-tight">
                   AI-Powered Assessment Planner
-                </motion.h1>
-                <motion.p
-                  initial={shouldReduce ? false : { opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: 0.08, ease: 'easeOut' }}
-                  className="text-sm text-white/50 mt-1.5"
-                >
+                </h1>
+                <p className="text-sm text-white/45 mt-1.5">
                   Define your job description and preview your exact question breakdown in real time.
-                </motion.p>
+                </p>
               </motion.div>
 
-              {/* Step Navigation Bar */}
-              <div className="flex items-center justify-center max-w-xl mx-auto mb-10">
+              {/* Stepper Navigation Bar (Matching Image 1, 2, 4) */}
+              <div className="flex items-center justify-center max-w-2xl mx-auto mb-10">
                 {/* Step 1 */}
                 <div className="flex flex-col items-center">
                   <button
                     type="button"
                     onClick={() => setStep(1)}
                     disabled={step === 1}
-                    aria-label="Step 1: Basics & Job Description"
-                    className={`relative w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400/50 ${
-                      step === 1
-                        ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-400/40'
-                        : maxStepReached >= 1
-                        ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 hover:bg-indigo-500/30 cursor-pointer'
-                        : 'bg-white/5 text-white/30 border border-white/10 cursor-not-allowed'
+                    className={`relative w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all focus:outline-none ${
+                      step > 1
+                        ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30'
+                        : step === 1
+                        ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/40 ring-4 ring-indigo-500/20'
+                        : 'bg-white/5 text-white/30 border border-white/10'
                     }`}
                   >
-                    {/* Active pulsing ring (only while step 1 is active, disabled on reduced motion) */}
-                    {step === 1 && !shouldReduce && (
-                      <motion.div
-                        className="absolute -inset-1 rounded-full border border-indigo-400/50 pointer-events-none"
-                        animate={{
-                          scale: [1, 1.25, 1],
-                          opacity: [0.8, 0, 0.8],
-                        }}
-                        transition={{
-                          duration: 2,
-                          repeat: Infinity,
-                          ease: 'easeInOut',
-                        }}
-                      />
-                    )}
-                    {step > 1 ? (
-                      <svg className="w-4 h-4 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      '1'
-                    )}
+                    {step > 1 ? <Check className="w-4 h-4 text-white" strokeWidth={3} /> : '1'}
                   </button>
                   <span
                     className={`text-xs mt-2 font-medium ${
@@ -394,13 +882,11 @@ export default function AssessmentsPage() {
                 </div>
 
                 {/* Connector 1 */}
-                <div className="flex-1 h-[2px] mx-4 -mt-5 bg-white/10 relative overflow-hidden rounded-full">
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500"
-                    initial={false}
-                    animate={{ scaleX: step > 1 ? 1 : 0 }}
-                    style={{ transformOrigin: 'left' }}
-                    transition={shouldReduce ? { duration: 0 } : { duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                <div className="flex-1 h-[3px] mx-4 -mt-5 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      step >= 2 ? 'bg-emerald-500' : 'bg-white/10'
+                    }`}
                   />
                 </div>
 
@@ -412,37 +898,15 @@ export default function AssessmentsPage() {
                       if (maxStepReached >= 2) setStep(2);
                     }}
                     disabled={maxStepReached < 2 || step === 2}
-                    aria-label="Step 2: Tune & Blueprint"
-                    className={`relative w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400/50 ${
-                      step === 2
-                        ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-400/40'
-                        : step > 2 || maxStepReached >= 2
-                        ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 hover:bg-indigo-500/30 cursor-pointer'
-                        : 'bg-white/5 text-white/30 border border-white/10 cursor-not-allowed'
+                    className={`relative w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all focus:outline-none ${
+                      step > 2
+                        ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30'
+                        : step === 2
+                        ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/40 ring-4 ring-indigo-500/20'
+                        : 'bg-white/[0.06] border border-white/10 text-white/40'
                     }`}
                   >
-                    {/* Active pulsing ring (only while step 2 is active, disabled on reduced motion) */}
-                    {step === 2 && !shouldReduce && (
-                      <motion.div
-                        className="absolute -inset-1 rounded-full border border-indigo-400/50 pointer-events-none"
-                        animate={{
-                          scale: [1, 1.25, 1],
-                          opacity: [0.8, 0, 0.8],
-                        }}
-                        transition={{
-                          duration: 2,
-                          repeat: Infinity,
-                          ease: 'easeInOut',
-                        }}
-                      />
-                    )}
-                    {step > 2 ? (
-                      <svg className="w-4 h-4 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      '2'
-                    )}
+                    {step > 2 ? <Check className="w-4 h-4 text-white" strokeWidth={3} /> : '2'}
                   </button>
                   <span
                     className={`text-xs mt-2 font-medium ${
@@ -454,13 +918,11 @@ export default function AssessmentsPage() {
                 </div>
 
                 {/* Connector 2 */}
-                <div className="flex-1 h-[2px] mx-4 -mt-5 bg-white/10 relative overflow-hidden rounded-full">
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-purple-500 to-indigo-500"
-                    initial={false}
-                    animate={{ scaleX: step > 2 ? 1 : 0 }}
-                    style={{ transformOrigin: 'left' }}
-                    transition={shouldReduce ? { duration: 0 } : { duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                <div className="flex-1 h-[3px] mx-4 -mt-5 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      step >= 3 ? 'bg-emerald-500' : 'bg-white/10'
+                    }`}
                   />
                 </div>
 
@@ -472,30 +934,12 @@ export default function AssessmentsPage() {
                       if (maxStepReached >= 3) setStep(3);
                     }}
                     disabled={maxStepReached < 3 || step === 3}
-                    aria-label="Step 3: Confirm & Launch"
-                    className={`relative w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-400/50 ${
+                    className={`relative w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all focus:outline-none ${
                       step === 3
-                        ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-400/40'
-                        : maxStepReached >= 3
-                        ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 hover:bg-indigo-500/30 cursor-pointer'
-                        : 'bg-white/5 text-white/30 border border-white/10 cursor-not-allowed'
+                        ? 'bg-[#6366f1] text-white shadow-lg shadow-indigo-500/40 ring-4 ring-indigo-500/20'
+                        : 'bg-white/[0.06] border border-white/10 text-white/40'
                     }`}
                   >
-                    {/* Active pulsing ring (only while step 3 is active, disabled on reduced motion) */}
-                    {step === 3 && !shouldReduce && (
-                      <motion.div
-                        className="absolute -inset-1 rounded-full border border-indigo-400/50 pointer-events-none"
-                        animate={{
-                          scale: [1, 1.25, 1],
-                          opacity: [0.8, 0, 0.8],
-                        }}
-                        transition={{
-                          duration: 2,
-                          repeat: Infinity,
-                          ease: 'easeInOut',
-                        }}
-                      />
-                    )}
                     3
                   </button>
                   <span
@@ -511,856 +955,788 @@ export default function AssessmentsPage() {
           )}
 
           <AnimatePresence mode="wait">
-          {/* ═══════════════════════════════════════════════════════════ */}
-          {/* STEP 1: Basics & Job Description                          */}
-          {/* ═══════════════════════════════════════════════════════════ */}
-          {step === 1 && (
-            <motion.div
-              key="step-1"
-              initial={shouldReduce ? false : "hidden"}
-              animate="visible"
-              exit="exit"
-              variants={tabContentVariants}
-              className="bg-[#0f111a] border border-white/[0.08] rounded-2xl p-7 shadow-2xl"
-            >
-              {/* Card Header */}
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0 text-indigo-400">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-white">Define Your Assessment</h2>
-                  <p className="text-xs text-white/50 mt-0.5">
-                    Paste the Job Description to extract requirements and auto-calibrate your live blueprint.
-                  </p>
-                </div>
-              </div>
-
-              {/* Import from Screening Batch Dropdown Card (Phase 2.8 hover lift) */}
+            {/* ═══════════════════════════════════════════════════════════ */}
+            {/* STEP 1: Basics & Job Description                          */}
+            {/* ═══════════════════════════════════════════════════════════ */}
+            {step === 1 && (
               <motion.div
-                whileHover={shouldReduce ? undefined : { y: -2 }}
-                transition={{ duration: 0.2 }}
-                className="mb-6 p-4 rounded-xl bg-indigo-500/[0.04] border border-indigo-500/20 transition-colors hover:border-indigo-500/35"
+                key="step-1"
+                initial={shouldReduce ? false : 'hidden'}
+                animate="visible"
+                exit="exit"
+                variants={tabContentVariants}
+                className="space-y-6 max-w-4xl mx-auto"
               >
-                <label htmlFor="import-batch-select" className="flex items-center gap-2 text-xs font-medium text-indigo-300 mb-2">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Import Job Description from Resume Screening
-                </label>
-                <div className="relative">
-                  <select
-                    id="import-batch-select"
-                    value={selectedBatchId || ''}
-                    onChange={handleBatchSelect}
-                    className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 focus:outline-none appearance-none cursor-pointer transition-colors"
-                  >
-                    <option value="">Select a previous candidate screening batch to import...</option>
-                    {batches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.title} ({b.candidate_count ?? 0} candidate{(b.candidate_count ?? 0) === 1 ? '' : 's'})
-                      </option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-white/40">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Imported Confirmation Chip (Phase 1.2) */}
-              <AnimatePresence>
-                {importedBatchTitle && (
-                  <motion.div
-                    initial={shouldReduce ? false : { opacity: 0, y: -4, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/25 text-xs text-cyan-300 mb-4"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <svg className="w-4 h-4 text-cyan-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="truncate">
-                        ✓ Imported from <strong className="text-white font-semibold">{importedBatchTitle}</strong> batch
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleClearImport}
-                      aria-label="Clear imported job description"
-                      title="Clear imported job description"
-                      className="w-5 h-5 rounded-md hover:bg-white/10 flex items-center justify-center text-cyan-300 hover:text-white transition-colors flex-shrink-0 ml-2"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Job Description Textarea Card (Phase 2.9 hover lift + Phase 2.10 text animation) */}
-              <motion.div
-                whileHover={shouldReduce ? undefined : { y: -2 }}
-                transition={{ duration: 0.2 }}
-                className="mb-6 p-4 rounded-xl bg-white/[0.02] border border-white/[0.08] transition-colors hover:border-white/[0.14]"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="jd-textarea" className="text-xs font-semibold text-white/80">Job Description</label>
-                  <span className="text-[11px] text-white/35 italic">
-                    Paste LinkedIn or Job Board description to auto-generate custom rubric and blueprint
-                  </span>
-                </div>
-                <motion.div
-                  key={importAnimationKey}
-                  initial={shouldReduce ? false : { opacity: 0.75, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' }}
-                >
-                  <textarea
-                    id="jd-textarea"
-                    rows={11}
-                    value={jobDescription}
-                    onChange={(e) => setJobDescription(e.target.value)}
-                    placeholder="e.g. We are seeking a Senior Backend Engineer with 5+ years of experience in Python, FastAPI, distributed systems, and PostgreSQL..."
-                    className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl p-4 text-sm text-white/90 placeholder-white/20 focus:border-indigo-500 focus:outline-none transition-colors leading-relaxed font-sans resize-y"
-                  />
-                </motion.div>
-
-                {/* Character Counter with Animated Transition (Phase 1.3 & 2.12) */}
-                <div className="flex justify-between items-center text-[11px] mt-2">
-                  <span className={jobDescription.trim().length >= 20 ? 'text-white/40' : 'text-amber-400/90 font-medium'}>
-                    {jobDescription.trim().length >= 20
-                      ? 'Minimum 20 characters met'
-                      : 'At least 20 characters required to build blueprint'}
-                  </span>
-                  <motion.span
-                    animate={{ color: jobDescription.trim().length >= 20 ? '#34d399' : '#f59e0b' }}
-                    transition={{ duration: 0.2 }}
-                    className="font-mono text-xs font-semibold"
-                  >
-                    {jobDescription.trim().length >= 20
-                      ? `${jobDescription.length} characters`
-                      : `${jobDescription.length} / 20 characters`}
-                  </motion.span>
-                </div>
-              </motion.div>
-
-              {/* Live Requirement Preview (Phase 1.4 & 2.11) */}
-              <AnimatePresence>
-                {jobDescription.trim().length >= 20 && (
-                  <motion.div
-                    initial={shouldReduce ? false : { opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 4 }}
-                    transition={{ duration: 0.25 }}
-                    className="mb-6 p-4 rounded-xl bg-gradient-to-b from-white/[0.03] to-white/[0.01] border border-indigo-500/25 shadow-lg shadow-black/40"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2 text-xs font-bold text-indigo-300">
-                        <svg className="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                        </svg>
-                        <span>✨ Live Requirement Preview</span>
+                <div className="bg-[#0f111a] border border-white/[0.08] rounded-2xl p-7 shadow-2xl">
+                  {/* Step Header */}
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-11 h-11 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0 text-purple-400">
+                        <Code2 className="w-5 h-5" />
                       </div>
-                      {isLiveAnalyzing && (
-                        <div className="flex items-center gap-1.5 text-[11px] text-indigo-300/70">
-                          <div className="w-3 h-3 border-2 border-indigo-400/40 border-t-indigo-400 rounded-full animate-spin" />
-                          <span>Analyzing requirements…</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {livePreview ? (
-                      <div className="space-y-3">
-                        <div>
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
-                            Detected Role
-                          </div>
-                          <div className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-500/20 text-indigo-200 border border-indigo-500/30">
-                            {livePreview.detectedTitle || 'Technical Role'}
-                          </div>
-                        </div>
-
-                        {livePreview.skills && livePreview.skills.length > 0 && (
-                          <div>
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1.5">
-                              Likely Required Skills
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {livePreview.skills.slice(0, 8).map((skill, idx) => (
-                                <motion.span
-                                  key={skill}
-                                  initial={shouldReduce ? false : { opacity: 0, scale: 0.85, y: 6 }}
-                                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                                  transition={{
-                                    delay: Math.min(idx, 8) * 0.04,
-                                    type: 'spring',
-                                    stiffness: 420,
-                                    damping: 24,
-                                  }}
-                                  className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-white/[0.05] text-white/80 border border-white/10"
-                                >
-                                  {skill}
-                                </motion.span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : isLiveAnalyzing ? (
-                      <div className="py-2 flex items-center gap-2 text-xs text-white/40">
-                        <div className="w-3.5 h-3.5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                        <span>Analyzing requirements & building blueprint preview…</span>
-                      </div>
-                    ) : liveAnalyzeError ? (
-                      <div className="text-xs text-white/30 italic py-1">
-                        {liveAnalyzeError}
-                      </div>
-                    ) : null}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {extractError && (
-                <div className="mb-6 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {extractError}
-                </div>
-              )}
-
-              {/* Bottom Actions Bar with Tooltip (Phase 1.3) */}
-              <div className="flex items-center justify-between pt-4 border-t border-white/[0.06]">
-                <button
-                  type="button"
-                  disabled
-                  className="px-5 py-2.5 rounded-xl text-xs font-medium text-white/20 border border-white/5 cursor-not-allowed"
-                >
-                  &lt; Back
-                </button>
-
-                <div className="relative group inline-block">
-                  <button
-                    type="button"
-                    onClick={handleExtractBlueprint}
-                    disabled={isExtracting || jobDescription.trim().length < 20}
-                    aria-disabled={isExtracting || jobDescription.trim().length < 20}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                      jobDescription.trim().length >= 20 && !isExtracting
-                        ? 'text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-indigo-500/25 cursor-pointer'
-                        : 'text-white/30 bg-white/[0.04] border border-white/[0.08] cursor-not-allowed opacity-60'
-                    }`}
-                  >
-                    {isExtracting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Analyzing & Calibrating...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                        </svg>
-                        Extract Details & Build Blueprint
-                      </>
-                    )}
-                  </button>
-                  {jobDescription.trim().length < 20 && !isExtracting && (
-                    <div
-                      role="tooltip"
-                      className="pointer-events-none absolute bottom-full mb-2 right-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-30 px-3 py-1.5 rounded-lg bg-gray-950 border border-white/10 text-[11px] text-white/90 whitespace-nowrap shadow-xl"
-                    >
-                      Enter at least 20 characters to continue.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ═══════════════════════════════════════════════════════════ */}
-          {/* STEP 2: Tune & Blueprint                                  */}
-          {/* ═══════════════════════════════════════════════════════════ */}
-          {step === 2 && (
-            <motion.div
-              key="step-2"
-              initial={shouldReduce ? false : "hidden"}
-              animate="visible"
-              exit="exit"
-              variants={tabContentVariants}
-              className="space-y-6"
-            >
-              <div className="bg-[#0f111a] border border-white/[0.08] rounded-2xl p-7 shadow-2xl">
-                {/* Header */}
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0 text-indigo-400">
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-white">Tune & Calibrate Blueprint</h2>
-                    <p className="text-xs text-white/50 mt-0.5">
-                      Fine-tune extracted parameters. The live candidate pass preview updates in real time.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Form Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  {/* Role Title */}
-                  <div className="md:col-span-2">
-                    <label className="text-xs font-semibold text-white/70 block mb-1.5">
-                      Assessment Role Title
-                    </label>
-                    <input
-                      type="text"
-                      value={roleTitle}
-                      onChange={(e) => setRoleTitle(e.target.value)}
-                      className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-indigo-500 focus:outline-none transition-colors"
-                      placeholder="e.g. Senior Python Engineer"
-                    />
-                  </div>
-
-                  {/* Min Experience */}
-                  <div>
-                    <label className="text-xs font-semibold text-white/70 block mb-1.5">
-                      Min Experience (Years)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={20}
-                      step={0.5}
-                      value={minExperience}
-                      onChange={(e) => handleExperienceChange(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-indigo-500 focus:outline-none transition-colors font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <label className="text-xs font-semibold text-white/70 block mb-1.5">
-                    Education Requirement
-                  </label>
-                  <select
-                    value={educationReq}
-                    onChange={(e) => setEducationReq(e.target.value)}
-                    className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-indigo-500 focus:outline-none transition-colors cursor-pointer capitalize"
-                  >
-                    <option value="bachelors">Bachelor's Degree or equivalent</option>
-                    <option value="masters">Master's Degree (M.S. / M.Tech / MBA)</option>
-                    <option value="phd">Doctorate / Ph.D.</option>
-                    <option value="associate">Associate Degree</option>
-                    <option value="high_school">High School Diploma</option>
-                  </select>
-                </div>
-
-                {/* Extracted Skills Tag Input */}
-                <div className="mb-6">
-                  <label className="text-xs font-semibold text-white/70 block mb-1.5">
-                    Extracted Skills & Competencies ({skills.length})
-                  </label>
-                  <div className="p-3 bg-[#0a0a0f] border border-white/10 rounded-xl min-h-[60px] flex flex-wrap gap-2 items-center">
-                    {skills.map((skill) => (
-                      <span
-                        key={skill}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-medium"
-                      >
-                        {skill}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSkill(skill)}
-                          className="hover:text-red-400 text-indigo-300/60 font-bold ml-0.5 transition-colors"
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    ))}
-
-                    {/* Add Skill Input */}
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="text"
-                        value={newSkillInput}
-                        onChange={(e) => setNewSkillInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddSkill();
-                          }
-                        }}
-                        placeholder="+ Add skill..."
-                        className="bg-transparent text-xs text-white placeholder-white/30 border-none outline-none px-2 py-1 w-28 focus:w-40 transition-all"
-                      />
-                      {newSkillInput.trim() && (
-                        <button
-                          type="button"
-                          onClick={handleAddSkill}
-                          className="px-2 py-0.5 rounded bg-indigo-600 text-white text-[10px] font-semibold"
-                        >
-                          Add
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-white/30 mt-1">
-                    Press Enter to add tags. Removing or adding skills updates the live candidate pass rate preview below.
-                  </p>
-                </div>
-
-                {/* Live Candidate Pass Preview Widget */}
-                {passPreview && (
-                  <div className="mb-6 p-5 rounded-xl bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-blue-950/40 border border-indigo-500/30 relative overflow-hidden">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                        <span className="text-xs font-bold uppercase tracking-wider text-indigo-300">
-                          Live Candidate Match Preview
-                        </span>
-                      </div>
-                      {isRecalculatingPass && (
-                        <span className="text-[10px] text-white/40 font-mono">Recalculating...</span>
-                      )}
-                    </div>
-
-                    <div className="flex items-baseline gap-3 my-2">
-                      <span className="text-2xl font-extrabold text-white">
-                        {passPreview.passed_count} of {passPreview.total_evaluated}
-                      </span>
-                      <span className="text-sm font-semibold text-emerald-400">
-                        ({passPreview.pass_rate_pct}% pass rate)
-                      </span>
-                    </div>
-
-                    <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden mb-2">
-                      <div
-                        className="h-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-500 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, passPreview.pass_rate_pct)}%` }}
-                      ></div>
-                    </div>
-
-                    <p className="text-xs text-white/50">
-                      {passPreview.summary} Candidates passing match threshold ({'>='}60% score or {'>='}50% skill match with {minExperience}y exp).
-                    </p>
-                  </div>
-                )}
-
-                {/* Question Blueprint Breakdown */}
-                {blueprint && (
-                  <div className="mb-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-white/70">
-                        Generated Question Blueprint
-                      </h3>
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/60">
-                          ⏱ {blueprint.estimated_duration_minutes} Mins
-                        </span>
-                        <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
-                          🎯 {blueprint.difficulty_level}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {blueprint.categories.map((cat, idx) => (
-                        <div
-                          key={idx}
-                          className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/10 transition-colors"
-                        >
-                          <div className="flex items-center justify-between text-xs mb-2">
-                            <span className="font-semibold text-white/90">{cat.category}</span>
-                            <span className="font-mono text-indigo-400 font-bold">
-                              {cat.percentage}% ({cat.count} Qs)
-                            </span>
-                          </div>
-                          <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden mb-2.5">
-                            <div
-                              className="h-full bg-indigo-500/60 rounded-full"
-                              style={{ width: `${cat.percentage}%` }}
-                            ></div>
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {cat.topics.map((top, tIdx) => (
-                              <span
-                                key={tIdx}
-                                className="text-[10px] px-2 py-0.5 rounded bg-white/[0.04] text-white/50"
-                              >
-                                {top}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Bottom Actions Bar */}
-                <div className="flex items-center justify-between pt-4 border-t border-white/[0.06]">
-                  <button
-                    onClick={() => setStep(1)}
-                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white/60 hover:text-white border border-white/10 hover:bg-white/[0.04] transition-all"
-                  >
-                    &lt; Back to Basics
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setMaxStepReached((prev) => Math.max(prev, 3));
-                      setStep(3);
-                    }}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-indigo-500/25 transition-all"
-                  >
-                    Continue to Confirm & Launch &gt;
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ═══════════════════════════════════════════════════════════ */}
-          {/* STEP 3: Confirm & Launch                                  */}
-          {/* ═══════════════════════════════════════════════════════════ */}
-          {step === 3 && (
-            <motion.div
-              key="step-3"
-              initial={shouldReduce ? false : "hidden"}
-              animate="visible"
-              exit="exit"
-              variants={tabContentVariants}
-              className="bg-[#0f111a] border border-white/[0.08] rounded-2xl p-7 shadow-2xl"
-            >
-              {/* Header */}
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0 text-indigo-400">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-white">Confirm & Launch Assessment</h2>
-                  <p className="text-xs text-white/50 mt-0.5">
-                    Review your calibrated assessment blueprint before publishing and deploying candidate invites.
-                  </p>
-                </div>
-              </div>
-
-              {/* Summary Card */}
-              <div className="p-6 rounded-xl bg-white/[0.02] border border-white/[0.06] mb-6 space-y-5">
-                <div className="flex items-start justify-between pb-4 border-b border-white/[0.06]">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">
-                      Assessment Target
-                    </span>
-                    <h3 className="text-xl font-bold text-white mt-0.5">{roleTitle}</h3>
-                    <div className="flex items-center gap-4 text-xs text-white/60 mt-2">
-                      <span>Experience: <strong className="text-white">{minExperience}+ Years</strong></span>
-                      <span>Education: <strong className="text-white capitalize">{educationReq}</strong></span>
-                      <span>Format: <strong className="text-white">Online Adaptive Rubric</strong></span>
-                    </div>
-                  </div>
-                  {passPreview && (
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-white/40">
-                        Projected Pass Rate
-                      </span>
-                      <div className="text-2xl font-extrabold text-emerald-400">
-                        {passPreview.pass_rate_pct}%
-                      </div>
-                      <div className="text-[11px] text-white/40">
-                        {passPreview.passed_count} / {passPreview.total_evaluated} candidates match
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Skills */}
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-2">
-                    Verified Competencies
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {skills.map((s) => (
-                      <span
-                        key={s}
-                        className="px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium"
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Blueprint breakdown */}
-                {blueprint && (
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/40 block mb-2">
-                      Question Blueprint (Total {blueprint.categories.reduce((acc, c) => acc + c.count, 0)} Questions • {blueprint.estimated_duration_minutes} Mins)
-                    </span>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {blueprint.categories.map((cat, idx) => (
-                        <div key={idx} className="p-2.5 rounded-lg bg-white/[0.02] border border-white/5">
-                          <div className="text-[11px] text-white/70 font-semibold truncate">{cat.category}</div>
-                          <div className="text-xs font-mono font-bold text-indigo-400 mt-1">
-                            {cat.percentage}% ({cat.count} Qs)
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons as per spec */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-white/[0.06]">
-                <button
-                  onClick={() => setStep(2)}
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-semibold text-white/60 hover:text-white border border-white/10 hover:bg-white/[0.04] transition-all"
-                >
-                  &lt; Back to Blueprint
-                </button>
-
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  {/* Stubbed button as per spec */}
-                  <button
-                    onClick={() => setShowComingSoonModal(true)}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 transition-colors"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                    </svg>
-                    Generate questions - Coming soon
-                  </button>
-
-                  {/* Launch button */}
-                  <button
-                    onClick={handleLaunchAssessment}
-                    disabled={isLaunching}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-50"
-                  >
-                    {isLaunching ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Launching Pipeline...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        Launch Assessment Pipeline
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ═══════════════════════════════════════════════════════════ */}
-          {/* STEP 4: Past Assessments View                             */}
-          {/* ═══════════════════════════════════════════════════════════ */}
-          {step === 4 && (
-            <motion.div
-              key="step-4"
-              initial={shouldReduce ? false : "hidden"}
-              animate="visible"
-              exit="exit"
-              variants={tabContentVariants}
-              className="space-y-6"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-white">Launched Assessments</h2>
-                  <p className="text-xs text-white/50 mt-0.5">
-                    Manage active assessment blueprints and candidate evaluation rubrics.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setStep(1)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 shadow-md shadow-indigo-500/20"
-                >
-                  + Create New Assessment
-                </button>
-              </div>
-
-              {isLoadingPast ? (
-                <div className="p-12 text-center text-white/40">
-                  <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                  Loading assessments...
-                </div>
-              ) : pastAssessments.length === 0 ? (
-                <div className="p-12 text-center rounded-2xl bg-[#0f111a] border border-white/[0.08]">
-                  <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white/30 mx-auto mb-3">
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                    </svg>
-                  </div>
-                  <h3 className="text-sm font-semibold text-white">No assessments launched yet</h3>
-                  <p className="text-xs text-white/40 mt-1 max-w-sm mx-auto">
-                    Use the 3-step AI Assessment Planner to define a job description and launch an assessment.
-                  </p>
-                  <button
-                    onClick={() => setStep(1)}
-                    className="mt-4 px-4 py-2 rounded-xl text-xs font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors"
-                  >
-                    Open Planner Wizard
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {pastAssessments.map((a) => (
-                    <div
-                      key={a.id}
-                      className="p-5 rounded-2xl bg-[#0f111a] border border-white/[0.08] hover:border-indigo-500/30 transition-all flex flex-col justify-between"
-                    >
                       <div>
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="text-base font-bold text-white">{a.title}</h3>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            {a.status}
+                        <h2 className="text-lg font-bold text-white">Define Target Role & Job Description</h2>
+                        <p className="text-xs text-white/50 mt-0.5">
+                          Paste the Job Description to extract requirements and auto-calibrate your live blueprint.
+                        </p>
+                      </div>
+                    </div>
+
+                    {batches.length > 0 && (
+                      <div className="w-64">
+                        <select
+                          value={selectedBatchId || ''}
+                          onChange={handleBatchSelect}
+                          className="w-full bg-[#141422] border border-white/10 rounded-xl px-3 py-2 text-xs text-white/80 focus:border-indigo-500 focus:outline-none cursor-pointer"
+                        >
+                          <option value="">Import from screening batch...</option>
+                          {batches.map((b) => (
+                            <option key={b.id} value={b.id}>
+                              {b.title} ({b.candidate_count || 0} candidates)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Textarea */}
+                  <div className="space-y-2 mb-6">
+                    <div className="flex justify-between items-center text-xs">
+                      <label className="font-semibold text-white/70">Job Description</label>
+                      <span className="text-[11px] text-white/40">
+                        {jobDescription.length} characters
+                      </span>
+                    </div>
+                    <textarea
+                      rows={9}
+                      value={jobDescription}
+                      onChange={(e) => setJobDescription(e.target.value)}
+                      placeholder="Paste your full job description here (e.g. Senior Backend Engineer with Python, Django, PostgreSQL, and AWS)..."
+                      className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl p-4 text-sm text-white placeholder-white/30 focus:border-indigo-500 focus:outline-none transition-colors leading-relaxed resize-y font-mono text-xs"
+                    />
+                    {extractError && (
+                      <p className="text-xs text-red-400 mt-1">{extractError}</p>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-between pt-4 border-t border-white/[0.06]">
+                    <span className="text-xs text-white/40">
+                      Step 1 of 3: AI extracts role requirements, seniority bar, and question mix.
+                    </span>
+
+                    <button
+                      onClick={handleExtractBlueprint}
+                      disabled={isExtracting || jobDescription.trim().length < 20}
+                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {isExtracting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Analyzing JD...
+                        </>
+                      ) : (
+                        <>
+                          Extract Details & Build Blueprint
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════ */}
+            {/* STEP 2: Tune & Blueprint (Matching Image 2 & 4)            */}
+            {/* ═══════════════════════════════════════════════════════════ */}
+            {step === 2 && (
+              <motion.div
+                key="step-2"
+                initial={shouldReduce ? false : 'hidden'}
+                animate="visible"
+                exit="exit"
+                variants={tabContentVariants}
+                className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+              >
+                {/* Left Column: Tune Your Assessment Blueprint (7 cols) */}
+                <div className="lg:col-span-7 bg-[#0f111a] border border-white/[0.08] rounded-2xl p-7 shadow-2xl flex flex-col justify-between">
+                  <div>
+                    {/* Header */}
+                    <div className="flex items-start gap-4 mb-6">
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0 text-purple-400">
+                        <Sliders className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-bold text-white">
+                          Tune Your Assessment Blueprint
+                        </h2>
+                        <p className="text-xs text-white/45 mt-0.5">
+                          Adjust duration, focus areas, and seniority. Watch your live question breakdown update in real time.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Focus Area Tags (Matching Image 2 & 4) */}
+                    <div className="mb-6">
+                      <div className="flex flex-wrap gap-2">
+                        {ALL_FOCUS_AREAS.map((area) => {
+                          const isActive = focusAreas.includes(area);
+                          return (
+                            <button
+                              key={area}
+                              type="button"
+                              onClick={() => handleToggleFocusArea(area)}
+                              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                                isActive
+                                  ? 'bg-purple-600/30 text-purple-200 border border-purple-500/40 shadow-sm shadow-purple-500/20'
+                                  : 'bg-white/[0.03] text-white/50 border border-white/[0.08] hover:bg-white/[0.07] hover:text-white/80'
+                              }`}
+                            >
+                              {isActive && <Check className="w-3 h-3 text-purple-300 stroke-[2.5]" />}
+                              {area}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Skill Score Weights (%) Section */}
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Sliders className="w-4 h-4 text-white/60" />
+                          <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                            Skill Score Weights (%)
+                          </h3>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-xs font-bold">
+                            Total: {totalWeight}%
+                          </span>
+                          <span className="text-[11px] text-white/40 italic">
+                            Click 🔒 to pin a weight
                           </span>
                         </div>
-                        <div className="text-xs text-white/40 mb-3 flex items-center gap-3">
-                          <span>Created: {a.created_at}</span>
-                          <span>•</span>
-                          <span>{a.min_experience_years}+ Yrs Exp</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1 mb-4">
-                          {a.required_skills.slice(0, 5).map((s) => (
-                            <span
-                              key={s}
-                              className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300"
-                            >
-                              {s}
-                            </span>
-                          ))}
-                          {a.required_skills.length > 5 && (
-                            <span className="text-[10px] px-1.5 py-0.5 text-white/40">
-                              +{a.required_skills.length - 5} more
-                            </span>
-                          )}
-                        </div>
                       </div>
 
-                      <div className="pt-3 border-t border-white/[0.05] flex items-center justify-between">
-                        <button
-                          onClick={() => navigate('/candidate-pipeline')}
-                          className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold"
-                        >
-                          View Candidate Pipeline &rarr;
-                        </button>
-                        <button
-                          onClick={() => setShowComingSoonModal(true)}
-                          className="text-[11px] text-white/40 hover:text-white/70"
-                        >
-                          Questions
-                        </button>
+                      {/* Slider Rows (Matching Image 2 & 4) */}
+                      <div className="space-y-3.5">
+                        {skillWeights.map((sw) => (
+                          <div
+                            key={sw.id}
+                            className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-white/10 transition-colors flex items-center gap-3.5"
+                          >
+                            {/* Lock Toggle Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePin(sw.id)}
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                sw.isPinned
+                                  ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20'
+                                  : 'text-white/30 hover:text-white/70'
+                              }`}
+                              title={sw.isPinned ? 'Unpin weight' : 'Pin weight'}
+                            >
+                              {sw.isPinned ? (
+                                <Lock className="w-3.5 h-3.5" />
+                              ) : (
+                                <Unlock className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+
+                            {/* Label */}
+                            <span className="w-36 text-xs font-medium text-white/90 truncate flex-shrink-0">
+                              {sw.name}
+                            </span>
+
+                            {/* Range Slider */}
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              value={sw.weight}
+                              onChange={(e) =>
+                                handleWeightChange(sw.id, parseInt(e.target.value, 10))
+                              }
+                              className="flex-1 h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#6366f1]"
+                            />
+
+                            {/* Question / Duration badge */}
+                            <span className="w-24 text-right text-[11px] text-white/40 font-mono flex-shrink-0">
+                              {sw.weight === 0
+                                ? '0 Qs'
+                                : `~${sw.durationMin}m (${sw.questionCount} Q${
+                                    sw.questionCount !== 1 ? 's' : ''
+                                  })`}
+                            </span>
+
+                            {/* Percentage Number */}
+                            <span className="w-12 text-right text-xs font-bold text-cyan-400 font-mono flex-shrink-0">
+                              {sw.weight}%
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Bottom Actions */}
+                  <div className="flex items-center justify-between pt-5 border-t border-white/[0.06] mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="px-4 py-2 text-xs font-semibold text-white/50 hover:text-white transition-colors"
+                    >
+                      &lt; Back
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMaxStepReached((prev) => Math.max(prev, 3));
+                        setStep(3);
+                      }}
+                      className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-indigo-500/25 transition-all"
+                    >
+                      Continue to Final Review...
+                    </button>
+                  </div>
                 </div>
-              )}
-            </motion.div>
-          )}
+
+                {/* Right Column: Live Blueprint Card (5 cols) */}
+                <div className="lg:col-span-5">{renderLiveBlueprintCard()}</div>
+              </motion.div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════ */}
+            {/* STEP 3: Confirm & Launch (Matching Image 1 & 3)             */}
+            {/* ═══════════════════════════════════════════════════════════ */}
+            {step === 3 && (
+              <motion.div
+                key="step-3"
+                initial={shouldReduce ? false : 'hidden'}
+                animate="visible"
+                exit="exit"
+                variants={tabContentVariants}
+                className="space-y-6"
+              >
+                {/* Hero Header (Matching Image 1) */}
+                <div className="text-center mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto mb-3">
+                    <Zap className="w-6 h-6" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-white tracking-tight">
+                    Ready to Generate Questions
+                  </h2>
+                  <p className="text-xs text-white/50 mt-1 max-w-lg mx-auto">
+                    Review your finalized blueprint parameters. Clicking generate will construct your AI question bank.
+                  </p>
+                </div>
+
+                {/* 2-Column Grid (Matching Image 1 & 3) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  {/* Left Column: 2x3 Grid + Calibration Check (7 cols) */}
+                  <div className="lg:col-span-7 space-y-4">
+                    {/* 2x3 Summary Parameter Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {/* 1. Assessment Title */}
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                        <span className="text-[11px] font-medium text-white/40 block mb-1">
+                          Assessment Title
+                        </span>
+                        <span className="text-sm font-bold text-white truncate block">
+                          {roleTitle || 'Python Backend Developer'} Assess...
+                        </span>
+                      </div>
+
+                      {/* 2. Target Role */}
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                        <span className="text-[11px] font-medium text-white/40 block mb-1">
+                          Target Role
+                        </span>
+                        <span className="text-sm font-bold text-white truncate block">
+                          {roleTitle || 'Backend Engineer'}
+                        </span>
+                      </div>
+
+                      {/* 3. Primary Tech Stack */}
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                        <span className="text-[11px] font-medium text-white/40 block mb-1">
+                          Primary Tech Stack
+                        </span>
+                        <span className="text-sm font-bold text-white truncate block">
+                          {skills.length > 0
+                            ? skills.slice(0, 5).join(', ') + '...'
+                            : 'Python, Django, Flask, FastAPI, Pos...'}
+                        </span>
+                      </div>
+
+                      {/* 4. Seniority Bar */}
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                        <span className="text-[11px] font-medium text-white/40 block mb-1">
+                          Seniority Bar
+                        </span>
+                        <span className="text-sm font-bold text-white block">
+                          {minExperience}–{minExperience + 2} years
+                        </span>
+                      </div>
+
+                      {/* 5. Screen Duration */}
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                        <span className="text-[11px] font-medium text-white/40 block mb-1">
+                          Screen Duration
+                        </span>
+                        <span className="text-sm font-bold text-white block">
+                          30 Mins
+                        </span>
+                      </div>
+
+                      {/* 6. Hiring Profile */}
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                        <span className="text-[11px] font-medium text-white/40 block mb-1">
+                          Hiring Profile
+                        </span>
+                        <span className="text-sm font-bold text-white block">
+                          {hiringProfile}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Launch Checks & Calibration Card */}
+                    <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2">
+                      <h4 className="text-xs font-bold text-indigo-400 mb-2.5">
+                        Launch Checks & Calibration
+                      </h4>
+                      <div className="flex items-center gap-2 text-xs text-white/80">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                        <span>AI model calibrated to senior bar: {minExperience}–{minExperience + 2} years</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-white/80">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                        <span>Evaluates {activeCategories.length} primary competency tracks</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-white/80">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                        <span>Target passing bar is set to: {passBar}%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Live Blueprint (5 cols) */}
+                  <div className="lg:col-span-5">{renderLiveBlueprintCard()}</div>
+                </div>
+
+                {/* Bottom Action Bar (Matching Image 3) */}
+                <div className="flex items-center justify-between pt-6 border-t border-white/[0.06]">
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="px-4 py-2 text-xs font-semibold text-white/50 hover:text-white transition-colors"
+                  >
+                    &lt; Back
+                  </button>
+
+                  <div className="flex items-center gap-3">
+                    {isLaunching ? (
+                      <button
+                        disabled
+                        className="flex items-center gap-2.5 px-7 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600/60 shadow-lg cursor-not-allowed"
+                      >
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Creating Assessment...
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleLaunchAssessment}
+                        className="flex items-center gap-2 px-7 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-indigo-500/25 transition-all"
+                      >
+                        Generate Questions & Launch
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════ */}
+            {/* STEP 4: Past Assessments View                             */}
+            {/* ═══════════════════════════════════════════════════════════ */}
+            {step === 4 && (
+              <motion.div
+                key="step-4"
+                initial={shouldReduce ? false : 'hidden'}
+                animate="visible"
+                exit="exit"
+                variants={tabContentVariants}
+                className="space-y-6 max-w-6xl mx-auto"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Launched Assessments</h2>
+                    <p className="text-xs text-white/50 mt-0.5">
+                      Manage active assessment blueprints and candidate evaluation rubrics.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setStep(1)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 shadow-md shadow-indigo-500/20"
+                  >
+                    + Create New Assessment
+                  </button>
+                </div>
+
+                {isLoadingPast ? (
+                  <div className="p-12 text-center text-white/40">
+                    <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    Loading assessments...
+                  </div>
+                ) : pastAssessments.length === 0 ? (
+                  <div className="p-12 text-center rounded-2xl bg-[#0f111a] border border-white/[0.08]">
+                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white/30 mx-auto mb-3">
+                      <Clock className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-white">No assessments launched yet</h3>
+                    <p className="text-xs text-white/40 mt-1 max-w-sm mx-auto">
+                      Use the 3-step AI Assessment Planner to define a job description and launch an assessment.
+                    </p>
+                    <button
+                      onClick={() => setStep(1)}
+                      className="mt-4 px-4 py-2 rounded-xl text-xs font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors"
+                    >
+                      Open Planner Wizard
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {pastAssessments.map((a) => (
+                      <div
+                        key={a.id}
+                        className="p-5 rounded-2xl bg-[#0f111a] border border-white/[0.08] hover:border-indigo-500/30 transition-all flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between mb-2">
+                            <h3 className="text-base font-bold text-white">{a.title}</h3>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              {a.status}
+                            </span>
+                          </div>
+                          <div className="text-xs text-white/40 mb-3 flex items-center gap-3">
+                            <span>Created: {a.created_at}</span>
+                            <span>•</span>
+                            <span>{a.min_experience_years}+ Yrs Exp</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1 mb-4">
+                            {a.required_skills.slice(0, 5).map((s) => (
+                              <span
+                                key={s}
+                                className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300"
+                              >
+                                {s}
+                              </span>
+                            ))}
+                            {a.required_skills.length > 5 && (
+                              <span className="text-[10px] px-1.5 py-0.5 text-white/40">
+                                +{a.required_skills.length - 5} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="pt-3 border-t border-white/[0.05] flex items-center justify-between">
+                          <button
+                            onClick={() => {
+                              setRoleTitle(a.title);
+                              setShowInviteModal(true);
+                            }}
+                            className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1.5"
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                            Invite Candidates &rarr;
+                          </button>
+                          <button
+                            onClick={() => navigate('/candidate-pipeline')}
+                            className="text-[11px] text-white/40 hover:text-white/70"
+                          >
+                            View Pipeline
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
           </AnimatePresence>
         </main>
       </div>
 
-      {/* ── COMING SOON MODAL (For "Generate questions - Coming soon") ── */}
-      {showComingSoonModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-[#0f111a] border border-white/10 rounded-2xl p-6 shadow-2xl relative">
-            <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mb-4">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-bold text-white mb-2">
-              AI Question Generator — Coming Soon in v2.0
-            </h3>
-            <p className="text-xs text-white/60 leading-relaxed mb-4">
-              HireRank's generative code test and technical interview question engine is currently undergoing private beta testing.
-              Your blueprint categories, skill rubrics, and time budgets are fully active and calibrated for candidate screening.
-            </p>
-            <div className="p-3 rounded-xl bg-purple-500/[0.06] border border-purple-500/20 text-xs text-purple-300 mb-5">
-              💡 You can proceed to launch your assessment pipeline now, and your candidates will be screened against this custom blueprint.
-            </div>
-            <div className="flex justify-end">
-              <button
-                onClick={() => setShowComingSoonModal(false)}
-                className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-white/10 hover:bg-white/15 transition-colors"
-              >
-                Got it
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── LAUNCH SUCCESS MODAL ── */}
-      {launchSuccessModal && (
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* INVITE CANDIDATES MODAL (Matching Image 5)                         */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {showInviteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-md bg-[#0f111a] border border-indigo-500/30 rounded-2xl p-6 shadow-2xl relative text-center">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-white mb-1">
-              Assessment Pipeline Launched!
-            </h3>
-            <p className="text-xs text-white/50 mb-5">
-              "{launchSuccessModal.title}" is now live. Candidate evaluations and pass calibration are active.
-            </p>
+          <div className="w-full max-w-2xl bg-[#0b0c14] border border-indigo-500/30 rounded-2xl p-6 shadow-2xl relative text-left">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Invite Candidates</h3>
+                  <p className="text-xs text-white/40">
+                    {inviteModalStep === 1
+                      ? 'Step 1: Select candidate recipients'
+                      : 'Step 2: Customize Outreach Email template'}
+                  </p>
+                </div>
+              </div>
 
-            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] text-left text-xs space-y-1.5 mb-6">
-              <div className="flex justify-between">
-                <span className="text-white/40">Assessment ID:</span>
-                <span className="text-white font-mono">#ASM-{launchSuccessModal.id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-white/40">Role:</span>
-                <span className="text-white font-semibold">{launchSuccessModal.title}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-white/40">Target Skills:</span>
-                <span className="text-indigo-400 font-medium">{launchSuccessModal.required_skills.length} skills</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-white/40">Status:</span>
-                <span className="text-emerald-400 font-bold capitalize">{launchSuccessModal.status}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
               <button
-                onClick={() => {
-                  setLaunchSuccessModal(null);
-                  loadPastAssessments();
-                  setStep(4);
-                }}
-                className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                onClick={() => setShowInviteModal(false)}
+                className="w-8 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white flex items-center justify-center transition-colors"
               >
-                View Assessments
-              </button>
-              <button
-                onClick={() => navigate('/candidate-pipeline')}
-                className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 shadow-lg shadow-indigo-500/25 transition-all"
-              >
-                Go to Pipeline &rarr;
+                <X className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Stepper Navigation inside Modal */}
+            <div className="flex items-center gap-2.5 p-1.5 bg-white/[0.02] border border-white/[0.06] rounded-xl mb-5 text-xs">
+              <button
+                type="button"
+                onClick={() => setInviteModalStep(1)}
+                className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg font-medium transition-all ${
+                  inviteModalStep === 1
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'text-white/50 hover:text-white'
+                }`}
+              >
+                <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold">
+                  1
+                </span>
+                1. Select Recipients ({selectedCandidateIds.size})
+              </button>
+
+              <span className="text-white/20">&gt;</span>
+
+              <button
+                type="button"
+                onClick={() => setInviteModalStep(2)}
+                className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg font-medium transition-all ${
+                  inviteModalStep === 2
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'text-white/50 hover:text-white'
+                }`}
+              >
+                <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold">
+                  2
+                </span>
+                2. Customize Email Template
+              </button>
+            </div>
+
+            {/* Step 1 Content: Candidate Selection */}
+            {inviteModalStep === 1 && (
+              <div className="space-y-4 mb-6">
+                <div className="flex items-center justify-between text-xs text-white/60">
+                  <span>Available candidates ({candidatePool.length})</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedCandidateIds.size === candidatePool.length) {
+                        setSelectedCandidateIds(new Set());
+                      } else {
+                        setSelectedCandidateIds(new Set(candidatePool.map((c) => c.id)));
+                      }
+                    }}
+                    className="text-indigo-400 hover:text-indigo-300 font-semibold"
+                  >
+                    {selectedCandidateIds.size === candidatePool.length
+                      ? 'Deselect All'
+                      : 'Select All'}
+                  </button>
+                </div>
+
+                <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                  {candidatePool.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-white/40 border border-white/5 rounded-xl">
+                      No candidates found. You can still customize the template or share the direct link.
+                    </div>
+                  ) : (
+                    candidatePool.map((c) => {
+                      const isSelected = selectedCandidateIds.has(c.id);
+                      return (
+                        <div
+                          key={c.id}
+                          onClick={() => {
+                            setSelectedCandidateIds((prev) => {
+                              const copy = new Set(prev);
+                              if (copy.has(c.id)) copy.delete(c.id);
+                              else copy.add(c.id);
+                              return copy;
+                            });
+                          }}
+                          className={`p-3 rounded-xl border transition-colors cursor-pointer flex items-center justify-between ${
+                            isSelected
+                              ? 'bg-indigo-600/10 border-indigo-500/40'
+                              : 'bg-white/[0.02] border-white/[0.05] hover:border-white/10'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}}
+                              className="rounded accent-indigo-500"
+                            />
+                            <div>
+                              <div className="text-xs font-semibold text-white">
+                                {c.name || `Candidate #${c.id}`}
+                              </div>
+                              <div className="text-[11px] text-white/40">
+                                {c.email || 'c****@***.com'} • {c.experience_years || 3}y exp
+                              </div>
+                            </div>
+                          </div>
+
+                          {c.overall_score != null && (
+                            <span className="text-xs font-bold font-mono text-cyan-400">
+                              {c.overall_score}% match
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setInviteModalStep(2)}
+                    className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors"
+                  >
+                    Next: Customize Email Template &gt;
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2 Content: Customize Email Template (Matching Image 5) */}
+            {inviteModalStep === 2 && (
+              <div className="space-y-4 mb-6">
+                {/* TEMPLATE PRESETS */}
+                <div>
+                  <label className="block text-[11px] font-bold text-white/40 uppercase tracking-wider mb-2">
+                    TEMPLATE PRESETS
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {['Standard', 'Resume Screening', 'Formal / Corporate', 'Casual / Startup', 'Custom'].map(
+                      (preset) => {
+                        const isSelected = invitePreset === preset;
+                        return (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => handleSelectPreset(preset)}
+                            className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all text-center truncate ${
+                              isSelected
+                                ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500 shadow-sm shadow-indigo-500/20 font-bold'
+                                : 'bg-white/[0.02] text-white/50 border-white/[0.08] hover:bg-white/[0.05] hover:text-white/80'
+                            }`}
+                          >
+                            {preset}
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+                </div>
+
+                {/* EMAIL OUTREACH BODY */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-[11px] font-bold text-white/40 uppercase tracking-wider">
+                      EMAIL OUTREACH BODY
+                    </label>
+
+                    {/* Edit / Preview Pill Buttons (Matching Image 5) */}
+                    <div className="flex items-center gap-1 bg-white/[0.04] border border-white/10 rounded-lg p-0.5 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setIsBodyEditing(true)}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-colors ${
+                          isBodyEditing
+                            ? 'bg-indigo-600 text-white font-semibold'
+                            : 'text-white/50 hover:text-white'
+                        }`}
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsBodyEditing(false)}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-colors ${
+                          !isBodyEditing
+                            ? 'bg-indigo-600 text-white font-semibold'
+                            : 'text-white/50 hover:text-white'
+                        }`}
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        Preview
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Body Box */}
+                  {isBodyEditing ? (
+                    <textarea
+                      rows={8}
+                      value={emailBody}
+                      onChange={(e) => setEmailBody(e.target.value)}
+                      className="w-full bg-[#07080e] border border-white/10 rounded-xl p-4 text-xs font-mono text-white/90 focus:border-indigo-500 focus:outline-none leading-relaxed resize-none selection:bg-indigo-500/30"
+                    />
+                  ) : (
+                    <div className="w-full bg-[#07080e] border border-white/10 rounded-xl p-4 text-xs font-mono text-white/90 leading-relaxed whitespace-pre-line min-h-[170px]">
+                      {previewEmailText}
+                    </div>
+                  )}
+                </div>
+
+                {/* Success Feedback */}
+                {inviteSuccessMsg && (
+                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center text-xs text-emerald-300 font-semibold flex items-center justify-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    {inviteSuccessMsg}
+                  </div>
+                )}
+
+                {/* Full-width Send Invitation Button (Matching Image 5) */}
+                <button
+                  type="button"
+                  onClick={handleSendInvitations}
+                  disabled={isSendingInvites}
+                  className="w-full py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-xl shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isSendingInvites ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Sending Invitations...
+                    </>
+                  ) : (
+                    <>
+                      Send Invitation
+                      <Send className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

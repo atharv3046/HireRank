@@ -448,20 +448,31 @@ export default function ResultsPreviewPage() {
         style={{ background: 'rgba(10,10,15,0.9)' }}
       >
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Logo onClick={() => navigate('/')} />
+          <Logo onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')} />
 
-          <motion.button
-            whileHover={!shouldReduce ? { scale: 1.02 } : undefined}
-            whileTap={!shouldReduce ? { scale: 0.98 } : undefined}
-            onClick={goSignup}
-            className="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-cyan-500/15"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
-            </svg>
-            Create free workspace to unlock
-          </motion.button>
+          {isAuthenticated ? (
+            <motion.button
+              whileHover={!shouldReduce ? { scale: 1.02 } : undefined}
+              whileTap={!shouldReduce ? { scale: 0.98 } : undefined}
+              onClick={() => navigate(data?.job_id ? `/resume-screenings?batch=${data.job_id}` : '/resume-screenings')}
+              className="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-cyan-500/15"
+            >
+              Open in Workspace →
+            </motion.button>
+          ) : (
+            <motion.button
+              whileHover={!shouldReduce ? { scale: 1.02 } : undefined}
+              whileTap={!shouldReduce ? { scale: 0.98 } : undefined}
+              onClick={goSignup}
+              className="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-cyan-500/15"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+              </svg>
+              Create free workspace to unlock
+            </motion.button>
+          )}
         </div>
       </header>
 
@@ -481,7 +492,9 @@ export default function ResultsPreviewPage() {
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">{job_title}</h1>
           <p className="text-sm text-white/30 mt-1.5 max-w-lg">
-            Names and contact info are blurred. Create a free account to unlock the full shortlist, export CSV, and save this batch.
+            {isAuthenticated
+              ? 'Candidate screening results are ready. Open the batch in your recruiter workspace to take action.'
+              : 'Names and contact info are blurred. Create a free account to unlock the full shortlist, export CSV, and save this batch.'}
           </p>
         </motion.div>
 
@@ -627,27 +640,30 @@ export default function ResultsPreviewPage() {
             <div className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-semibold px-3 py-1 rounded-full mb-4">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                  d={isAuthenticated ? "M5 13l4 4L19 7" : "M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"} />
               </svg>
-              Results locked
+              {isAuthenticated ? 'Saved to Workspace' : 'Results locked'}
             </div>
 
             <h2 className="text-2xl font-extrabold text-white mb-2 tracking-tight">
-              Ready to see the full picture?
+              {isAuthenticated ? 'Batch ready in your workspace' : 'Ready to see the full picture?'}
             </h2>
             <p className="text-white/40 text-sm mb-8 max-w-md mx-auto leading-relaxed">
-              Create a free workspace to unlock candidate names, contact details,
-              download a CSV shortlist, and save this batch for your team.
+              {isAuthenticated
+                ? 'Candidate names, contact info, detailed scoring, and candidate invite workflows are available in your recruiter dashboard.'
+                : 'Create a free workspace to unlock candidate names, contact details, download a CSV shortlist, and save this batch for your team.'}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <motion.button
                 whileHover={!shouldReduce ? { scale: 1.02 } : undefined}
                 whileTap={!shouldReduce ? { scale: 0.98 } : undefined}
-                onClick={goSignup}
+                onClick={isAuthenticated
+                  ? () => navigate(data?.job_id ? `/resume-screenings?batch=${data.job_id}` : '/resume-screenings')
+                  : goSignup}
                 className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold px-8 py-3.5 rounded-xl text-sm shadow-lg shadow-cyan-500/20 hover:from-cyan-400 hover:to-blue-400 transition-all"
               >
-                Create free workspace →
+                {isAuthenticated ? 'Open in Workspace →' : 'Create free workspace →'}
               </motion.button>
 
               <button
@@ -659,7 +675,9 @@ export default function ResultsPreviewPage() {
             </div>
 
             <p className="text-white/20 text-xs mt-5">
-              ✓ Your already-scored results won't be reprocessed — they transfer instantly.
+              {isAuthenticated
+                ? '✓ Candidates and scores are safely preserved in your recruiter account.'
+                : "✓ Your already-scored results won't be reprocessed — they transfer instantly."}
             </p>
           </div>
         </motion.div>

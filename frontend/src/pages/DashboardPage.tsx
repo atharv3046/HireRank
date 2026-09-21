@@ -9,7 +9,7 @@
  *  - prefers-reduced-motion safety
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
@@ -209,114 +209,352 @@ const Sparkline: React.FC<{ data: number[]; color: string; fillId: string }> = (
   );
 };
 
-/* ── Hiring Velocity Line Chart (Real Timestamps) ───────────────────────── */
+/* ── Hiring Velocity Line Chart (Real Timestamps & Continuous Timeline) ─── */
 const HiringVelocityChart: React.FC<{
   velocity: { date: string; count: number }[];
+  velocityHourly?: { hour: string; count: number }[];
   totalCandidates: number;
-}> = ({ velocity, totalCandidates }) => {
+}> = ({ velocity, velocityHourly = [], totalCandidates }) => {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'daily' | 'hourly'>('daily');
 
-  const points = velocity && velocity.length > 0
-    ? velocity
-    : [
-        { date: 'Initial', count: 0 },
-        { date: 'Screened', count: totalCandidates },
+  // Normalize daily data into at least 7 points so it creates a continuous trajectory
+  const dailyPoints = useMemo(() => {
+    if (!velocity || velocity.length === 0) {
+      if (totalCandidates > 0) {
+        const today = new Date();
+        return Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(today);
+          d.setDate(d.getDate() - (6 - i));
+          return {
+            date: d.toISOString().split('T')[0],
+            count: i === 6 ? totalCandidates : 0,
+          };
+        });
+      }
+      return [];
+    }
+    if (velocity.length === 1) {
+      const baseDate = new Date(velocity[0].date);
+      return Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(baseDate);
+        d.setDate(d.getDate() - (6 - i));
+        return {
+          date: d.toISOString().split('T')[0],
+          count: i === 6 ? velocity[0].count : 0,
+        };
+      });
+    }
+    return velocity;
+  }, [velocity, totalCandidates]);
+
+  // Normalize hourly data if available
+  const hourlyPoints = useMemo(() => {
+    if (!velocityHourly || velocityHourly.length === 0) return [];
+    if (velocityHourly.length === 1) {
+      const hStr = velocityHourly[0].hour;
+      const hNum = parseInt(hStr.split(':')[0], 10) || 12;
+      const prevH = `${String(Math.max(0, hNum - 1)).padStart(2, '0')}:00`;
+      const nextH = `${String(Math.min(23, hNum + 1)).padStart(2, '0')}:00`;
+      return [
+        { hour: prevH, count: 0 },
+        { hour: hStr, count: velocityHourly[0].count },
+        { hour: nextH, count: 0 },
       ];
+    }
+    return velocityHourly;
+  }, [velocityHourly]);
 
-  const width = 500;
+  const hasHourly = hourlyPoints.length > 0;
+
+  // Active dataset according to active tab
+  const activePoints = useMemo(() => {
+    if (viewMode === 'hourly' && hasHourly) {
+      return hourlyPoints.map(p => ({
+        label: p.hour,
+        sub: 'Intraday Time',
+        count: p.count,
+      }));
+    }
+    return dailyPoints.map(p => {
+      let formatted = p.date;
+      try {
+        const parts = p.date.split('-');
+        if (parts.length === 3) {
+          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const m = parseInt(parts[1], 10) - 1;
+          const d = parseInt(parts[2], 10);
+          formatted = `${months[m]} ${d}`;
+        }
+      } catch (_) {}
+      return {
+        label: formatted,
+        sub: p.date,
+        count: p.count,
+      };
+    });
+  }, [viewMode, hasHourly, hourlyPoints, dailyPoints]);
+
+  const maxVal = Math.max(...activePoints.map(p => p.count), 4);
+  const peakPoint = activePoints.reduce((max, p) => p.count > max.count ? p : max, activePoints[0] || { label: '', sub: '', count: 0 });
+  const totalInPeriod = activePoints.reduce((s, p) => s + p.count, 0) || totalCandidates;
+
+  const width = 600;
   const height = 180;
-  const padX = 40;
-  const padY = 25;
-  const chartW = width - padX * 2;
-  const chartH = height - padY * 2;
+  const padLeft = 40;
+  const padRight = 24;
+  const padTop = 20;
+  const padBottom = 26;
+  const chartW = width - padLeft - padRight;
+  const chartH = height - padTop - padBottom;
+  const baselineY = padTop + chartH;
 
-  const maxVal = Math.max(...points.map(p => p.count), 4);
-
-  const coords = points.map((p, i) => {
-    const x = padX + (points.length > 1 ? (i / (points.length - 1)) * chartW : chartW / 2);
-    const y = height - padY - (p.count / maxVal) * chartH;
+  const coords = activePoints.map((p, i) => {
+    const x = padLeft + (activePoints.length > 1 ? (i / (activePoints.length - 1)) * chartW : chartW / 2);
+    const y = padTop + chartH - (p.count / maxVal) * chartH;
     return { x, y, ...p };
   });
 
-  const pathD = coords.length > 1
-    ? `M ${coords.map(c => `${c.x},${c.y}`).join(' L ')}`
-    : `M ${coords[0].x},${coords[0].y}`;
+  // Cubic Bézier spline smoothing
+  const createSplinePath = (pts: { x: number; y: number }[]) => {
+    if (pts.length < 2) return pts.length === 1 ? `M ${pts[0].x},${pts[0].y}` : '';
+    let d = `M ${pts[0].x},${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i];
+      const p1 = pts[i + 1];
+      const cx = (p0.x + p1.x) / 2;
+      d += ` C ${cx},${p0.y} ${cx},${p1.y} ${p1.x},${p1.y}`;
+    }
+    return d;
+  };
 
+  const pathD = createSplinePath(coords);
   const areaD = coords.length > 1
-    ? `${pathD} L ${coords[coords.length - 1].x},${height - padY} L ${coords[0].x},${height - padY} Z`
+    ? `${pathD} L ${coords[coords.length - 1].x},${baselineY} L ${coords[0].x},${baselineY} Z`
     : '';
+
+  if (activePoints.length === 0) {
+    return (
+      <div className="h-44 rounded-xl border border-white/5 bg-white/[0.01] flex flex-col items-center justify-center text-center p-6">
+        <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-2">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+        </div>
+        <p className="text-sm font-semibold text-white/80">No candidate intake yet</p>
+        <p className="text-xs text-white/40 mt-0.5">Upload resumes to begin tracking real-time hiring velocity.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full">
-      <svg className="w-full h-44 overflow-visible" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="velocityGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.30" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
-          </linearGradient>
-        </defs>
-
-        {/* Horizontal grid lines */}
-        {[0, 0.5, 1].map((ratio, idx) => {
-          const y = padY + ratio * chartH;
-          return (
-            <line
-              key={idx}
-              x1={padX}
-              y1={y}
-              x2={width - padX}
-              y2={y}
-              stroke="rgba(255,255,255,0.06)"
-              strokeDasharray="4 4"
-            />
-          );
-        })}
-
-        {/* Gradient fill & line path */}
-        {areaD && <path d={areaD} fill="url(#velocityGradient)" />}
-        <path
-          d={pathD}
-          fill="none"
-          stroke="#06b6d4"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* Data points */}
-        {coords.map((c, i) => (
-          <g key={i}>
-            <circle
-              cx={c.x}
-              cy={c.y}
-              r={hoveredIdx === i ? 6 : 4}
-              fill="#06b6d4"
-              stroke="#0a0a0f"
-              strokeWidth="2"
-              className="cursor-pointer transition-all"
-              onMouseEnter={() => setHoveredIdx(i)}
-              onMouseLeave={() => setHoveredIdx(null)}
-            />
-          </g>
-        ))}
-      </svg>
-
-      {/* Interactive Tooltip */}
-      {hoveredIdx !== null && coords[hoveredIdx] && (
-        <div
-          className="absolute -top-3 px-3 py-1.5 bg-[#14141f] border border-cyan-500/30 rounded-lg text-xs shadow-xl pointer-events-none transform -translate-x-1/2 -translate-y-full z-10"
-          style={{ left: `${(coords[hoveredIdx].x / width) * 100}%` }}
-        >
-          <div className="font-bold text-cyan-400">{coords[hoveredIdx].count} candidates</div>
-          <div className="text-[10px] text-white/50">{coords[hoveredIdx].date}</div>
+      {/* Velocity Micro-Stats & View Toggle */}
+      <div className="flex items-center justify-between gap-2 mb-3 px-1">
+        <div className="flex items-center gap-4 text-xs">
+          <div>
+            <span className="text-white/40 text-[11px] block">Period Intake</span>
+            <span className="font-bold text-white text-sm">{totalInPeriod} candidates</span>
+          </div>
+          <div className="h-6 w-[1px] bg-white/10" />
+          <div>
+            <span className="text-white/40 text-[11px] block">Peak Velocity</span>
+            <span className="font-semibold text-cyan-400 text-sm">
+              {peakPoint.count} <span className="text-[11px] font-normal text-white/40">({peakPoint.label})</span>
+            </span>
+          </div>
         </div>
-      )}
+
+        {hasHourly && (
+          <div className="flex items-center bg-white/[0.04] border border-white/10 rounded-lg p-0.5 text-[11px]">
+            <button
+              onClick={() => setViewMode('daily')}
+              className={`px-2.5 py-1 rounded-md transition-colors ${
+                viewMode === 'daily'
+                  ? 'bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30'
+                  : 'text-white/50 hover:text-white'
+              }`}
+            >
+              7-Day Trend
+            </button>
+            <button
+              onClick={() => setViewMode('hourly')}
+              className={`px-2.5 py-1 rounded-md transition-colors ${
+                viewMode === 'hourly'
+                  ? 'bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30'
+                  : 'text-white/50 hover:text-white'
+              }`}
+            >
+              Intraday (Hourly)
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* SVG Chart */}
+      <div className="relative">
+        <svg
+          className="w-full h-44 overflow-visible"
+          viewBox={`0 0 ${width} ${height}`}
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient id="velocityGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.32" />
+              <stop offset="60%" stopColor="#3b82f6" stopOpacity="0.10" />
+              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+
+          {/* Horizontal grid lines with Y-Axis values */}
+          {[1, 0.5, 0].map((ratio, idx) => {
+            const yPos = padTop + chartH - ratio * chartH;
+            const yVal = Math.round(maxVal * ratio);
+            return (
+              <g key={idx}>
+                <line
+                  x1={padLeft}
+                  y1={yPos}
+                  x2={width - padRight}
+                  y2={yPos}
+                  stroke="rgba(255,255,255,0.07)"
+                  strokeDasharray="4 4"
+                />
+                <text
+                  x={padLeft - 8}
+                  y={yPos + 3}
+                  textAnchor="end"
+                  fill="rgba(255,255,255,0.30)"
+                  fontSize="10"
+                  fontFamily="monospace"
+                >
+                  {yVal}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Vertical tracker crosshair line when hovered */}
+          {hoveredIdx !== null && coords[hoveredIdx] && (
+            <line
+              x1={coords[hoveredIdx].x}
+              y1={padTop}
+              x2={coords[hoveredIdx].x}
+              y2={baselineY}
+              stroke="rgba(6,182,212,0.45)"
+              strokeWidth="1.5"
+              strokeDasharray="3 3"
+            />
+          )}
+
+          {/* Area gradient fill */}
+          {areaD && <path d={areaD} fill="url(#velocityGradient)" />}
+
+          {/* Ambient subtle glow stroke under main line */}
+          {pathD && (
+            <path
+              d={pathD}
+              fill="none"
+              stroke="#06b6d4"
+              strokeWidth="5"
+              strokeOpacity="0.15"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
+
+          {/* Main crisp line path */}
+          {pathD && (
+            <path
+              d={pathD}
+              fill="none"
+              stroke="#06b6d4"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
+
+          {/* Data Points */}
+          {coords.map((c, i) => {
+            const isHovered = hoveredIdx === i;
+            const hasActivity = c.count > 0;
+            return (
+              <g key={i} className="cursor-pointer">
+                {/* Invisible larger hover hit area */}
+                <circle
+                  cx={c.x}
+                  cy={c.y}
+                  r={14}
+                  fill="transparent"
+                  onMouseEnter={() => setHoveredIdx(i)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                />
+
+                {/* Outer animated halo on hover */}
+                {isHovered && (
+                  <circle
+                    cx={c.x}
+                    cy={c.y}
+                    r={9}
+                    fill="rgba(6,182,212,0.2)"
+                    stroke="#06b6d4"
+                    strokeWidth="1.5"
+                  />
+                )}
+
+                {/* Point circle */}
+                <circle
+                  cx={c.x}
+                  cy={c.y}
+                  r={isHovered ? 5.5 : hasActivity ? 4 : 2.5}
+                  fill={hasActivity ? '#06b6d4' : '#1e293b'}
+                  stroke={hasActivity ? '#0a0a0f' : '#334155'}
+                  strokeWidth={2}
+                  className="transition-all duration-150"
+                  onMouseEnter={() => setHoveredIdx(i)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                />
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Floating Tooltip */}
+        {hoveredIdx !== null && coords[hoveredIdx] && (
+          <div
+            className="absolute -top-3 px-3 py-2 bg-[#12121c]/95 border border-cyan-500/40 rounded-xl text-xs shadow-2xl backdrop-blur-md pointer-events-none transform -translate-x-1/2 -translate-y-full z-20 whitespace-nowrap"
+            style={{ left: `${(coords[hoveredIdx].x / width) * 100}%` }}
+          >
+            <div className="flex items-center gap-1.5 font-bold text-cyan-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              {coords[hoveredIdx].count} {coords[hoveredIdx].count === 1 ? 'candidate' : 'candidates'}
+            </div>
+            <div className="text-[11px] text-white/60 mt-0.5 font-medium">
+              {coords[hoveredIdx].sub ? `${coords[hoveredIdx].label} • ${coords[hoveredIdx].sub}` : coords[hoveredIdx].label}
+            </div>
+            {totalInPeriod > 0 && coords[hoveredIdx].count > 0 && (
+              <div className="text-[10px] text-cyan-300/80 font-medium mt-1 pt-1 border-t border-white/10">
+                {Math.round((coords[hoveredIdx].count / totalInPeriod) * 100)}% of intake in period
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* X-axis date labels */}
-      <div className="flex justify-between text-[11px] text-white/30 px-6 mt-1">
-        {points.map((p, i) => (
-          <span key={i} className="truncate max-w-[90px] text-center">
-            {p.date}
+      <div className="flex justify-between text-[11px] text-white/35 px-4 mt-2">
+        {coords.map((c, i) => (
+          <span
+            key={i}
+            onMouseEnter={() => setHoveredIdx(i)}
+            onMouseLeave={() => setHoveredIdx(null)}
+            className={`cursor-pointer transition-colors text-center truncate ${
+              hoveredIdx === i ? 'text-cyan-400 font-semibold' : 'hover:text-white/70'
+            }`}
+            style={{ width: `${100 / coords.length}%` }}
+          >
+            {c.label}
           </span>
         ))}
       </div>
@@ -710,6 +948,7 @@ export default function DashboardPage() {
 
               <HiringVelocityChart
                 velocity={summary?.velocity ?? []}
+                velocityHourly={summary?.velocity_hourly ?? []}
                 totalCandidates={totalProcessed}
               />
             </motion.div>

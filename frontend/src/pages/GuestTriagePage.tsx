@@ -23,6 +23,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 import {
   useReducedMotion,
   fadeInUpVariants,
@@ -54,6 +55,7 @@ function humanSize(bytes: number) {
 export default function GuestTriagePage() {
   const navigate = useNavigate();
   const shouldReduce = useReducedMotion();
+  const { user, token, isAuthenticated } = useAuth();
 
   const [jd, setJd]               = useState('');
   const [files, setFiles]         = useState<QueuedFile[]>([]);
@@ -116,9 +118,16 @@ export default function GuestTriagePage() {
     formData.append('job_description', jd.trim());
     validFiles.forEach(qf => formData.append('files', qf.file));
 
+    const headers: Record<string, string> = {
+      'Content-Type': 'multipart/form-data',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     try {
       const res = await axios.post('/api/guest/screen', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers,
       });
       const { session_id } = res.data;
       localStorage.setItem('guest_session_id', session_id);
@@ -136,18 +145,33 @@ export default function GuestTriagePage() {
 
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <header className="border-b border-white/[0.06] px-8 py-4 flex items-center justify-between">
-        <button onClick={() => navigate('/')} className="flex items-center gap-2 group">
+        <button onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')} className="flex items-center gap-2 group">
           <div className="w-7 h-7 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-md flex items-center justify-center">
             <span className="text-white text-xs font-bold">H</span>
           </div>
           <span className="font-semibold text-white text-lg group-hover:text-cyan-400 transition-colors">HireRank</span>
         </button>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-white/30">Already have an account?</span>
-          <button onClick={() => navigate('/login')} className="text-cyan-400 font-medium hover:text-cyan-300 transition-colors">
-            Sign in
-          </button>
-        </div>
+        {isAuthenticated ? (
+          <div className="flex items-center gap-3 text-sm">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08]">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="text-white/70 text-xs font-medium">{user?.email || 'Recruiter'}</span>
+            </div>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 hover:text-cyan-300 border border-cyan-500/25 transition-all"
+            >
+              Dashboard →
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 text-sm">
+            <span className="text-white/30">Already have an account?</span>
+            <button onClick={() => navigate('/login')} className="text-cyan-400 font-medium hover:text-cyan-300 transition-colors">
+              Sign in
+            </button>
+          </div>
+        )}
       </header>
 
       {/* ── Page title ───────────────────────────────────────────────────── */}
@@ -157,8 +181,14 @@ export default function GuestTriagePage() {
         animate="visible"
         className="max-w-6xl mx-auto px-6 pt-10 pb-4"
       >
-        <h1 className="text-2xl font-bold text-white mb-1">Screen candidates</h1>
-        <p className="text-white/40 text-sm">No account needed — paste a JD and upload resumes to get instant rankings.</p>
+        <h1 className="text-2xl font-bold text-white mb-1">
+          {isAuthenticated ? 'Instant Resume Screening' : 'Screen candidates'}
+        </h1>
+        <p className="text-white/40 text-sm">
+          {isAuthenticated
+            ? 'Paste a job description and upload resumes to get instant AI rankings saved directly to your workspace.'
+            : 'No account needed — paste a JD and upload resumes to get instant rankings.'}
+        </p>
       </motion.div>
 
       {/* ── Two-column layout ────────────────────────────────────────────── */}
@@ -273,10 +303,19 @@ export default function GuestTriagePage() {
               )}
             </motion.div>
 
-            {/* Retention policy disclosure */}
+            {/* Retention / workspace policy disclosure */}
             <div className="flex items-center gap-2 px-1 text-xs text-white/40">
-              <span className="text-cyan-400">🔒</span>
-              <span>Your resumes are processed to generate this shortlist and are automatically deleted within 24 hours unless you create a free workspace.</span>
+              {isAuthenticated ? (
+                <>
+                  <span className="text-emerald-400">✓</span>
+                  <span>Resumes will be parsed, scored with AI, and synced directly to your recruiter workspace.</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-cyan-400">🔒</span>
+                  <span>Your resumes are processed to generate this shortlist and are automatically deleted within 24 hours unless you create a free workspace.</span>
+                </>
+              )}
             </div>
 
             {/* File list */}
@@ -345,10 +384,16 @@ export default function GuestTriagePage() {
       >
         <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
 
-          {/* Compliance note */}
-          <p className="text-xs text-white/35 max-w-md leading-relaxed">
-            🔒 Your resumes are processed to generate this shortlist and are <strong className="font-medium text-white/60">automatically deleted within 24 hours</strong> unless you create a free workspace.
-          </p>
+          {/* Compliance / workspace note */}
+          {isAuthenticated ? (
+            <p className="text-xs text-white/35 max-w-md leading-relaxed">
+              ✨ Logged in as <strong className="font-medium text-white/70">{user?.email}</strong>. This batch will be added directly to your workspace pipeline.
+            </p>
+          ) : (
+            <p className="text-xs text-white/35 max-w-md leading-relaxed">
+              🔒 Your resumes are processed to generate this shortlist and are <strong className="font-medium text-white/60">automatically deleted within 24 hours</strong> unless you create a free workspace.
+            </p>
+          )}
 
           <div className="flex items-center gap-4 flex-shrink-0">
             {/* Readiness indicators */}

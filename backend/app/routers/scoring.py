@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
+import logging
 from app.core.database import get_db
 from app.models.candidate import Candidate
 from app.models.job_posting import JobPosting
@@ -12,6 +13,8 @@ from app.models.user import User
 from app.services.scoring import get_scorer
 from app.services.extraction import get_extractor
 from app.services.embeddings import get_embedding_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["scoring"])
 
@@ -163,6 +166,7 @@ def rerank_all(
             db.commit()
             scored += 1
         except Exception as e:
+            db.rollback()
             logger.warning("Error re-ranking candidate %s: %s", c.id, e)
             continue
 
@@ -370,16 +374,48 @@ def dashboard_summary(
 
     # Group candidate real timestamps for hiring velocity chart
     from collections import defaultdict
+    from datetime import datetime, timedelta
+
     timeline_counts = defaultdict(int)
+    hourly_counts = defaultdict(int)
+
     for c, ms in rows:
         if c.created_at:
             date_key = c.created_at.strftime("%Y-%m-%d")
+            hour_key = c.created_at.strftime("%H:00")
             timeline_counts[date_key] += 1
+            hourly_counts[hour_key] += 1
 
-    sorted_dates = sorted(timeline_counts.keys())
-    velocity_points = [
-        {"date": d, "count": timeline_counts[d]}
-        for d in sorted_dates
+    velocity_points = []
+    if timeline_counts:
+        sorted_dates = sorted(timeline_counts.keys())
+        dates = [datetime.strptime(d, "%Y-%m-%d").date() for d in sorted_dates]
+        min_d = min(dates)
+        max_d = max(dates)
+
+        # Pad to ensure at least a 7-day window for informative trajectory
+        if (max_d - min_d).days < 6:
+            start_d = max_d - timedelta(days=6)
+        else:
+            start_d = min_d
+
+        cur_d = start_d
+        while cur_d <= max_d:
+            cur_str = cur_d.strftime("%Y-%m-%d")
+            velocity_points.append({
+                "date": cur_str,
+                "count": timeline_counts.get(cur_str, 0),
+            })
+            cur_d += timedelta(days=1)
+    else:
+        today = datetime.utcnow().date()
+        for i in range(6, -1, -1):
+            cur_str = (today - timedelta(days=i)).strftime("%Y-%m-%d")
+            velocity_points.append({"date": cur_str, "count": 0})
+
+    hourly_points = [
+        {"hour": h, "count": hourly_counts[h]}
+        for h in sorted(hourly_counts.keys())
     ]
 
     return {
@@ -395,4 +431,5 @@ def dashboard_summary(
         "tier_distribution": agg["tier_distribution"],
         "efficiency_pct": efficiency_pct,
         "velocity": velocity_points,
+        "velocity_hourly": hourly_points,
     }

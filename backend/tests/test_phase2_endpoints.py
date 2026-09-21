@@ -7,10 +7,16 @@ wired to the standalone scoring package.
 """
 
 import io
+import uuid
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.core.database import SessionLocal
+from app.models.user import User
+from app.models.job_posting import JobPosting
+from app.models.guest_session import GuestSession
+from app.core.security import create_access_token
 from app.routers.guest import _SESSIONS
 
 client = TestClient(app)
@@ -173,3 +179,41 @@ class TestPhase2Endpoints:
         assert cand["score"] is None
         assert cand["tier"] == "Needs Review"
         assert data["stats"]["needs_review_count"] == 1
+
+    def test_authenticated_instant_screen(self):
+        """When an authenticated recruiter uses /guest/screen, the batch is linked directly to their account."""
+        db = SessionLocal()
+        try:
+            email = f"recruiter_{uuid.uuid4().hex[:8]}@example.com"
+            user = User(email=email, password_hash="hash", role="recruiter")
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+            token = create_access_token({"sub": str(user.id)})
+
+            files = [
+                ("files", ("resume.pdf", b"%PDF-1.4 sample resume content", "application/pdf"))
+            ]
+            res = client.post(
+                "/guest/screen",
+                data={"job_description": SAMPLE_JD},
+                files=files,
+                headers={"Authorization": f"Bearer {token}"}
+            )
+            assert res.status_code == 200
+            session_id = res.json()["session_id"]
+            job_id = res.json()["job_id"]
+
+            # Verify JobPosting and GuestSession in DB
+            job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+            assert job is not None
+            assert job.recruiter_id == user.id
+
+            sess = db.query(GuestSession).filter(GuestSession.id == session_id).first()
+            assert sess is not None
+            assert sess.claimed_by_org_id == user.id
+            assert sess.expires_at is None
+        finally:
+            db.close()
+
