@@ -15,6 +15,15 @@ class CandidateRead(BaseModel):
     processing_status: str
     pipeline_status: Optional[str] = "Screened"
     error_message: Optional[str]
+    roles_count: Optional[int] = 0
+    promotion_count: Optional[int] = 0
+    avg_tenure_months: Optional[int] = 0
+    short_tenure_flag: Optional[bool] = False
+    career_pattern_summary: Optional[str] = None
+    is_masked: Optional[bool] = False
+    is_adversarial: Optional[bool] = False
+    adversarial_details: Optional[dict] = None
+    interview_questions: Optional[dict] = None
     created_at: datetime
 
     class Config:

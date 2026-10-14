@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useReducedMotion, Variants, Transition } from 'framer-motion';
 
 export { useReducedMotion };
@@ -136,15 +136,17 @@ export function useCountUp(
 ): number {
   const shouldReduce = useReducedMotion();
   const [count, setCount] = useState<number>(shouldReduce ? target : 0);
+  const currentCountRef = useRef<number>(shouldReduce ? target : 0);
 
   useEffect(() => {
     if (shouldReduce) {
       setCount(target);
+      currentCountRef.current = target;
       return;
     }
     if (!trigger) return;
 
-    let start = 0;
+    const start = currentCountRef.current;
     const end = target;
     if (start === end) {
       setCount(end);
@@ -159,12 +161,15 @@ export function useCountUp(
       const progress = Math.min(elapsed / duration, 1);
       // easeOutQuad curve
       const ease = 1 - (1 - progress) * (1 - progress);
-      setCount(Math.round(start + (end - start) * ease));
+      const nextVal = Math.round(start + (end - start) * ease);
+      setCount(nextVal);
+      currentCountRef.current = nextVal;
 
       if (progress < 1) {
         animationFrame = requestAnimationFrame(update);
       } else {
         setCount(end);
+        currentCountRef.current = end;
       }
     };
 

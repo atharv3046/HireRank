@@ -24,10 +24,33 @@ class Candidate(Base):
     processing_status = Column(String, default="uploaded")  # uploaded/parsing/extracting/scoring/done/error/needs_manual_review
     pipeline_status = Column(String, default="Screened")  # Screened / Invited / Hire / No Hire
     error_message = Column(Text, nullable=True)
+    roles_count = Column(Integer, default=0, nullable=True)
+    promotion_count = Column(Integer, default=0, nullable=True)
+    avg_tenure_months = Column(Integer, default=0, nullable=True)
+    short_tenure_flag = Column(Boolean, default=False, nullable=True)
+    career_pattern_summary = Column(String, nullable=True)
+    is_adversarial = Column(Boolean, default=False, nullable=True)
+    _adversarial_details = Column("adversarial_details", Text, nullable=True)
+    _interview_questions = Column("interview_questions", Text, nullable=True)
+    rejection_sent_at = Column(DateTime(timezone=True), nullable=True)
+    _rejection_data = Column("rejection_data", Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     job_posting = relationship("JobPosting", back_populates="candidates")
     match_scores = relationship("MatchScore", back_populates="candidate")
+
+    @property
+    def adversarial_details(self):
+        if self._adversarial_details:
+            try:
+                return json.loads(self._adversarial_details)
+            except Exception:
+                return None
+        return None
+
+    @adversarial_details.setter
+    def adversarial_details(self, value):
+        self._adversarial_details = json.dumps(value) if value is not None else None
 
     @property
     def extracted_skills(self):
@@ -46,3 +69,29 @@ class Candidate(Base):
     @embedding.setter
     def embedding(self, value):
         self._embedding = json.dumps(value) if value is not None else None
+
+    @property
+    def interview_questions(self):
+        if self._interview_questions:
+            try:
+                return json.loads(self._interview_questions)
+            except Exception:
+                return None
+        return None
+
+    @interview_questions.setter
+    def interview_questions(self, value):
+        self._interview_questions = json.dumps(value) if value is not None else None
+
+    @property
+    def rejection_data(self):
+        if self._rejection_data:
+            try:
+                return json.loads(self._rejection_data)
+            except Exception:
+                return None
+        return None
+
+    @rejection_data.setter
+    def rejection_data(self, value):
+        self._rejection_data = json.dumps(value) if value is not None else None

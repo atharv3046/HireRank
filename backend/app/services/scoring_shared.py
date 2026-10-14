@@ -162,7 +162,37 @@ def _upsert_score_row(
         score_row.missing_skills = breakdown.missing_required_skills
         score_row.matched_preferred_skills = breakdown.matched_preferred_skills
         score_row.missing_preferred_skills = breakdown.missing_preferred_skills
-        score_row.explanation_json = breakdown.to_dict()
+        exp_dict = breakdown.to_dict() if hasattr(breakdown, "to_dict") else {}
+        try:
+            from app.services.evidence import generate_evidence_spans
+            from app.models.candidate import Candidate
+            from app.models.job_posting import JobPosting
+            cand_obj = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+            job_obj = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+            if cand_obj and job_obj:
+                cand_profile = {
+                    "skills": cand_obj.extracted_skills or [],
+                    "experience_years": cand_obj.experience_years or 0.0,
+                    "education_level": cand_obj.education_level,
+                    "education_details": cand_obj.education_details or "",
+                    "detected_title": cand_obj.detected_title or "",
+                    "roles_count": getattr(cand_obj, "roles_count", 0) or 0,
+                    "avg_tenure_months": getattr(cand_obj, "avg_tenure_months", 0) or 0,
+                }
+                job_crit = {
+                    "title": job_obj.title,
+                    "description": job_obj.description,
+                    "required_skills": job_obj.required_skills or [],
+                    "preferred_skills": getattr(job_obj, "preferred_skills", []) or [],
+                    "min_years": job_obj.min_experience_years or 0.0,
+                    "required_education": job_obj.education_requirement,
+                }
+                exp_dict["evidence_spans"] = generate_evidence_spans(
+                    cand_obj.raw_text, cand_profile, job_crit, exp_dict
+                )
+        except Exception as e:
+            logger.warning("Failed to attach evidence_spans to explanation_json: %s", e)
+        score_row.explanation_json = exp_dict
         score_row.summary = (
             f"Overall: {breakdown.final_score}% ({breakdown.tier.value})"
         )

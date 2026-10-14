@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /jobs
+Disallow: /candidates
+Disallow: /resume-screenings
+Disallow: /settings
+Disallow: /assessments
+Disallow: /candidate-pipeline
+
+Sitemap: https://hirerank.app/sitemap.xml

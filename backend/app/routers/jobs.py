@@ -4,7 +4,7 @@ from typing import List
 from app.core.database import get_db
 from app.models.job_posting import JobPosting
 from app.models.candidate import Candidate
-from app.schemas.job_posting import JobPostingCreate, JobPostingUpdate, JobPostingRead
+from app.schemas.job_posting import JobPostingCreate, JobPostingUpdate, JobPostingRead, JobWeightsUpdate
 from app.routers.auth import get_current_user
 from app.models.user import User
 
@@ -22,6 +22,8 @@ def create_job(req: JobPostingCreate, db: Session = Depends(get_db), current_use
         status=req.status
     )
     job.required_skills = req.required_skills
+    if req.weights:
+        job.weights = req.weights
     db.add(job)
     db.commit()
     db.refresh(job)
@@ -50,6 +52,7 @@ def update_job(job_id: int, req: JobPostingUpdate, db: Session = Depends(get_db)
     if req.required_skills is not None: job.required_skills = req.required_skills
     if req.min_experience_years is not None: job.min_experience_years = req.min_experience_years
     if req.education_requirement is not None: job.education_requirement = req.education_requirement
+    if req.weights is not None: job.weights = req.weights
     if req.status is not None: job.status = req.status
     db.commit()
     db.refresh(job)
@@ -133,7 +136,186 @@ def _job_to_read(job: JobPosting, db: Session) -> JobPostingRead:
         required_skills=job.required_skills,
         min_experience_years=job.min_experience_years,
         education_requirement=job.education_requirement,
+        weights=job.weights,
         status=job.status,
         created_at=job.created_at,
         candidate_count=count
     )
+
+
+@router.patch("/{job_id}/weights")
+def update_job_weights(
+    job_id: int,
+    req: JobWeightsUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update 5 custom scoring factor weights for a job posting.
+    Normalizes weights to sum to 1.0 (100%).
+    If rerank=True, recalculates match scores for all candidates on this job
+    and returns a live tier migration summary.
+    """
+    job = db.query(JobPosting).filter(JobPosting.id == job_id, JobPosting.recruiter_id == current_user.id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    raw_weights = {
+        "semantic": max(0.0, float(req.semantic)),
+        "skills": max(0.0, float(req.skills)),
+        "experience": max(0.0, float(req.experience)),
+        "title": max(0.0, float(req.title)),
+        "education": max(0.0, float(req.education)),
+    }
+    total = sum(raw_weights.values())
+    if total <= 0:
+        raw_weights = {"semantic": 0.35, "skills": 0.30, "experience": 0.20, "title": 0.10, "education": 0.05}
+        total = 1.0
+
+    normalized_weights = {
+        k: round(v / total, 4) for k, v in raw_weights.items()
+    }
+    # Adjust slight rounding error so sum == 1.0
+    diff = round(1.0 - sum(normalized_weights.values()), 4)
+    normalized_weights["semantic"] = round(normalized_weights["semantic"] + diff, 4)
+
+    job.weights = normalized_weights
+    db.commit()
+
+    tier_impact = {
+        "promoted_to_strong": 0,
+        "demoted_from_strong": 0,
+        "tier_changes": [],
+        "candidates_affected": 0,
+        "summary": "Weights updated."
+    }
+
+    if req.rerank:
+        from app.models.match_score import MatchScore
+        from scoring import HybridScorer, JobCriteria, ExtractedProfile, Tier
+
+        candidates = db.query(Candidate).filter(Candidate.job_posting_id == job_id).all()
+        scorer = HybridScorer()
+        job_criteria = JobCriteria(
+            title=job.title,
+            description=job.description,
+            required_skills=job.required_skills,
+            preferred_skills=getattr(job, "preferred_skills", []) or [],
+            min_years=job.min_experience_years or 0.0,
+            max_years=getattr(job, "max_experience_years", None),
+            required_education=job.education_requirement,
+            weights=normalized_weights,
+        )
+        job_embedding = scorer.embedder.encode(f"{job.title}\n{job.description}")
+
+        for c in candidates:
+            if c.needs_manual_review:
+                continue
+
+            ms = db.query(MatchScore).filter(
+                MatchScore.candidate_id == c.id,
+                MatchScore.job_posting_id == job_id
+            ).first()
+            if not ms:
+                continue
+
+            old_tier = ms.tier
+            old_score = ms.overall_score
+
+            profile = ExtractedProfile(
+                name=c.name or "",
+                email=c.email or "",
+                phone=c.phone or "",
+                skills=c.extracted_skills or [],
+                years_experience=c.experience_years or 0.0,
+                education_level=c.education_level,
+                education_details=c.education_details or "",
+                detected_title=c.detected_title or "",
+                raw_text=c.raw_text or ""
+            )
+
+            cand_embedding = c.embedding
+            if not cand_embedding and c.raw_text:
+                cand_embedding = scorer.embedder.encode(c.raw_text)
+                c.embedding = cand_embedding
+
+            breakdown = scorer.score_candidate(
+                candidate=profile,
+                job=job_criteria,
+                candidate_embedding=cand_embedding,
+                job_embedding=job_embedding,
+                needs_manual_review=False
+            )
+
+            new_score = breakdown.final_score
+            new_tier = breakdown.tier.value
+
+            ms.overall_score = new_score
+            ms.semantic_score = breakdown.semantic_score
+            ms.skills_score = breakdown.skills_score
+            ms.experience_score = breakdown.experience_score
+            ms.title_score = breakdown.title_score
+            ms.education_score = breakdown.education_score
+            ms.tier = new_tier
+            ms.is_capped = breakdown.is_capped
+            ms.cap_reason = breakdown.cap_reason
+
+            exp_dict = breakdown.to_dict()
+            try:
+                from app.services.evidence import generate_evidence_spans
+                cand_profile = {
+                    "skills": c.extracted_skills or [],
+                    "experience_years": c.experience_years or 0.0,
+                    "education_level": c.education_level,
+                    "education_details": c.education_details or "",
+                    "detected_title": c.detected_title or "",
+                    "roles_count": getattr(c, "roles_count", 0) or 0,
+                    "avg_tenure_months": getattr(c, "avg_tenure_months", 0) or 0,
+                }
+                job_crit = {
+                    "title": job.title,
+                    "description": job.description,
+                    "required_skills": job.required_skills or [],
+                    "preferred_skills": getattr(job, "preferred_skills", []) or [],
+                    "min_years": job.min_experience_years or 0.0,
+                    "required_education": job.education_requirement,
+                }
+                exp_dict["evidence_spans"] = generate_evidence_spans(
+                    c.raw_text, cand_profile, job_crit, exp_dict
+                )
+            except Exception:
+                pass
+
+            ms.explanation_json = exp_dict
+            ms.summary = f"Overall: {new_score}% ({new_tier})"
+
+            if old_tier != new_tier:
+                tier_impact["tier_changes"].append({
+                    "candidate_id": c.id,
+                    "name": c.name or f"Candidate #{c.id}",
+                    "old_tier": old_tier,
+                    "new_tier": new_tier,
+                    "old_score": old_score,
+                    "new_score": new_score
+                })
+                if new_tier == "Strong" and old_tier != "Strong":
+                    tier_impact["promoted_to_strong"] += 1
+                elif old_tier == "Strong" and new_tier != "Strong":
+                    tier_impact["demoted_from_strong"] += 1
+
+        db.commit()
+        tier_impact["candidates_affected"] = len(tier_impact["tier_changes"])
+        promo = tier_impact["promoted_to_strong"]
+        demo = tier_impact["demoted_from_strong"]
+        tier_impact["summary"] = (
+            f"Weights updated and batch re-ranked. "
+            f"{promo} candidate(s) promoted to Strong, {demo} candidate(s) shifted from Strong."
+            if (promo or demo)
+            else f"Weights updated. Reranked {len(candidates)} candidate(s) with 0 net tier shifts."
+        )
+
+    return {
+        "job_id": job.id,
+        "weights": normalized_weights,
+        "tier_impact": tier_impact
+    }

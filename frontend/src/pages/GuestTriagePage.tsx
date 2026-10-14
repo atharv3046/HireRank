@@ -29,6 +29,7 @@ import {
   fadeInUpVariants,
   staggerContainerVariants,
 } from '../utils/animations';
+import MiniOrbCanvas from '../components/MiniOrbCanvas';
 
 const MAX_FILES = 10;
 const MIN_JD_CHARS = 50;
@@ -141,7 +142,7 @@ export default function GuestTriagePage() {
 
   /* ── Render ─────────────────────────────────────────────────────────── */
   return (
-    <div className="min-h-screen font-sans" style={{ background: '#0a0a0f' }}>
+    <div className="min-h-screen font-sans" style={{ background: 'transparent' }}>
 
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <header className="border-b border-white/[0.06] px-8 py-4 flex items-center justify-between">
@@ -179,8 +180,14 @@ export default function GuestTriagePage() {
         variants={fadeInUpVariants}
         initial={shouldReduce ? false : "hidden"}
         animate="visible"
-        className="max-w-6xl mx-auto px-6 pt-10 pb-4"
+        className="max-w-6xl mx-auto px-6 pt-10 pb-4 relative"
       >
+        {/* Subtle 3D orb decorating the page header */}
+        <MiniOrbCanvas
+          color="#a78bfa"
+          reduced={shouldReduce ?? false}
+          className="absolute top-0 right-0 w-36 h-36 opacity-30 pointer-events-none hidden lg:block"
+        />
         <h1 className="text-2xl font-bold text-white mb-1">
           {isAuthenticated ? 'Instant Resume Screening' : 'Screen candidates'}
         </h1>

@@ -12,6 +12,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
+import { CareerPatternChip } from '../components/CareerPatternChip';
+import { HeadToHeadComparison } from '../components/HeadToHeadComparison';
+import { RejectionModal } from '../components/RejectionModal';
 import { api, CandidateWithScore } from '../api/client';
 import {
   useReducedMotion,
@@ -45,6 +48,8 @@ export default function CandidatesPage() {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'score_desc' | 'score_asc' | 'exp_desc' | 'newest'>('score_desc');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [showComparisonModal, setShowComparisonModal] = useState(false);
+  const [rejectionCandidate, setRejectionCandidate] = useState<{ id: number; name?: string; email?: string } | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const fetchCandidates = useCallback(async () => {
@@ -194,7 +199,7 @@ export default function CandidatesPage() {
   };
 
   return (
-    <div className="flex min-h-screen font-sans text-white" style={{ background: '#0a0a0f' }}>
+    <div className="flex min-h-screen font-sans text-white" style={{ background: 'transparent' }}>
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <motion.div
@@ -281,6 +286,18 @@ export default function CandidatesPage() {
                 <option value="exp_desc">Most Experience (Years)</option>
                 <option value="newest">Most Recent</option>
               </select>
+
+              {selectedIds.size >= 2 && selectedIds.size <= 3 && (
+                <motion.button
+                  onClick={() => setShowComparisonModal(true)}
+                  whileHover={shouldReduce ? undefined : { scale: 1.02 }}
+                  whileTap={shouldReduce ? undefined : { scale: 0.98 }}
+                  className="ml-2 flex items-center gap-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 px-3 py-1.5 rounded-xl font-bold transition-colors text-xs"
+                >
+                  <span>⚔️</span>
+                  <span>Compare ({selectedIds.size})</span>
+                </motion.button>
+              )}
 
               <motion.button
                 onClick={handleExportCsv}
@@ -406,6 +423,16 @@ export default function CandidatesPage() {
                                 )}
                               </div>
                               <div className="text-xs text-white/40 mt-0.5">{c.email || 'No email'} {c.phone && `· ${c.phone}`}</div>
+                              <div className="mt-1.5 flex items-center">
+                                <CareerPatternChip
+                                  rolesCount={c.roles_count}
+                                  promotionCount={c.promotion_count}
+                                  avgTenureMonths={c.avg_tenure_months}
+                                  shortTenureFlag={c.short_tenure_flag}
+                                  summary={c.career_pattern_summary}
+                                  experienceYears={c.experience_years}
+                                />
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -465,18 +492,33 @@ export default function CandidatesPage() {
                           </div>
                         </td>
 
-                        {/* Invite Action */}
+                        {/* Actions (Invite & Reject) */}
                         <td className="py-4 pr-6 pl-2 text-center" onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={() => handleOpenInviteModal(c)}
-                            title="Invite candidate"
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-400 transition-colors mx-auto"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                            </svg>
-                            Invite
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => handleOpenInviteModal(c)}
+                              title="Invite candidate"
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-400 transition-colors"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                              </svg>
+                              Invite
+                            </button>
+
+                            <button
+                              onClick={() => setRejectionCandidate({ id: c.id, name: c.name || `Candidate #${c.id}`, email: c.email || undefined })}
+                              title="Compose personalized rejection note"
+                              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
+                                c.pipeline_status === 'No Hire'
+                                  ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                                  : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/60 hover:text-white border-white/[0.08]'
+                              }`}
+                            >
+                              <span>✉️</span>
+                              <span>{c.pipeline_status === 'No Hire' ? 'Rejected' : 'Reject'}</span>
+                            </button>
+                          </div>
                         </td>
                       </motion.tr>
                     );
@@ -623,6 +665,66 @@ export default function CandidatesPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Floating Compare Action Bar (Feature 6: Head-to-Head Comparison) */}
+      <AnimatePresence>
+        {selectedIds.size >= 2 && selectedIds.size <= 3 && (
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 24, scale: 0.95 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#0d0d16]/95 backdrop-blur-md border border-cyan-500/40 shadow-2xl shadow-cyan-950/80 px-5 py-3 rounded-2xl flex items-center gap-4"
+          >
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="text-xs font-bold text-white">
+                {selectedIds.size} Finalists Selected
+              </span>
+            </div>
+
+            <div className="h-4 w-px bg-white/10" />
+
+            <button
+              onClick={() => setShowComparisonModal(true)}
+              className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-lg shadow-cyan-500/25 transition-all"
+            >
+              <span>⚔️</span>
+              <span>Compare Selected ({selectedIds.size})</span>
+            </button>
+
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="text-xs text-white/40 hover:text-white transition-colors"
+            >
+              Clear
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Feature 6: Head-to-Head Comparison Modal */}
+      <AnimatePresence>
+        {showComparisonModal && selectedIds.size >= 2 && selectedIds.size <= 3 && (
+          <HeadToHeadComparison
+            candidateIds={Array.from(selectedIds)}
+            onClose={() => setShowComparisonModal(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Feature 8: Anti-Ghosting Rejection Modal */}
+      {rejectionCandidate && (
+        <RejectionModal
+          isOpen={Boolean(rejectionCandidate)}
+          candidateId={rejectionCandidate.id}
+          candidateName={rejectionCandidate.name}
+          candidateEmail={rejectionCandidate.email}
+          onClose={() => setRejectionCandidate(null)}
+          onSuccess={(cid) => {
+            setCandidates(prev => prev.map(cand => cand.id === cid ? { ...cand, pipeline_status: 'No Hire' } : cand));
+          }}
+        />
+      )}
     </div>
   );
 }

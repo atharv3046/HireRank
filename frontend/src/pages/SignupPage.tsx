@@ -25,6 +25,7 @@ import {
   staggerContainerVariants,
 } from '../utils/animations';
 import { useGoogleLogin } from '@react-oauth/google';
+import MiniOrbCanvas from '../components/MiniOrbCanvas';
 
 /* ── Feature bullets (left panel) ─────────────────────────────────────── */
 const BULLETS = [
@@ -203,8 +204,14 @@ const SignupPage = () => {
           variants={staggerContainerVariants}
           initial={shouldReduce ? false : "hidden"}
           animate="visible"
-          className="space-y-10"
+          className="space-y-10 relative"
         >
+          {/* Subtle 3D orb decorating top-right of left panel */}
+          <MiniOrbCanvas
+            color="#3b82f6"
+            reduced={shouldReduce ?? false}
+            className="absolute -top-16 -right-8 w-48 h-48 opacity-40 hidden lg:block"
+          />
           {/* Badge */}
           <motion.div
             variants={fadeInUpVariants}
@@ -404,9 +411,13 @@ const SignupPage = () => {
               {/* Terms */}
               <p className="text-center text-[10px] text-white/15 uppercase tracking-wider mt-6">
                 By creating a workspace, you agree to the{' '}
-                <span className="text-cyan-500/60 cursor-pointer hover:text-cyan-400 transition-colors">
+                <Link to="/terms" className="text-cyan-500/60 hover:text-cyan-400 transition-colors">
                   Terms of Service
-                </span>
+                </Link>
+                {' '}and{' '}
+                <Link to="/privacy" className="text-cyan-500/60 hover:text-cyan-400 transition-colors">
+                  Privacy Policy
+                </Link>
               </p>
 
               {/* Divider */}

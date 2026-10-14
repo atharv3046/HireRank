@@ -93,7 +93,7 @@ export default function AcceptInvitePage() {
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4 font-sans text-white relative overflow-hidden"
-      style={{ background: '#0a0a0f' }}
+      style={{ background: 'transparent' }}
     >
       {/* Background glow accents */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />

@@ -2,12 +2,50 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Resume Screening Platform</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Primary Meta -->
+    <title>HireRank — AI-Powered Resume Screening for Recruiters</title>
+    <meta name="description" content="HireRank uses AI to screen, score, and rank candidates in seconds. Eliminate bias, cut screening time by 80%, and hire the best talent faster." />
+    <meta name="keywords" content="resume screening, AI recruiting, candidate ranking, HR software, applicant tracking" />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="HireRank" />
+
+    <!-- Open Graph / Social Preview -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://hirerank.app/" />
+    <meta property="og:title" content="HireRank — AI-Powered Resume Screening" />
+    <meta property="og:description" content="Screen, score, and rank candidates in seconds with AI. Cut screening time by 80% and eliminate unconscious bias." />
+    <meta property="og:image" content="https://hirerank.app/og-image.png" />
+    <meta property="og:site_name" content="HireRank" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="HireRank — AI-Powered Resume Screening" />
+    <meta name="twitter:description" content="Screen, score, and rank candidates in seconds with AI." />
+    <meta name="twitter:image" content="https://hirerank.app/og-image.png" />
+
+    <!-- Theme -->
+    <meta name="theme-color" content="#0d1117" />
   </head>
   <body>
     <div id="root"></div>
+    <!-- Unregister any stale service workers from previous projects (e.g. old CoreOS PWA on localhost) -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (var reg of registrations) {
+            reg.unregister();
+            console.log('[HireRank] Unregistered stale service worker:', reg.scope);
+          }
+        });
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

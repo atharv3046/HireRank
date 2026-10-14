@@ -2,11 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
 body {
-  background-color: #0a0a0f;
+  background-color: #000000;
   color: #ffffff;
   font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
+
+/* GPU acceleration helper */
+.gpu-accel {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+
 
 /* ── Accent gradient text ───────────────────────────────────────────── */
 .text-gradient {
@@ -123,4 +141,45 @@ body {
 .backdrop-panel {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+}
+
+/* ── Smooth page-level transitions ─────────────────────────────────── */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Custom scrollbar — minimal dark theme */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb {
+  background: rgba(34, 211, 238, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(34, 211, 238, 0.45); }
+
+/* ── Focus ring cleanup ─────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid rgba(34, 211, 238, 0.6);
+  outline-offset: 3px;
+}
+
+/* ── Smooth canvas transitions ──────────────────────────────────────── */
+canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* ── Section fade-in on scroll ──────────────────────────────────────── */
+@keyframes section-reveal {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Marquee containers ─────────────────────────────────────────────── */
+.marquee-track {
+  will-change: transform;
+  contain: layout style;
 }

@@ -22,160 +22,8 @@ import {
   modalContentVariants,
   useCountUp,
 } from '../utils/animations';
-
-const CreateJobModal: React.FC<{ onClose: () => void; onCreated: (job: JobPosting) => void }> = ({ onClose, onCreated }) => {
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    required_skills: '',
-    min_experience_years: 0,
-    education_requirement: 'bachelors',
-    status: 'active',
-  });
-  const [loading, setLoading] = useState(false);
-  const shouldReduce = useReducedMotion();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const job = await api.createJob({
-        ...form,
-        required_skills: form.required_skills.split(',').map(s => s.trim()).filter(Boolean),
-      });
-      onCreated(job);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <motion.div
-      variants={modalBackdropVariants}
-      initial={shouldReduce ? false : "hidden"}
-      animate="visible"
-      exit="exit"
-      className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-    >
-      <motion.div
-        variants={modalContentVariants}
-        initial={shouldReduce ? false : "hidden"}
-        animate="visible"
-        exit="exit"
-        className="rounded-2xl border border-white/[0.08] w-full max-w-lg shadow-2xl shadow-black/80 overflow-hidden"
-        style={{ background: '#0d0d14' }}
-      >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06]">
-          <div>
-            <h2 className="text-lg font-bold text-white">Create Screening Batch</h2>
-            <p className="text-xs text-white/40 mt-0.5">Define role criteria to rank and evaluate resumes</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-white/[0.04] text-white/40 hover:text-white hover:bg-white/[0.08] flex items-center justify-center transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
-              Role / Batch Title *
-            </label>
-            <input
-              required
-              value={form.title}
-              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              placeholder="e.g. Senior Full-Stack Engineer"
-              className="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
-              Job Description *
-            </label>
-            <textarea
-              required
-              rows={4}
-              value={form.description}
-              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              placeholder="Paste full job description with requirements, responsibilities, tech stack..."
-              className="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all resize-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
-              Must-Have Skills
-            </label>
-            <input
-              value={form.required_skills}
-              onChange={e => setForm(f => ({ ...f, required_skills: e.target.value }))}
-              placeholder="Python, React, TypeScript, Docker, SQL"
-              className="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
-            />
-            <p className="text-[11px] text-white/30 mt-1">Comma-separated list (missing must-have skills will cap score at 59.9%)</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
-                Min. Experience (yrs)
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={30}
-                value={form.min_experience_years}
-                onChange={e => setForm(f => ({ ...f, min_experience_years: +e.target.value }))}
-                className="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
-                Required Degree
-              </label>
-              <select
-                value={form.education_requirement}
-                onChange={e => setForm(f => ({ ...f, education_requirement: e.target.value }))}
-                className="w-full px-3.5 py-2.5 bg-[#14141f] border border-white/[0.08] rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
-              >
-                <option value="high_school">High School</option>
-                <option value="associate">Associate</option>
-                <option value="bachelors">Bachelor's</option>
-                <option value="masters">Master's</option>
-                <option value="phd">PhD</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 pt-3 border-t border-white/[0.06]">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-white/[0.08] text-white/60 rounded-xl text-sm font-medium hover:bg-white/[0.04] hover:text-white transition-colors"
-            >
-              Cancel
-            </button>
-            <motion.button
-              type="submit"
-              disabled={loading}
-              whileHover={shouldReduce ? undefined : { scale: 1.01 }}
-              whileTap={shouldReduce ? undefined : { scale: 0.98 }}
-              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-60"
-            >
-              {loading ? 'Creating...' : 'Create Batch'}
-            </motion.button>
-          </div>
-        </form>
-      </motion.div>
-    </motion.div>
-  );
-};
+import MiniOrbCanvas from '../components/MiniOrbCanvas';
+import { CreateJobModal } from '../components/CreateJobModal';
 
 /* ── Sparkline SVG Component ─────────────────────────────────────────── */
 const Sparkline: React.FC<{ data: number[]; color: string; fillId: string }> = ({ data, color, fillId }) => {
@@ -509,7 +357,7 @@ const HiringVelocityChart: React.FC<{
                   cy={c.y}
                   r={isHovered ? 5.5 : hasActivity ? 4 : 2.5}
                   fill={hasActivity ? '#06b6d4' : '#1e293b'}
-                  stroke={hasActivity ? '#0a0a0f' : '#334155'}
+                  stroke={hasActivity ? '#000000' : '#334155'}
                   strokeWidth={2}
                   className="transition-all duration-150"
                   onMouseEnter={() => setHoveredIdx(i)}
@@ -738,7 +586,7 @@ export default function DashboardPage() {
   const animatedEfficiencyPct = useCountUp(efficiencyPct, 1.0, !loading);
 
   return (
-    <div className="flex min-h-screen font-sans text-white" style={{ background: '#0a0a0f' }}>
+    <div className="flex min-h-screen font-sans text-white" style={{ background: 'transparent' }}>
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <motion.div
@@ -750,8 +598,14 @@ export default function DashboardPage() {
           {/* Header */}
           <motion.div
             variants={fadeInUpVariants}
-            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8"
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 relative"
           >
+            {/* Subtle 3D orb decoration */}
+            <MiniOrbCanvas
+              color="#22d3ee"
+              reduced={shouldReduce ?? false}
+              className="absolute -top-6 right-0 w-32 h-32 opacity-25 pointer-events-none hidden xl:block"
+            />
             <div>
               <div className="text-xs text-cyan-400 font-semibold uppercase tracking-wider mb-1">
                 RECRUITER WORKSPACE
@@ -795,7 +649,7 @@ export default function DashboardPage() {
             <motion.div
               variants={fadeInUpVariants}
               className="rounded-2xl border border-white/[0.08] p-6 shadow-sm flex flex-col justify-between"
-              style={{ background: '#0d0d14' }}
+              style={{ background: '#050505' }}
             >
               <div>
                 <div className="flex items-start justify-between">
@@ -838,7 +692,7 @@ export default function DashboardPage() {
             <motion.div
               variants={fadeInUpVariants}
               className="rounded-2xl border border-white/[0.08] p-6 shadow-sm flex flex-col justify-between"
-              style={{ background: '#0d0d14' }}
+              style={{ background: '#050505' }}
             >
               <div>
                 <div className="flex items-start justify-between">
@@ -881,7 +735,7 @@ export default function DashboardPage() {
             <motion.div
               variants={fadeInUpVariants}
               className="rounded-2xl border border-white/[0.08] p-6 shadow-sm flex flex-col justify-between"
-              style={{ background: '#0d0d14' }}
+              style={{ background: '#050505' }}
             >
               <div>
                 <div className="flex items-start justify-between">
@@ -931,7 +785,7 @@ export default function DashboardPage() {
             <motion.div
               variants={fadeInUpVariants}
               className="lg:col-span-2 rounded-2xl border border-white/[0.08] p-6 shadow-sm flex flex-col justify-between"
-              style={{ background: '#0d0d14' }}
+              style={{ background: '#050505' }}
             >
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -957,7 +811,7 @@ export default function DashboardPage() {
             <motion.div
               variants={fadeInUpVariants}
               className="rounded-2xl border border-white/[0.08] p-6 shadow-sm flex flex-col justify-between"
-              style={{ background: '#0d0d14' }}
+              style={{ background: '#050505' }}
             >
               <div className="mb-2">
                 <h2 className="text-base font-bold text-white">Pipeline Health</h2>
@@ -989,14 +843,14 @@ export default function DashboardPage() {
             {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="rounded-2xl border border-white/[0.08] p-5 animate-pulse" style={{ background: '#0d0d14' }}>
+                  <div key={i} className="rounded-2xl border border-white/[0.08] p-5 animate-pulse" style={{ background: '#050505' }}>
                     <div className="h-4 bg-white/[0.08] rounded w-1/3 mb-3"></div>
                     <div className="h-3 bg-white/[0.04] rounded w-2/3"></div>
                   </div>
                 ))}
               </div>
             ) : jobs.length === 0 ? (
-              <div className="rounded-2xl border border-white/[0.08] p-16 text-center shadow-sm" style={{ background: '#0d0d14' }}>
+              <div className="rounded-2xl border border-white/[0.08] p-16 text-center shadow-sm" style={{ background: '#050505' }}>
                 <div className="w-14 h-14 bg-cyan-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-cyan-500/20">
                   <svg className="w-7 h-7 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1038,7 +892,7 @@ export default function DashboardPage() {
                     whileHover={shouldReduce ? undefined : { y: -2, transition: { duration: 0.2 } }}
                     onClick={() => navigate(`/jobs/${job.id}`)}
                     className="rounded-2xl border border-white/[0.08] px-6 py-5 cursor-pointer hover:border-cyan-500/40 hover:bg-white/[0.02] transition-colors group shadow-sm"
-                    style={{ background: '#0d0d14' }}
+                    style={{ background: '#050505' }}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">

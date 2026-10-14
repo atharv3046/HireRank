@@ -42,6 +42,7 @@ from app.models.guest_session import GuestSession
 from app.routers.auth import get_current_user
 from app.services.aggregates import compute_batch_aggregates
 from app.services.jd_parser import JDParser
+from app.routers.candidates import validate_file_magic_bytes
 
 # Import from standalone scoring package (zero FastAPI dependency)
 from scoring import (
@@ -52,11 +53,8 @@ from scoring import (
     Tier,
 )
 
-# Rate limiter (Fix 5: protect the expensive unauthenticated pipeline)
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-
-limiter = Limiter(key_func=get_remote_address)
+# Rate limiter (protect expensive pipelines)
+from app.core.limiter import limiter
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/guest", tags=["guest"])
@@ -133,22 +131,23 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
             return
 
         extractor = ResumeExtractor()
-        total = len(candidate_ids)
+        total = len(candidate_ids) or 1
 
+        # ── Stage 1: Parsing (5% -> 25%) ────────────────────────────────────
+        if sess:
+            sess["stage"] = "parsing"
+            sess["progress_pct"] = 8
+        if sess_row:
+            sess_row.stage = "parsing"
+            db.commit()
+
+        parsed_map = {}
         for i, cid in enumerate(candidate_ids):
             candidate = db.query(Candidate).filter(Candidate.id == cid).first()
             if not candidate:
                 continue
 
             file_path = Path(candidate.resume_file_path) if candidate.resume_file_path else None
-
-            # ── Stage 1: Parsing ──────────────────────────────────────────────
-            if sess:
-                sess["stage"] = "parsing"
-            if sess_row:
-                sess_row.stage = "parsing"
-                db.commit()
-
             if file_path and file_path.exists():
                 parsed = ResumeParser.parse(file_path)
             else:
@@ -161,6 +160,29 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
                 except Exception as err:
                     logger.warning("Could not unlink raw resume file %s: %s", file_path, err)
             candidate.resume_file_path = None
+            candidate.raw_text = parsed.raw_text
+            db.commit()
+
+            parsed_map[cid] = parsed
+            pct = int(8 + ((i + 1) / total) * 17)
+            if sess:
+                sess["progress_pct"] = pct
+
+        # ── Stage 2: Extracting (25% -> 55%) ────────────────────────────────
+        if sess:
+            sess["stage"] = "extracting"
+            sess["progress_pct"] = 28
+        if sess_row:
+            sess_row.stage = "extracting"
+            db.commit()
+
+        for i, cid in enumerate(candidate_ids):
+            candidate = db.query(Candidate).filter(Candidate.id == cid).first()
+            if not candidate:
+                continue
+            parsed = parsed_map.get(cid)
+            if not parsed:
+                continue
 
             if parsed.needs_manual_review:
                 candidate.needs_manual_review = True
@@ -173,30 +195,9 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
                 candidate.education_details = ""
                 candidate.detected_title = ""
                 db.commit()
-
-                # Score as needs_manual_review
-                score_and_save(cid, job_id, db)
-                if sess:
-                    if isinstance(sess.get("skipped"), list):
-                        sess["skipped"].append(f"Candidate {cid}: needs manual review")
-                    sess["done"] = i + 1
-                if sess_row:
-                    current_skipped = sess_row.skipped or []
-                    current_skipped.append(f"Candidate {cid}: needs manual review")
-                    sess_row.skipped = current_skipped
-                    sess_row.done = i + 1
-                    db.commit()
+                if sess and isinstance(sess.get("skipped"), list):
+                    sess["skipped"].append(f"Candidate {cid}: needs manual review")
                 continue
-
-            candidate.raw_text = parsed.raw_text
-            db.commit()
-
-            # ── Stage 2: Extracting ───────────────────────────────────────────
-            if sess:
-                sess["stage"] = "extracting"
-            if sess_row:
-                sess_row.stage = "extracting"
-                db.commit()
 
             profile = extractor.extract_profile(parsed)
 
@@ -213,29 +214,50 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
             candidate.education_level = profile.education_level
             candidate.education_details = profile.education_details
             candidate.detected_title = profile.detected_title
+
+            try:
+                from app.services.career_pattern import extract_career_pattern_from_text
+                cp = extract_career_pattern_from_text(candidate.raw_text or "")
+                candidate.roles_count = cp.get("roles_count", 0)
+                candidate.promotion_count = cp.get("promotion_count", 0)
+                candidate.avg_tenure_months = cp.get("avg_tenure_months", 0)
+                candidate.short_tenure_flag = cp.get("short_tenure_flag", False)
+                candidate.career_pattern_summary = cp.get("summary")
+            except Exception:
+                pass
+
             candidate.processing_status = "extracted"
             db.commit()
 
-            # ── Stage 3 & 4: Score + Rank via the shared canonical function ───
+            pct = int(28 + ((i + 1) / total) * 27)
             if sess:
-                sess["stage"] = "scoring"
-            if sess_row:
-                sess_row.stage = "scoring"
-                db.commit()
+                sess["progress_pct"] = pct
 
+        # ── Stage 3: Scoring (55% -> 92%) ───────────────────────────────────
+        if sess:
+            sess["stage"] = "scoring"
+            sess["progress_pct"] = 58
+        if sess_row:
+            sess_row.stage = "scoring"
+            db.commit()
+
+        for i, cid in enumerate(candidate_ids):
             score_and_save(cid, job_id, db)
-
-            if sess:
-                sess["stage"] = "ranking"
-            if sess_row:
-                sess_row.stage = "ranking"
-                db.commit()
-
+            pct = int(58 + ((i + 1) / total) * 34)
             if sess:
                 sess["done"] = i + 1
+                sess["progress_pct"] = pct
             if sess_row:
                 sess_row.done = i + 1
                 db.commit()
+
+        # ── Stage 4: Ranking & Tiering (92% -> 100%) ────────────────────────
+        if sess:
+            sess["stage"] = "ranking"
+            sess["progress_pct"] = 96
+        if sess_row:
+            sess_row.stage = "ranking"
+            db.commit()
 
         # Remove temporary guest folder now that all raw files have been unlinked
         tmp_dir = Path(settings.UPLOAD_DIR) / "guest" / session_id
@@ -245,9 +267,12 @@ def _run_guest_pipeline(session_id: str, job_id: int, candidate_ids: List[int]):
         if sess:
             sess["stage"] = "done"
             sess["status"] = "done"
+            sess["progress_pct"] = 100
+            sess["done"] = total
         if sess_row:
             sess_row.stage = "done"
             sess_row.status = "done"
+            sess_row.done = total
             db.commit()
 
     except Exception as exc:
@@ -350,9 +375,15 @@ async def guest_screen(
             fpath = tmp_dir / fname
 
             contents = await upload.read()
-            # Fix 8 (guest side): server-side size check matching frontend limit
+            # Server-side size check matching frontend limit (10MB)
             if len(contents) > MAX_FILE_MB * 1024 * 1024:
                 skipped.append(f"{upload.filename} exceeds {MAX_FILE_MB} MB limit.")
+                continue
+
+            try:
+                validate_file_magic_bytes(contents, upload.filename or "unknown")
+            except HTTPException as exc:
+                skipped.append(f"{upload.filename}: {exc.detail}")
                 continue
 
             fpath.write_bytes(contents)
@@ -367,6 +398,12 @@ async def guest_screen(
             db.refresh(candidate)
             candidate_ids.append(candidate.id)
 
+        if not candidate_ids:
+            raise HTTPException(
+                status_code=422,
+                detail=f"No valid resume files could be processed. Skipped: {', '.join(skipped)}"
+            )
+
         _SESSIONS[session_id] = {
             "job_id": job.id,
             "candidate_ids": candidate_ids,
@@ -374,6 +411,7 @@ async def guest_screen(
             "stage": "parsing",
             "total": len(candidate_ids),
             "done": 0,
+            "progress_pct": 8,
             "skipped": skipped,
         }
 
@@ -433,13 +471,22 @@ def guest_session_status(session_id: str):
             stage = sess["stage"]
             total = sess["total"] or 1
             done = sess["done"]
+            pct = sess.get("progress_pct")
         else:
             status = guest_sess.status
             stage = guest_sess.stage
             total = guest_sess.total or 1
             done = guest_sess.done
+            pct = None
 
-        pct = int((done / total) * 100) if status not in ("done", "completed") else 100
+        if pct is None:
+            stage_bases = {"parsing": 10, "extracting": 35, "scoring": 60, "ranking": 95, "done": 100}
+            base = stage_bases.get(stage, 5)
+            score_contrib = int((done / total) * 35) if stage == "scoring" else 0
+            pct = 100 if status in ("done", "completed") else min(98, max(base + score_contrib, int((done / total) * 100)))
+
+        if status in ("done", "completed"):
+            pct = 100
 
         return {
             "session_id": session_id,
@@ -489,11 +536,7 @@ def _build_session_results(session_id: str) -> Dict[str, Any]:
             .all()
         )
 
-        def mask_email(email: Optional[str]) -> str:
-            if not email or "@" not in email:
-                return "c****@***.com"
-            local, domain = email.split("@", 1)
-            return local[0] + "****@" + domain
+        from app.services.masking import mask_email
 
         candidates_out = []
         for i, (c, ms) in enumerate(rows):
@@ -511,6 +554,11 @@ def _build_session_results(session_id: str) -> Dict[str, Any]:
                 "matched_skills": ms.matched_skills if ms else [],
                 "missing_skills": ms.missing_skills if ms else [],
                 "years_experience": c.experience_years,
+                "roles_count": getattr(c, "roles_count", 0) or 0,
+                "promotion_count": getattr(c, "promotion_count", 0) or 0,
+                "avg_tenure_months": getattr(c, "avg_tenure_months", 0) or 0,
+                "short_tenure_flag": bool(getattr(c, "short_tenure_flag", False)),
+                "career_pattern_summary": getattr(c, "career_pattern_summary", None),
                 "explanation": ms.explanation_json if ms else {},
             })
 

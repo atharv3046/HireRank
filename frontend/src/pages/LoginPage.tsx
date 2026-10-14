@@ -21,6 +21,7 @@ import {
   staggerContainerVariants,
 } from '../utils/animations';
 import { useGoogleLogin } from '@react-oauth/google';
+import MiniOrbCanvas from '../components/MiniOrbCanvas';
 
 /* ── Feature bullets (left panel) ─────────────────────────────────────── */
 const BULLETS = [
@@ -168,7 +169,7 @@ export default function LoginPage() {
   return (
     <div
       className="min-h-screen font-sans antialiased text-white flex flex-col"
-      style={{ background: '#0a0a0f' }}
+      style={{ background: 'transparent' }}
     >
       {/* ── Top bar ──────────────────────────────────────────────────── */}
       <header className="flex items-center justify-between px-8 py-5 border-b border-white/[0.05]">
@@ -198,8 +199,14 @@ export default function LoginPage() {
           variants={staggerContainerVariants}
           initial={shouldReduce ? false : "hidden"}
           animate="visible"
-          className="space-y-10"
+          className="space-y-10 relative"
         >
+          {/* Subtle 3D orb in top-right of left panel */}
+          <MiniOrbCanvas
+            color="#22d3ee"
+            reduced={shouldReduce ?? false}
+            className="absolute -top-16 -right-8 w-48 h-48 opacity-40 hidden lg:block"
+          />
           <motion.div
             variants={fadeInUpVariants}
             className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-semibold px-4 py-1.5 rounded-full"

@@ -284,14 +284,28 @@ class ResumeExtractor:
                 logger.warning(f"Skills extraction failed for candidate {candidate_id}: {e}")
                 candidate.extracted_skills = []
             
-            # Experience
+            # Experience & Career Pattern
             try:
+                from app.services.career_pattern import extract_career_pattern_from_text
                 exp_years = self.extract_experience_years(text)
                 candidate.experience_years = exp_years
                 result["experience_years"] = exp_years
+
+                pattern = extract_career_pattern_from_text(text)
+                candidate.roles_count = pattern.get("roles_count", 0)
+                candidate.promotion_count = pattern.get("promotion_count", 0)
+                candidate.avg_tenure_months = pattern.get("avg_tenure_months", 0)
+                candidate.short_tenure_flag = pattern.get("short_tenure_flag", False)
+                candidate.career_pattern_summary = pattern.get("summary")
+                result["career_pattern"] = pattern
             except Exception as e:
                 logger.warning(f"Experience extraction failed for candidate {candidate_id}: {e}")
                 candidate.experience_years = 0.0
+                candidate.roles_count = 0
+                candidate.promotion_count = 0
+                candidate.avg_tenure_months = 0
+                candidate.short_tenure_flag = False
+                candidate.career_pattern_summary = None
             
             # Education
             try:

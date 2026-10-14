@@ -640,7 +640,7 @@ export default function AssessmentsPage() {
 
   /* ── Reusable Live Blueprint Component (Image 1, 2, 4) ────────────────── */
   const renderLiveBlueprintCard = () => (
-    <div className="bg-[#0f111a] border border-white/[0.08] rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
+    <div className="bg-[#080808] border border-white/[0.08] rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
       <div>
         {/* Card Header */}
         <div className="flex items-start justify-between mb-1">
@@ -787,7 +787,7 @@ export default function AssessmentsPage() {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#0a0a0f' }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: 'transparent' }}>
       <Sidebar />
 
       {/* Main Content Area */}
@@ -967,7 +967,7 @@ export default function AssessmentsPage() {
                 variants={tabContentVariants}
                 className="space-y-6 max-w-4xl mx-auto"
               >
-                <div className="bg-[#0f111a] border border-white/[0.08] rounded-2xl p-7 shadow-2xl">
+                <div className="bg-[#080808] border border-white/[0.08] rounded-2xl p-7 shadow-2xl">
                   {/* Step Header */}
                   <div className="flex items-start justify-between mb-6">
                     <div className="flex items-start gap-4">
@@ -987,7 +987,7 @@ export default function AssessmentsPage() {
                         <select
                           value={selectedBatchId || ''}
                           onChange={handleBatchSelect}
-                          className="w-full bg-[#141422] border border-white/10 rounded-xl px-3 py-2 text-xs text-white/80 focus:border-indigo-500 focus:outline-none cursor-pointer"
+                          className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-3 py-2 text-xs text-white/80 focus:border-indigo-500 focus:outline-none cursor-pointer"
                         >
                           <option value="">Import from screening batch...</option>
                           {batches.map((b) => (
@@ -1013,7 +1013,7 @@ export default function AssessmentsPage() {
                       value={jobDescription}
                       onChange={(e) => setJobDescription(e.target.value)}
                       placeholder="Paste your full job description here (e.g. Senior Backend Engineer with Python, Django, PostgreSQL, and AWS)..."
-                      className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl p-4 text-sm text-white placeholder-white/30 focus:border-indigo-500 focus:outline-none transition-colors leading-relaxed resize-y font-mono text-xs"
+                      className="w-full bg-black border border-white/10 rounded-xl p-4 text-sm text-white placeholder-white/30 focus:border-indigo-500 focus:outline-none transition-colors leading-relaxed resize-y font-mono text-xs"
                     />
                     {extractError && (
                       <p className="text-xs text-red-400 mt-1">{extractError}</p>
@@ -1061,7 +1061,7 @@ export default function AssessmentsPage() {
                 className="grid grid-cols-1 lg:grid-cols-12 gap-6"
               >
                 {/* Left Column: Tune Your Assessment Blueprint (7 cols) */}
-                <div className="lg:col-span-7 bg-[#0f111a] border border-white/[0.08] rounded-2xl p-7 shadow-2xl flex flex-col justify-between">
+                <div className="lg:col-span-7 bg-[#080808] border border-white/[0.08] rounded-2xl p-7 shadow-2xl flex flex-col justify-between">
                   <div>
                     {/* Header */}
                     <div className="flex items-start gap-4 mb-6">
@@ -1395,7 +1395,7 @@ export default function AssessmentsPage() {
                     Loading assessments...
                   </div>
                 ) : pastAssessments.length === 0 ? (
-                  <div className="p-12 text-center rounded-2xl bg-[#0f111a] border border-white/[0.08]">
+                  <div className="p-12 text-center rounded-2xl bg-[#080808] border border-white/[0.08]">
                     <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white/30 mx-auto mb-3">
                       <Clock className="w-6 h-6" />
                     </div>
@@ -1415,7 +1415,7 @@ export default function AssessmentsPage() {
                     {pastAssessments.map((a) => (
                       <div
                         key={a.id}
-                        className="p-5 rounded-2xl bg-[#0f111a] border border-white/[0.08] hover:border-indigo-500/30 transition-all flex flex-col justify-between"
+                        className="p-5 rounded-2xl bg-[#080808] border border-white/[0.08] hover:border-indigo-500/30 transition-all flex flex-col justify-between"
                       >
                         <div>
                           <div className="flex items-start justify-between mb-2">
@@ -1479,7 +1479,7 @@ export default function AssessmentsPage() {
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {showInviteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-2xl bg-[#0b0c14] border border-indigo-500/30 rounded-2xl p-6 shadow-2xl relative text-left">
+          <div className="w-full max-w-2xl bg-[#050505] border border-indigo-500/30 rounded-2xl p-6 shadow-2xl relative text-left">
             {/* Modal Header */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -1699,10 +1699,10 @@ export default function AssessmentsPage() {
                       rows={8}
                       value={emailBody}
                       onChange={(e) => setEmailBody(e.target.value)}
-                      className="w-full bg-[#07080e] border border-white/10 rounded-xl p-4 text-xs font-mono text-white/90 focus:border-indigo-500 focus:outline-none leading-relaxed resize-none selection:bg-indigo-500/30"
+                      className="w-full bg-black border border-white/10 rounded-xl p-4 text-xs font-mono text-white/90 focus:border-indigo-500 focus:outline-none leading-relaxed resize-none selection:bg-indigo-500/30"
                     />
                   ) : (
-                    <div className="w-full bg-[#07080e] border border-white/10 rounded-xl p-4 text-xs font-mono text-white/90 leading-relaxed whitespace-pre-line min-h-[170px]">
+                    <div className="w-full bg-black border border-white/10 rounded-xl p-4 text-xs font-mono text-white/90 leading-relaxed whitespace-pre-line min-h-[170px]">
                       {previewEmailText}
                     </div>
                   )}

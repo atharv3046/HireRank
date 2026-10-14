@@ -2,6 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
+import { CareerPatternChip } from '../components/CareerPatternChip';
+import { BlindScreeningToggle } from '../components/BlindScreeningToggle';
+import { EvidencePanel } from '../components/EvidencePanel';
+import { AdversarialShieldBadge } from '../components/AdversarialShieldBadge';
+import { maskEmail, maskPhone, maskInstitutionAndGradYear, isCandidatePostInterview } from '../utils/masking';
 import { api, JobPosting, CandidateWithScore, JobStats } from '../api/client';
 import {
   useReducedMotion,
@@ -55,6 +60,7 @@ export default function ResumeScreeningsPage() {
   // Interactive selection & expansion
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [selectedCandidateIds, setSelectedCandidateIds] = useState<Set<number>>(new Set());
+  const [blindScreening, setBlindScreening] = useState(false);
 
   // Bulk invite modal
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -271,7 +277,7 @@ export default function ResumeScreeningsPage() {
   const avgScore = batchStats?.average_score != null ? Math.round(batchStats.average_score) : null;
 
   return (
-    <div className="flex h-screen overflow-hidden font-sans text-white" style={{ background: '#0a0a0f' }}>
+    <div className="flex h-screen overflow-hidden font-sans text-white" style={{ background: 'transparent' }}>
       <Sidebar />
 
       {/* Main Container: Master-Detail Split */}
@@ -280,7 +286,7 @@ export default function ResumeScreeningsPage() {
         {/* ── LEFT PANEL: BATCHES LIST (CARD VIEW) ── */}
         <div
           className="w-80 lg:w-96 flex-shrink-0 flex flex-col border-r border-white/[0.08]"
-          style={{ background: '#0d0d14' }}
+          style={{ background: '#050505' }}
         >
           {/* Batches Header */}
           <div className="p-5 border-b border-white/[0.08]">
@@ -388,7 +394,7 @@ export default function ResumeScreeningsPage() {
         </div>
 
         {/* ── RIGHT PANEL: BATCH DETAIL & SCREENINGS ── */}
-        <div className="flex-1 flex flex-col overflow-y-auto" style={{ background: '#0a0a0f' }}>
+        <div className="flex-1 flex flex-col overflow-y-auto" style={{ background: 'transparent' }}>
           {selectedBatchId === null ? (
             <div className="flex-1 flex items-center justify-center text-center p-8">
               <div className="max-w-md">
@@ -502,7 +508,7 @@ export default function ResumeScreeningsPage() {
                 className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3"
               >
                 {/* Total Screened */}
-                <div className="p-3.5 rounded-xl border border-white/[0.08]" style={{ background: '#0d0d14' }}>
+                <div className="p-3.5 rounded-xl border border-white/[0.08]" style={{ background: '#050505' }}>
                   <div className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Screened</div>
                   <div className="text-xl font-extrabold text-white mt-1">{candidates.length}</div>
                   <div className="text-[10px] text-white/30 mt-0.5">Total processed</div>
@@ -562,7 +568,7 @@ export default function ResumeScreeningsPage() {
               <motion.div
                 variants={fadeInUpVariants}
                 className="p-4 rounded-2xl border border-white/[0.08] flex flex-col md:flex-row items-center justify-between gap-4"
-                style={{ background: '#0d0d14' }}
+                style={{ background: '#050505' }}
               >
                 {/* Search candidate input */}
                 <div className="relative w-full md:w-72">
@@ -606,7 +612,7 @@ export default function ResumeScreeningsPage() {
                   <select
                     value={sortBy}
                     onChange={e => setSortBy(e.target.value as any)}
-                    className="bg-[#14141f] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                    className="bg-[#0a0a0a] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
                   >
                     <option value="score_desc">Highest Score</option>
                     <option value="score_asc">Lowest Score</option>
@@ -614,6 +620,12 @@ export default function ResumeScreeningsPage() {
                     <option value="name">Candidate Name</option>
                   </select>
                 </div>
+
+                {/* Blind Screening One-Click Toolbar Switch */}
+                <BlindScreeningToggle
+                  enabled={blindScreening}
+                  onToggle={setBlindScreening}
+                />
               </motion.div>
 
               {/* ── BULK ACTION FLOATING BAR ── */}
@@ -660,7 +672,7 @@ export default function ResumeScreeningsPage() {
               <motion.div
                 variants={fadeInUpVariants}
                 className="rounded-2xl border border-white/[0.08] overflow-hidden shadow-sm"
-                style={{ background: '#0d0d14' }}
+                style={{ background: '#050505' }}
               >
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
@@ -699,6 +711,16 @@ export default function ResumeScreeningsPage() {
                           const isSelected = selectedCandidateIds.has(c.id);
                           const scoreVal = c.overall_score != null ? Math.round(c.overall_score) : null;
 
+                          // Blind screening masking evaluation
+                          const isPostInterview = isCandidatePostInterview(c.pipeline_status);
+                          const isMasked = blindScreening && !isPostInterview;
+
+                          const displayName = isMasked ? `Candidate #${rowIdx + 1}` : (c.name || `Candidate #${c.id}`);
+                          const displayEmail = isMasked ? maskEmail(c.email) : c.email;
+                          const displayEducation = isMasked
+                            ? maskInstitutionAndGradYear(c.education_details, c.education_level)
+                            : (c.education_level ? c.education_level.replace('_', ' ') : 'Not specified');
+
                           return (
                             <React.Fragment key={c.id}>
                               <motion.tr
@@ -723,12 +745,33 @@ export default function ResumeScreeningsPage() {
                                 {/* Candidate Contact */}
                                 <td className="py-4 px-4">
                                   <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300 text-xs font-extrabold flex-shrink-0">
-                                      {c.name ? c.name.slice(0, 2).toUpperCase() : 'CD'}
+                                    <div
+                                      className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-extrabold flex-shrink-0 ${
+                                        isMasked
+                                          ? 'bg-gradient-to-br from-indigo-500/20 to-purple-600/20 border border-indigo-500/30 text-indigo-300'
+                                          : 'bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 text-cyan-300'
+                                      }`}
+                                    >
+                                      {isMasked ? `#${rowIdx + 1}` : (c.name ? c.name.slice(0, 2).toUpperCase() : 'CD')}
                                     </div>
                                     <div>
                                       <div className="font-bold text-white flex items-center gap-2">
-                                        <span>{c.name || `Candidate #${c.id}`}</span>
+                                        <span>{displayName}</span>
+                                        {isMasked ? (
+                                          <span
+                                            title="PII & Institution masked under Blind Screening Mode"
+                                            className="text-[10px] font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-1.5 py-0.5 rounded cursor-help"
+                                          >
+                                            🛡️ Blind
+                                          </span>
+                                        ) : blindScreening && isPostInterview ? (
+                                          <span
+                                            title="Candidate reached Interview stage — full identity revealed"
+                                            className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-1.5 py-0.5 rounded cursor-help"
+                                          >
+                                            🔓 Interview Stage
+                                          </span>
+                                        ) : null}
                                         {c.is_capped && (
                                           <span
                                             title={c.cap_reason || 'Score capped at 59.9% due to missing must-have requirement'}
@@ -737,6 +780,12 @@ export default function ResumeScreeningsPage() {
                                             ⚠ Capped 59.9%
                                           </span>
                                         )}
+                                        <AdversarialShieldBadge
+                                          isAdversarial={c.is_adversarial}
+                                          details={c.adversarial_details}
+                                          mode="chip"
+                                          candidateName={displayName}
+                                        />
                                       </div>
                                       <div className="text-xs text-white/40 flex items-center gap-2 mt-0.5">
                                         {c.detected_title && (
@@ -744,12 +793,22 @@ export default function ResumeScreeningsPage() {
                                             {c.detected_title}
                                           </span>
                                         )}
-                                        {c.email && (
+                                        {displayEmail && (
                                           <>
                                             {c.detected_title && <span>•</span>}
-                                            <span className="truncate max-w-[160px]">{c.email}</span>
+                                            <span className="truncate max-w-[160px]">{displayEmail}</span>
                                           </>
                                         )}
+                                      </div>
+                                      <div className="mt-1.5 flex items-center">
+                                        <CareerPatternChip
+                                          rolesCount={c.roles_count}
+                                          promotionCount={c.promotion_count}
+                                          avgTenureMonths={c.avg_tenure_months}
+                                          shortTenureFlag={c.short_tenure_flag}
+                                          summary={c.career_pattern_summary}
+                                          experienceYears={c.experience_years}
+                                        />
                                       </div>
                                     </div>
                                   </div>
@@ -760,8 +819,8 @@ export default function ResumeScreeningsPage() {
                                   <div className="font-semibold text-xs text-white">
                                     {c.experience_years != null ? `${c.experience_years} yrs exp` : '—'}
                                   </div>
-                                  <div className="text-[11px] text-white/40 capitalize mt-0.5">
-                                    {c.education_level ? c.education_level.replace('_', ' ') : 'Not specified'}
+                                  <div className="text-[11px] text-white/40 capitalize mt-0.5 max-w-[130px] truncate mx-auto" title={displayEducation}>
+                                    {displayEducation}
                                   </div>
                                 </td>
 
@@ -840,8 +899,18 @@ export default function ResumeScreeningsPage() {
                                       exit="exit"
                                       className="px-8 py-5 space-y-4"
                                     >
+                                      {/* Adversarial Shield Alert Banner */}
+                                      {c.is_adversarial && (
+                                        <AdversarialShieldBadge
+                                          isAdversarial={true}
+                                          details={c.adversarial_details}
+                                          mode="panel"
+                                          candidateName={displayName}
+                                        />
+                                      )}
+
                                       {/* Unparseable warning if needs_manual_review */}
-                                      {c.needs_manual_review ? (
+                                      {c.needs_manual_review && !c.is_adversarial ? (
                                         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs">
                                           <div className="font-bold mb-1 flex items-center gap-2 text-rose-400">
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -958,6 +1027,16 @@ export default function ResumeScreeningsPage() {
                                               {c.summary}
                                             </div>
                                           )}
+
+                                          {/* Traceable Evidence Panel */}
+                                          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                                            <EvidencePanel
+                                              evidenceSpans={c.explanation_json?.evidence_spans}
+                                              candidateName={displayName}
+                                              matchedSkills={c.matched_skills || []}
+                                              missingSkills={c.missing_skills || []}
+                                            />
+                                          </div>
                                         </>
                                       )}
                                     </motion.div>
@@ -993,7 +1072,7 @@ export default function ResumeScreeningsPage() {
               animate="visible"
               exit="exit"
               className="w-full max-w-lg rounded-2xl border border-white/[0.1] p-6 shadow-2xl space-y-5"
-              style={{ background: '#0d0d14' }}
+              style={{ background: '#050505' }}
             >
               {/* Modal Header */}
               <div className="flex items-center justify-between">

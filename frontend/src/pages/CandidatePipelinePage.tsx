@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
+import { CareerPatternChip } from '../components/CareerPatternChip';
 import { api, JobPosting, CandidateWithScore } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -188,7 +189,7 @@ export default function CandidatePipelinePage() {
   const userName = user?.email?.split('@')[0] || 'Atharv Ji';
 
   return (
-    <div className="flex min-h-screen font-sans text-white" style={{ background: '#0a0a0f' }}>
+    <div className="flex min-h-screen font-sans text-white" style={{ background: 'transparent' }}>
       <Sidebar />
 
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
@@ -457,11 +458,16 @@ export default function CandidatePipelinePage() {
                                 <div className="text-white/40 text-[11px] mt-0.5">
                                   {c.email || 'no-email@candidate.internal'}
                                 </div>
-                                {c.experience_years != null && (
-                                  <div className="text-[10px] text-white/30 mt-0.5">
-                                    {c.experience_years} {c.experience_years === 1 ? 'year' : 'years'} exp
-                                  </div>
-                                )}
+                                <div className="mt-1.5 flex items-center">
+                                  <CareerPatternChip
+                                    rolesCount={c.roles_count}
+                                    promotionCount={c.promotion_count}
+                                    avgTenureMonths={c.avg_tenure_months}
+                                    shortTenureFlag={c.short_tenure_flag}
+                                    summary={c.career_pattern_summary}
+                                    experienceYears={c.experience_years}
+                                  />
+                                </div>
                               </div>
                             </div>
                           </td>

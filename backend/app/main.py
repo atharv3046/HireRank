@@ -1,12 +1,17 @@
-from fastapi import FastAPI, Request
+import logging
+from fastapi import FastAPI, Request, HTTPException
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.core.database import Base, engine, SessionLocal
+from app.core.config import settings
 from app.routers import auth, jobs, candidates, scoring, internal, settings as settings_router, assessments as assessments_router
 from app.routers import guest as guest_router
 import app.models  # Import all models to register them
+
+logger = logging.getLogger("app.main")
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
@@ -19,6 +24,27 @@ try:
         conn.commit()
 except Exception:
     pass
+
+# Ensure career pattern columns exist in candidates table
+for col_name, col_type in [
+    ("roles_count", "INTEGER DEFAULT 0"),
+    ("promotion_count", "INTEGER DEFAULT 0"),
+    ("avg_tenure_months", "INTEGER DEFAULT 0"),
+    ("short_tenure_flag", "BOOLEAN DEFAULT 0"),
+    ("career_pattern_summary", "VARCHAR"),
+    ("is_adversarial", "BOOLEAN DEFAULT 0"),
+    ("adversarial_details", "TEXT"),
+    ("interview_questions", "TEXT"),
+    ("rejection_sent_at", "DATETIME"),
+    ("rejection_data", "TEXT"),
+]:
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text(f"ALTER TABLE candidates ADD COLUMN {col_name} {col_type}"))
+            conn.commit()
+    except Exception:
+        pass
 
 # Ensure domain column exists in users table
 try:
@@ -89,6 +115,39 @@ app = FastAPI(
 app.state.limiter = guest_router.limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Global unhandled exception handler — prevents internal stack traces/paths from leaking to clients
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    if isinstance(exc, (StarletteHTTPException, HTTPException)):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+            headers=getattr(exc, "headers", None)
+        )
+    logger.error("Unhandled exception on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal server error occurred."}
+    )
+
+# Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://accounts.google.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:* https://accounts.google.com;"
+    )
+    return response
+
 # Fix 4: Start the hourly guest session cleanup scheduler
 @app.on_event("startup")
 def start_scheduler():
@@ -97,9 +156,9 @@ def start_scheduler():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -131,7 +190,8 @@ def root():
 
 @app.post("/auth/demo-login")
 @app.post("/api/auth/demo-login")
-def demo_login():
+@guest_router.limiter.limit("10/minute")
+def demo_login(request: Request):
     """One-click demo access — returns a token for the pre-seeded demo account."""
     from app.models.user import User
     from app.models.job_posting import JobPosting

@@ -12,6 +12,15 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
+import { CareerPatternChip } from '../components/CareerPatternChip';
+import { BlindScreeningToggle } from '../components/BlindScreeningToggle';
+import { EvidencePanel } from '../components/EvidencePanel';
+import { AdversarialShieldBadge } from '../components/AdversarialShieldBadge';
+import { WeightCustomizer, FactorWeights } from '../components/WeightCustomizer';
+import { HeadToHeadComparison } from '../components/HeadToHeadComparison';
+import { InterviewQuestionsCard } from '../components/InterviewQuestionsCard';
+import { RejectionModal } from '../components/RejectionModal';
+import { maskEmail, maskPhone, maskInstitutionAndGradYear, isCandidatePostInterview } from '../utils/masking';
 import { api, JobPosting, CandidateWithScore } from '../api/client';
 import {
   useReducedMotion,
@@ -74,6 +83,8 @@ export default function JobDetailPage() {
   const [tierFilter, setTierFilter] = useState<'all' | 'Strong' | 'Potential' | 'Low' | 'Needs Review'>('all');
   const [skillFilter, setSkillFilter] = useState('');
   const [sortBy, setSortBy] = useState<'score_desc' | 'score_asc' | 'exp_desc'>('score_desc');
+  const [blindScreening, setBlindScreening] = useState(false);
+  const [updatingPipelineId, setUpdatingPipelineId] = useState<number | null>(null);
 
   // Expanded rows state
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
@@ -81,7 +92,45 @@ export default function JobDetailPage() {
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
+  // Feature 5: Weight Customizer state
+  const [showWeightCustomizer, setShowWeightCustomizer] = useState(false);
+  const [weightImpactBanner, setWeightImpactBanner] = useState<string | null>(null);
+
+  // Feature 6: Head-to-Head Comparison state
+  const [showComparisonModal, setShowComparisonModal] = useState(false);
+
+  // Feature 8: Templated Rejection Message state
+  const [rejectionModalCandidate, setRejectionModalCandidate] = useState<{ id: number; name?: string; email?: string } | null>(null);
+
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const handleWeightsSaved = async (newWeights: FactorWeights, tierImpact: any) => {
+    if (job) {
+      setJob(prev => (prev ? { ...prev, weights: newWeights as any } : null));
+    }
+    await fetchCandidates();
+    const summary = tierImpact?.summary || (
+      tierImpact?.promoted_to_strong > 0
+        ? `Scoring weights saved! ${tierImpact.promoted_to_strong} candidate(s) promoted to Strong Match.`
+        : `Scoring weights updated and all candidates re-ranked.`
+    );
+    setWeightImpactBanner(summary);
+    setTimeout(() => setWeightImpactBanner(null), 8000);
+  };
+
+  const handleAdvanceToInterview = async (candidateId: number) => {
+    setUpdatingPipelineId(candidateId);
+    try {
+      await api.updateCandidatePipelineStatus(candidateId, 'Interview');
+      setCandidates(prev =>
+        prev.map(c => (c.id === candidateId ? { ...c, pipeline_status: 'Interview' } : c))
+      );
+    } catch (err) {
+      console.error('Failed to advance candidate to interview', err);
+    } finally {
+      setUpdatingPipelineId(null);
+    }
+  };
 
   const fetchJob = useCallback(async () => {
     if (!jobId) return;
@@ -213,7 +262,7 @@ export default function JobDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen font-sans text-white" style={{ background: '#0a0a0f' }}>
+      <div className="flex min-h-screen font-sans text-white" style={{ background: 'transparent' }}>
         <Sidebar />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -227,7 +276,7 @@ export default function JobDetailPage() {
 
   if (!job) {
     return (
-      <div className="flex min-h-screen font-sans text-white" style={{ background: '#0a0a0f' }}>
+      <div className="flex min-h-screen font-sans text-white" style={{ background: 'transparent' }}>
         <Sidebar />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -242,7 +291,7 @@ export default function JobDetailPage() {
   }
 
   return (
-    <div className="flex min-h-screen font-sans text-white" style={{ background: '#0a0a0f' }}>
+    <div className="flex min-h-screen font-sans text-white" style={{ background: 'transparent' }}>
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <motion.div
@@ -278,6 +327,11 @@ export default function JobDetailPage() {
                   <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                     {job.status.toUpperCase()}
                   </span>
+                  {job.weights && (
+                    <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center gap-1.5">
+                      <span>⚖️</span> Custom Scoring Weights Active
+                    </span>
+                  )}
                 </div>
                 <h1 className="text-2xl font-black text-white mt-2">{job.title}</h1>
                 <div className="flex flex-wrap items-center gap-4 text-xs text-white/40 mt-2">
@@ -286,6 +340,11 @@ export default function JobDetailPage() {
                     <span className="capitalize">🎓 {job.education_requirement.replace('_', ' ')} required</span>
                   )}
                   <span>👥 {candidates.length} total candidates</span>
+                  {job.weights && (
+                    <span className="text-white/50">
+                      ⚖️ Sem: {Math.round(((job.weights.semantic ?? 0.35) <= 1 ? (job.weights.semantic ?? 0.35) * 100 : job.weights.semantic))}% · Ski: {Math.round(((job.weights.skills ?? 0.30) <= 1 ? (job.weights.skills ?? 0.30) * 100 : job.weights.skills))}% · Exp: {Math.round(((job.weights.experience ?? 0.20) <= 1 ? (job.weights.experience ?? 0.20) * 100 : job.weights.experience))}%
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -302,6 +361,22 @@ export default function JobDetailPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   {exporting ? 'Exporting…' : 'Export CSV'}
+                </motion.button>
+
+                {/* Feature 5: Weight Customizer Toggle */}
+                <motion.button
+                  onClick={() => setShowWeightCustomizer(prev => !prev)}
+                  whileHover={shouldReduce ? undefined : { scale: 1.02 }}
+                  whileTap={shouldReduce ? undefined : { scale: 0.98 }}
+                  className={`flex items-center gap-2 border text-sm font-semibold px-4 py-2.5 rounded-xl transition-all ${
+                    showWeightCustomizer
+                      ? 'border-cyan-400 bg-cyan-500/20 text-cyan-300 shadow-lg shadow-cyan-500/10'
+                      : 'border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-white'
+                  }`}
+                  title="Tune scoring weights (Semantic, Skills, Experience, Title, Education)"
+                >
+                  <span className="text-base">⚖️</span>
+                  <span>{showWeightCustomizer ? 'Close Weights' : 'Tune Weights'}</span>
                 </motion.button>
 
                 <motion.button
@@ -343,6 +418,50 @@ export default function JobDetailPage() {
               </div>
             )}
           </motion.div>
+
+          {/* Real-time Weight Impact Banner (if just saved) */}
+          <AnimatePresence>
+            {weightImpactBanner && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="mb-6 p-4 rounded-xl border border-emerald-500/30 bg-emerald-950/30 flex items-center justify-between text-xs text-emerald-300 shadow-lg"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">✓</span>
+                  <span className="font-semibold">{weightImpactBanner}</span>
+                </div>
+                <button
+                  onClick={() => setWeightImpactBanner(null)}
+                  className="text-white/40 hover:text-white p-1 rounded hover:bg-white/[0.05]"
+                >
+                  ✕
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Feature 5: Weight Customizer Panel Accordion */}
+          <AnimatePresence>
+            {showWeightCustomizer && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="mb-6"
+              >
+                <WeightCustomizer
+                  jobId={job.id}
+                  initialWeights={job.weights}
+                  candidates={candidates}
+                  onWeightsSaved={handleWeightsSaved}
+                  onClose={() => setShowWeightCustomizer(false)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Filters and controls */}
           <motion.div
@@ -397,14 +516,31 @@ export default function JobDetailPage() {
                   <option value="exp_desc">Most Experience (Years)</option>
                 </select>
               </div>
+
+              {/* Blind Screening One-Click Toolbar Switch */}
+              <BlindScreeningToggle
+                enabled={blindScreening}
+                onToggle={setBlindScreening}
+              />
             </div>
 
             {/* Selection info bar */}
             {selectedIds.size > 0 && (
               <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
-                <span className="font-bold text-cyan-300">
-                  {selectedIds.size} of {filteredCandidates.length} candidate(s) selected
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-cyan-300">
+                    {selectedIds.size} of {filteredCandidates.length} candidate(s) selected
+                  </span>
+                  {selectedIds.size >= 2 && selectedIds.size <= 3 && (
+                    <button
+                      onClick={() => setShowComparisonModal(true)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-bold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 flex items-center gap-1.5 transition-colors"
+                    >
+                      <span>⚔️</span>
+                      <span>Compare Selected ({selectedIds.size})</span>
+                    </button>
+                  )}
+                </div>
                 <button
                   onClick={() => setSelectedIds(new Set())}
                   className="text-white/40 hover:text-white font-medium"
@@ -473,10 +609,21 @@ export default function JobDetailPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredCandidates.map(c => {
+                    filteredCandidates.map((c, rowIdx) => {
                       const tier = c.tier || (c.needs_manual_review ? 'Needs Review' : (c.overall_score && c.overall_score >= 75 ? 'Strong' : c.overall_score && c.overall_score >= 55 ? 'Potential' : 'Low'));
                       const isExpanded = expandedIds.has(c.id);
                       const isSelected = selectedIds.has(c.id);
+
+                      // Blind screening masking evaluation
+                      const isPostInterview = isCandidatePostInterview(c.pipeline_status);
+                      const isMasked = blindScreening && !isPostInterview;
+
+                      const displayName = isMasked ? `Candidate #${rowIdx + 1}` : (c.name || `Candidate #${c.id}`);
+                      const displayEmail = isMasked ? maskEmail(c.email) : (c.email || 'No email detected');
+                      const displayPhone = isMasked ? (c.phone ? maskPhone(c.phone) : null) : c.phone;
+                      const displayEducation = isMasked
+                        ? maskInstitutionAndGradYear(c.education_details, c.education_level)
+                        : (c.education_details || (c.education_level ? c.education_level.replace('_', ' ') : '—'));
 
                       // Bonus strengths beyond JD: extracted skills not in JD required skills
                       const reqSkillsLower = (job.required_skills || []).map(s => s.toLowerCase());
@@ -501,15 +648,36 @@ export default function JobDetailPage() {
                               />
                             </td>
 
-                            {/* Candidate name & contact — FULL UNBLURRED */}
+                            {/* Candidate name & contact — with Blind Screening support */}
                             <td className="py-4 px-4">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-extrabold flex-shrink-0 shadow-md shadow-cyan-500/20">
-                                  {c.name ? c.name.slice(0, 2).toUpperCase() : 'CD'}
+                                <div
+                                  className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-extrabold flex-shrink-0 shadow-md ${
+                                    isMasked
+                                      ? 'bg-gradient-to-br from-indigo-500/30 to-purple-600/30 border border-indigo-500/40 text-indigo-300'
+                                      : 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-cyan-500/20'
+                                  }`}
+                                >
+                                  {isMasked ? `#${rowIdx + 1}` : (c.name ? c.name.slice(0, 2).toUpperCase() : 'CD')}
                                 </div>
                                 <div>
                                   <div className="font-bold text-white flex items-center gap-2">
-                                    <span>{c.name || `Candidate #${c.id}`}</span>
+                                    <span>{displayName}</span>
+                                    {isMasked ? (
+                                      <span
+                                        title="PII & Institution masked under Blind Screening Mode"
+                                        className="inline-flex items-center gap-1 text-[10px] font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.5 rounded cursor-help"
+                                      >
+                                        🛡️ Blind
+                                      </span>
+                                    ) : blindScreening && isPostInterview ? (
+                                      <span
+                                        title="Candidate advanced to Interview — full identity revealed"
+                                        className="inline-flex items-center gap-1 text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded cursor-help"
+                                      >
+                                        🔓 Interview Stage
+                                      </span>
+                                    ) : null}
                                     {c.detected_title && (
                                       <span className="text-[11px] text-white/40 font-normal">
                                         • {c.detected_title}
@@ -523,10 +691,26 @@ export default function JobDetailPage() {
                                         ⚠ Capped 59.9%
                                       </span>
                                     )}
+                                    <AdversarialShieldBadge
+                                      isAdversarial={c.is_adversarial}
+                                      details={c.adversarial_details}
+                                      mode="chip"
+                                      candidateName={displayName}
+                                    />
                                   </div>
                                   <div className="text-xs text-white/40 mt-0.5 flex items-center gap-2">
-                                    <span>{c.email || 'No email detected'}</span>
-                                    {c.phone && <span>· {c.phone}</span>}
+                                    <span>{displayEmail}</span>
+                                    {displayPhone && <span>· {displayPhone}</span>}
+                                  </div>
+                                  <div className="mt-1.5 flex items-center">
+                                    <CareerPatternChip
+                                      rolesCount={c.roles_count}
+                                      promotionCount={c.promotion_count}
+                                      avgTenureMonths={c.avg_tenure_months}
+                                      shortTenureFlag={c.short_tenure_flag}
+                                      summary={c.career_pattern_summary}
+                                      experienceYears={c.experience_years}
+                                    />
                                   </div>
                                 </div>
                               </div>
@@ -537,11 +721,9 @@ export default function JobDetailPage() {
                               <div className="font-bold text-white">
                                 {c.experience_years !== null ? `${c.experience_years} yrs` : '—'}
                               </div>
-                              {c.education_level && (
-                                <div className="text-[11px] text-white/40 capitalize">
-                                  {c.education_level.replace('_', ' ')}
-                                </div>
-                              )}
+                              <div className="text-[11px] text-white/40 capitalize max-w-[140px] truncate mx-auto" title={displayEducation}>
+                                {displayEducation}
+                              </div>
                             </td>
 
                             {/* Score */}
@@ -594,8 +776,18 @@ export default function JobDetailPage() {
                                   className="px-8 py-5"
                                 >
                                   <div className="space-y-4">
+                                    {/* Adversarial Shield Alert Banner */}
+                                    {c.is_adversarial && (
+                                      <AdversarialShieldBadge
+                                        isAdversarial={true}
+                                        details={c.adversarial_details}
+                                        mode="panel"
+                                        candidateName={displayName}
+                                      />
+                                    )}
+
                                     {/* Unparseable warning if needs_manual_review */}
-                                    {c.needs_manual_review ? (
+                                    {c.needs_manual_review && !c.is_adversarial ? (
                                       <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs">
                                         <div className="font-bold mb-1 flex items-center gap-2 text-rose-400">
                                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -613,6 +805,66 @@ export default function JobDetailPage() {
                                             <span className="font-bold">Must-Have Penalty:</span> {c.cap_reason}
                                           </div>
                                         )}
+
+                                        {/* Recruiter Pipeline Stage & Blind Screening Unmask Action */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                                          <div className="flex items-center gap-2 text-xs">
+                                            <span className="text-white/40 font-medium">Pipeline Status:</span>
+                                            <span className={`px-2.5 py-0.5 rounded-md font-bold text-xs uppercase tracking-wider ${
+                                              c.pipeline_status === 'Interview'
+                                                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                                                : c.pipeline_status === 'Hire'
+                                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                                : 'bg-white/[0.06] text-white/70 border border-white/[0.08]'
+                                            }`}>
+                                              {c.pipeline_status || 'Screened'}
+                                            </span>
+                                            {isMasked ? (
+                                              <span className="text-[11px] text-amber-300/80 flex items-center gap-1">
+                                                <span>🛡️</span> Identity masked (advancing to Interview reveals full contact & pedigree)
+                                              </span>
+                                            ) : (
+                                              <span className="text-[11px] text-emerald-400/80 flex items-center gap-1">
+                                                <span>🔓</span> Full candidate identity unmasked
+                                              </span>
+                                            )}
+                                          </div>
+
+                                          {c.pipeline_status !== 'Interview' && c.pipeline_status !== 'Hire' ? (
+                                            <button
+                                              onClick={() => handleAdvanceToInterview(c.id)}
+                                              disabled={updatingPipelineId === c.id}
+                                              className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white shadow-sm transition-all flex items-center gap-1.5"
+                                            >
+                                              {updatingPipelineId === c.id ? (
+                                                <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                              ) : (
+                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                </svg>
+                                              )}
+                                              <span>Advance to Interview (Auto-Unmask)</span>
+                                            </button>
+                                          ) : (
+                                            <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
+                                              ✓ In Interview Stage (Identity Revealed)
+                                            </span>
+                                          )}
+
+                                          {/* Feature 8: Templated Rejection Note Button */}
+                                          <button
+                                            onClick={() => setRejectionModalCandidate({ id: c.id, name: displayName, email: c.email || undefined })}
+                                            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 border ${
+                                              c.pipeline_status === 'No Hire'
+                                                ? 'bg-rose-500/15 text-rose-300 border-rose-500/30 hover:bg-rose-500/25'
+                                                : 'bg-white/[0.04] text-white/70 hover:text-white border-white/[0.1] hover:bg-white/[0.08]'
+                                            }`}
+                                            title="Generate personalized, compliant rejection note"
+                                          >
+                                            <span>✉️</span>
+                                            <span>{c.pipeline_status === 'No Hire' ? 'Rejection Sent' : 'Compose Rejection'}</span>
+                                          </button>
+                                        </div>
 
                                         {/* 5-Factor Score Breakdown */}
                                         <div>
@@ -721,6 +973,26 @@ export default function JobDetailPage() {
                                             </div>
                                           </div>
                                         </div>
+
+                                        {/* Traceable Evidence Panel */}
+                                        <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                                          <EvidencePanel
+                                            evidenceSpans={c.explanation_json?.evidence_spans}
+                                            candidateName={displayName}
+                                            matchedSkills={c.matched_skills || []}
+                                            missingSkills={c.missing_skills || []}
+                                          />
+                                        </div>
+
+                                        {/* Feature 7: Generative Interview Questions with ChatGPT API */}
+                                        <div className="pt-2">
+                                          <InterviewQuestionsCard
+                                            candidateId={c.id}
+                                            candidateName={displayName}
+                                            isAdversarial={Boolean(c.is_adversarial)}
+                                            cachedQuestions={c.interview_questions}
+                                          />
+                                        </div>
                                       </>
                                     )}
                                   </div>
@@ -737,6 +1009,67 @@ export default function JobDetailPage() {
             </div>
           </motion.div>
         </motion.div>
+
+        {/* Floating Compare Action Bar (Feature 6: Head-to-Head Comparison) */}
+        <AnimatePresence>
+          {selectedIds.size >= 2 && selectedIds.size <= 3 && (
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 24, scale: 0.95 }}
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#0d0d16]/95 backdrop-blur-md border border-cyan-500/40 shadow-2xl shadow-cyan-950/80 px-5 py-3 rounded-2xl flex items-center gap-4"
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+                <span className="text-xs font-bold text-white">
+                  {selectedIds.size} Finalists Selected
+                </span>
+              </div>
+
+              <div className="h-4 w-px bg-white/10" />
+
+              <button
+                onClick={() => setShowComparisonModal(true)}
+                className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-lg shadow-cyan-500/25 transition-all"
+              >
+                <span>⚔️</span>
+                <span>Compare Selected ({selectedIds.size})</span>
+              </button>
+
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="text-xs text-white/40 hover:text-white transition-colors"
+              >
+                Clear
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Feature 6: Head-to-Head Comparison Modal */}
+        <AnimatePresence>
+          {showComparisonModal && selectedIds.size >= 2 && selectedIds.size <= 3 && (
+            <HeadToHeadComparison
+              candidateIds={Array.from(selectedIds)}
+              blindScreening={blindScreening}
+              onClose={() => setShowComparisonModal(false)}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Feature 8: Anti-Ghosting Templated Rejection Modal */}
+        {rejectionModalCandidate && (
+          <RejectionModal
+            isOpen={Boolean(rejectionModalCandidate)}
+            candidateId={rejectionModalCandidate.id}
+            candidateName={rejectionModalCandidate.name}
+            candidateEmail={rejectionModalCandidate.email}
+            onClose={() => setRejectionModalCandidate(null)}
+            onSuccess={(cid) => {
+              setCandidates(prev => prev.map(cand => cand.id === cid ? { ...cand, pipeline_status: 'No Hire' } : cand));
+            }}
+          />
+        )}
       </main>
     </div>
   );

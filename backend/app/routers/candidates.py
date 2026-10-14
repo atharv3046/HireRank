@@ -15,33 +15,76 @@ from app.services.email import send_candidate_invite_email
 router = APIRouter(tags=["candidates"])
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc"}
+MAX_PDF_PAGES = 8
+
+def validate_file_magic_bytes(contents: bytes, filename: str) -> str:
+    """
+    Inspect magic bytes to verify file format matches allowed document types.
+    Returns the canonical extension ('.pdf', '.docx', or '.doc').
+    Raises HTTPException(422) if magic byte signature fails.
+    """
+    if contents.startswith(b"%PDF-"):
+        return ".pdf"
+    if contents.startswith(b"PK\x03\x04"):
+        return ".docx"
+    if contents.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
+        return ".doc"
+    raise HTTPException(
+        status_code=422,
+        detail=f"File '{filename}' has invalid magic byte signature. Only genuine PDF and DOCX files are allowed."
+    )
 
 def _extract_text_from_file(file_path: str) -> tuple[str, str]:
-    """Returns (raw_text, status). status is 'extracted' or 'needs_ocr'."""
+    """Returns (raw_text, status). status is 'extracted', 'needs_ocr', 'encrypted', or 'error'."""
     ext = os.path.splitext(file_path)[1].lower()
     
     if ext == ".pdf":
         try:
             import pdfplumber
             with pdfplumber.open(file_path) as pdf:
-                text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+                pages_text = []
+                for idx, page in enumerate(pdf.pages[:MAX_PDF_PAGES]):
+                    pt = page.extract_text() or ""
+                    if pt.strip():
+                        pages_text.append(pt)
+                text = "\n".join(pages_text)
             if text.strip():
                 return text, "extracted"
             # Try pypdf fallback
             from pypdf import PdfReader
+            from pypdf.errors import FileNotDecryptedError
             reader = PdfReader(file_path)
-            text = "\n".join(page.extract_text() or "" for page in reader.pages)
+            if getattr(reader, "is_encrypted", False):
+                try:
+                    reader.decrypt("")
+                except (Exception, FileNotDecryptedError):
+                    return "", "encrypted"
+            pages_text = []
+            for idx, page in enumerate(reader.pages[:MAX_PDF_PAGES]):
+                pt = page.extract_text() or ""
+                if pt.strip():
+                    pages_text.append(pt)
+            text = "\n".join(pages_text)
             if text.strip():
                 return text, "extracted"
             return "", "needs_ocr"
         except Exception as e:
+            err_str = str(e).lower()
+            if "encrypt" in err_str or "password" in err_str:
+                return "", "encrypted"
             return "", "error"
     
     elif ext in (".docx", ".doc"):
         try:
             from docx import Document
             doc = Document(file_path)
-            text = "\n".join(para.text for para in doc.paragraphs)
+            paragraphs = [para.text for para in doc.paragraphs if para.text.strip()]
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        if cell.text.strip():
+                            paragraphs.append(cell.text.strip())
+            text = "\n".join(paragraphs)
             return text, "extracted"
         except Exception:
             return "", "error"
@@ -69,7 +112,7 @@ async def upload_resume(
 ):
     """
     Upload a single resume (PDF/DOCX, max 10 MB server-side) for an authenticated job.
-    Fix 8: file size is validated server-side here, matching the guest endpoint and frontend limits.
+    Enforces server-side file size and magic byte signature verification.
     """
     job = db.query(JobPosting).filter(JobPosting.id == job_id, JobPosting.recruiter_id == current_user.id).first()
     if not job:
@@ -79,8 +122,6 @@ async def upload_resume(
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"File type not supported. Allowed: {ALLOWED_EXTENSIONS}")
 
-    # Fix 8: Read fully into memory first so we can check size before touching disk.
-    # Frontend enforces 10 MB but server-side is the authoritative check.
     MAX_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
     contents = await file.read()
     if len(contents) > MAX_SIZE_BYTES:
@@ -89,9 +130,12 @@ async def upload_resume(
             detail=f"File '{file.filename}' exceeds the 10 MB size limit ({len(contents) // (1024 * 1024)} MB uploaded)."
         )
 
-    # Save file
+    # Validate true file magic bytes (prevents extension spoofing)
+    validated_ext = validate_file_magic_bytes(contents, file.filename or "upload")
+
+    # Save file with server-generated UUID
     file_id = str(uuid.uuid4())
-    file_path = os.path.join(settings.UPLOAD_DIR, f"{file_id}{ext}")
+    file_path = os.path.join(settings.UPLOAD_DIR, f"{file_id}{validated_ext}")
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     with open(file_path, "wb") as f:
         f.write(contents)
@@ -99,18 +143,36 @@ async def upload_resume(
     # Extract text synchronously (fast — just PDF/DOCX parsing)
     raw_text, status = _extract_text_from_file(file_path)
 
+    # Adversarial Shield security scan
+    from app.services.adversarial import analyze_resume_for_adversarial
+    adv_scan = analyze_resume_for_adversarial(raw_text, file_path) if raw_text else {"is_flagged": False}
+    is_adv = bool(adv_scan.get("is_flagged", False))
+
     candidate = Candidate(
         job_posting_id=job_id,
         resume_file_path=file_path,
         raw_text=raw_text if raw_text else None,
-        processing_status="processing" if (status == "extracted" and raw_text) else status
+        processing_status="needs_manual_review" if is_adv else ("processing" if (status == "extracted" and raw_text) else status),
+        is_adversarial=is_adv,
     )
+    if is_adv:
+        candidate.adversarial_details = adv_scan
+        candidate.needs_manual_review = True
+        first_rule = adv_scan.get("detections", [{}])[0].get("rule", "Prompt Injection")
+        candidate.error_message = (
+            f"Adversarial Shield Alert: {adv_scan.get('threat_count', 1)} threat(s) detected "
+            f"({first_rule}). Quarantined for review."
+        )
+    elif status == "encrypted":
+        candidate.needs_manual_review = True
+        candidate.error_message = "File is password-protected or encrypted. Please review manually."
+
     db.add(candidate)
     db.commit()
     db.refresh(candidate)
 
     # Kick off NLP + scoring in background — returns response immediately
-    if status == "extracted" and raw_text:
+    if status == "extracted" and raw_text and not is_adv:
         background_tasks.add_task(_run_pipeline_in_background, candidate.id, job_id)
 
     return {
@@ -123,14 +185,27 @@ async def upload_resume(
 
 @router.get("/candidates/{candidate_id}", response_model=CandidateRead)
 def get_candidate(candidate_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    """Retrieve candidate details ensuring IDOR protection (must belong to recruiter's jobs)."""
+    jobs = db.query(JobPosting).filter(JobPosting.recruiter_id == current_user.id).all()
+    job_ids = [j.id for j in jobs]
+    candidate = db.query(Candidate).filter(
+        Candidate.id == candidate_id,
+        Candidate.job_posting_id.in_(job_ids)
+    ).first()
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
     return candidate
 
+
 @router.get("/candidates/{candidate_id}/status")
 def get_candidate_status(candidate_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    """Retrieve candidate status ensuring IDOR protection (must belong to recruiter's jobs)."""
+    jobs = db.query(JobPosting).filter(JobPosting.recruiter_id == current_user.id).all()
+    job_ids = [j.id for j in jobs]
+    candidate = db.query(Candidate).filter(
+        Candidate.id == candidate_id,
+        Candidate.job_posting_id.in_(job_ids)
+    ).first()
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
 
@@ -156,6 +231,7 @@ def list_all_candidates(
     job_id: Optional[int] = Query(None),
     pipeline_status: Optional[str] = Query(None),
     sort_by: str = Query("score_desc"),
+    blind_screening: bool = Query(False),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -184,6 +260,65 @@ def list_all_candidates(
         t = ms.tier if (ms and ms.tier) else ("Needs Review" if c.needs_manual_review else ("Strong" if score_val and score_val >= 75 else ("Potential" if score_val and score_val >= 55 else "Low")))
         c_status = getattr(c, "pipeline_status", "Screened") or "Screened"
 
+        expl = (ms.explanation_json if ms else {}) or {}
+        if "evidence_spans" not in expl and c.raw_text:
+            try:
+                from app.services.evidence import generate_evidence_spans
+                cand_profile = {
+                    "skills": c.extracted_skills or [],
+                    "experience_years": c.experience_years or 0.0,
+                    "education_level": c.education_level,
+                    "education_details": c.education_details or "",
+                    "detected_title": c.detected_title or "",
+                    "roles_count": getattr(c, "roles_count", 0) or 0,
+                    "avg_tenure_months": getattr(c, "avg_tenure_months", 0) or 0,
+                }
+                job_crit = {
+                    "title": job.title if job else "",
+                    "description": job.description if job else "",
+                    "required_skills": getattr(job, "required_skills", []) or [],
+                    "preferred_skills": getattr(job, "preferred_skills", []) or [],
+                    "min_years": getattr(job, "min_experience_years", 0.0) or 0.0,
+                    "required_education": getattr(job, "education_requirement", None),
+                }
+                score_data = {
+                    "semantic_score": ms.semantic_score if ms else None,
+                    "skills_score": ms.skills_score if ms else None,
+                    "experience_score": ms.experience_score if ms else None,
+                    "title_score": ms.title_score if ms else None,
+                    "education_score": ms.education_score if ms else None,
+                    "matched_required_skills": ms.matched_skills if ms else [],
+                    "missing_required_skills": ms.missing_skills if ms else [],
+                    "is_capped": ms.is_capped if ms else False,
+                    "cap_reason": ms.cap_reason if ms else None,
+                }
+                expl["evidence_spans"] = generate_evidence_spans(
+                    c.raw_text, cand_profile, job_crit, score_data
+                )
+            except Exception as e:
+                logger.warning("Failed to on-the-fly populate evidence_spans in list_all_candidates: %s", e)
+
+        is_adv = bool(getattr(c, "is_adversarial", False))
+        adv_details = getattr(c, "adversarial_details", None)
+        if not is_adv and c.raw_text:
+            try:
+                from app.services.adversarial import scan_text_for_injections
+                text_injections = scan_text_for_injections(c.raw_text)
+                if text_injections:
+                    is_adv = True
+                    adv_details = {
+                        "is_flagged": True,
+                        "threat_level": "HIGH",
+                        "threat_count": len(text_injections),
+                        "detections": text_injections,
+                        "action_taken": "Flagged for manual review & gated from generative interview prompting."
+                    }
+            except Exception as e:
+                logger.warning("Adversarial check error: %s", e)
+
+        if adv_details and "adversarial_shield" not in expl:
+            expl["adversarial_shield"] = adv_details
+
         item = {
             "id": c.id,
             "job_posting_id": c.job_posting_id,
@@ -195,10 +330,22 @@ def list_all_candidates(
             "education_level": c.education_level,
             "education_details": c.education_details,
             "detected_title": c.detected_title,
-            "needs_manual_review": c.needs_manual_review,
-            "processing_status": c.processing_status,
+            "roles_count": getattr(c, "roles_count", 0) or 0,
+            "promotion_count": getattr(c, "promotion_count", 0) or 0,
+            "avg_tenure_months": getattr(c, "avg_tenure_months", 0) or 0,
+            "short_tenure_flag": bool(getattr(c, "short_tenure_flag", False)),
+            "career_pattern_summary": getattr(c, "career_pattern_summary", None) or (
+                f"{int(c.experience_years * 12)}mo exp" if c.experience_years else None
+            ),
+            "needs_manual_review": c.needs_manual_review or is_adv,
+            "processing_status": "needs_manual_review" if is_adv else c.processing_status,
             "pipeline_status": c_status,
-            "error_message": c.error_message,
+            "is_adversarial": is_adv,
+            "adversarial_details": adv_details,
+            "error_message": c.error_message or (
+                "Adversarial Shield Alert: Prompt injection or hidden content detected. Quarantined for review."
+                if is_adv else None
+            ),
             "created_at": c.created_at,
             "overall_score": score_val,
             "semantic_score": ms.semantic_score if ms else None,
@@ -206,7 +353,7 @@ def list_all_candidates(
             "experience_score": ms.experience_score if ms else None,
             "title_score": ms.title_score if ms else None,
             "education_score": ms.education_score if ms else None,
-            "tier": t,
+            "tier": "Needs Review" if is_adv else t,
             "is_capped": ms.is_capped if ms else False,
             "cap_reason": ms.cap_reason if ms else None,
             "matched_skills": ms.matched_skills if ms else [],
@@ -214,7 +361,7 @@ def list_all_candidates(
             "matched_preferred_skills": ms.matched_preferred_skills if ms else [],
             "missing_preferred_skills": ms.missing_preferred_skills if ms else [],
             "summary": ms.summary if ms else None,
-            "explanation_json": ms.explanation_json if ms else {},
+            "explanation_json": expl,
             "job_title": job_title,
         }
 
@@ -259,6 +406,13 @@ def list_all_candidates(
         results.sort(key=lambda x: x["experience_years"] or 0, reverse=True)
     elif sort_by == "newest":
         results.sort(key=lambda x: x["created_at"], reverse=True)
+
+    if blind_screening:
+        from app.services.masking import apply_blind_screening_to_candidate
+        results = [
+            apply_blind_screening_to_candidate(item, index=idx + 1)
+            for idx, item in enumerate(results)
+        ]
 
     return results
 
@@ -332,9 +486,10 @@ def export_candidates_csv(
     )
 
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class BulkInviteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     candidate_ids: List[int]
     message: Optional[str] = None
     stage: Optional[str] = "assessment"
@@ -394,6 +549,7 @@ def bulk_invite_candidates(
 
 
 class UpdatePipelineStatusRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     pipeline_status: str  # Screened / Invited / Hire / No Hire
 
 @router.patch("/candidates/{candidate_id}/pipeline-status")
@@ -423,6 +579,7 @@ def update_candidate_pipeline_status(
 
 
 class BulkDeleteCandidatesRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     candidate_ids: List[int]
 
 
@@ -486,5 +643,298 @@ def bulk_delete_candidates(
         db.commit()
 
     return {"message": f"Deleted {len(deleted_ids)} candidate(s)", "deleted_ids": deleted_ids}
+
+
+class CompareCandidatesRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    candidate_ids: List[int]
+
+
+@router.post("/candidates/compare")
+def compare_candidates_endpoint(
+    req: CompareCandidatesRequest,
+    blind_screening: bool = Query(False),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Feature 6: Head-to-Head Comparison (Recruiter moment: "Down to a few finalists — how do I decide between them?")
+    Compares 2 or 3 finalist candidates on:
+      - 5 score components (Semantic, Skills, Experience, Title, Education)
+      - Skill overlap matrix (Common / Unique to each)
+      - Deterministic templated score gap sentences: "{name} scores {delta} points higher on {component}."
+    """
+    if len(req.candidate_ids) < 2 or len(req.candidate_ids) > 3:
+        raise HTTPException(
+            status_code=400,
+            detail="Head-to-head comparison requires selecting exactly 2 or 3 candidates."
+        )
+
+    jobs = db.query(JobPosting).filter(JobPosting.recruiter_id == current_user.id).all()
+    job_ids = [j.id for j in jobs]
+
+    candidates = db.query(Candidate).filter(
+        Candidate.id.in_(req.candidate_ids),
+        Candidate.job_posting_id.in_(job_ids)
+    ).all()
+
+    if len(candidates) != len(req.candidate_ids):
+        raise HTTPException(status_code=404, detail="One or more selected candidates not found or unauthorized.")
+
+    from app.services.comparison import generate_head_to_head_comparison
+    from app.services.masking import apply_blind_screening_to_candidate
+
+    cand_map = {c.id: c for c in candidates}
+    ordered_candidates = [cand_map[cid] for cid in req.candidate_ids]
+
+    candidate_dicts = []
+    for idx, cand in enumerate(ordered_candidates):
+        ms = db.query(MatchScore).filter(MatchScore.candidate_id == cand.id).first()
+        cdict = {
+            "id": cand.id,
+            "name": cand.name or f"Candidate #{cand.id}",
+            "email": cand.email,
+            "phone": cand.phone,
+            "title": cand.detected_title or "Candidate",
+            "detected_title": cand.detected_title or "Candidate",
+            "experience_years": cand.experience_years or 0.0,
+            "pipeline_status": cand.pipeline_status or "Screened",
+            "career_pattern_summary": cand.career_pattern_summary,
+            "extracted_skills": cand.extracted_skills or [],
+            "skills": cand.extracted_skills or [],
+            "matched_skills": ms.matched_skills if ms else [],
+            "missing_skills": ms.missing_skills if ms else [],
+            "overall_score": ms.overall_score if ms else 0.0,
+            "semantic_score": ms.semantic_score if ms else 0.0,
+            "skills_score": ms.skills_score if ms else 0.0,
+            "experience_score": ms.experience_score if ms else 0.0,
+            "title_score": ms.title_score if ms else 0.0,
+            "education_score": ms.education_score if ms else 0.0,
+            "tier": ms.tier if ms else "Low",
+        }
+
+        if blind_screening:
+            cdict = apply_blind_screening_to_candidate(cdict, index=idx + 1)
+
+        candidate_dicts.append(cdict)
+
+    return generate_head_to_head_comparison(candidate_dicts)
+
+
+class InterviewQuestionsRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    regenerate: Optional[bool] = False
+
+
+@router.get("/candidates/{candidate_id}/interview-questions")
+@router.post("/candidates/{candidate_id}/interview-questions")
+def get_or_generate_interview_questions_endpoint(
+    candidate_id: int,
+    regenerate: bool = Query(False),
+    req: Optional[InterviewQuestionsRequest] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Feature 7: Generative Interview Questions with ChatGPT API
+    Recruiter moment: "What do I actually ask this person in the interview?"
+    - Adversarial Gate: Checks candidate.is_adversarial and refuses OpenAI API if flagged.
+    - Structured-Only Input: Never passes raw resume text.
+    - Caches questions on Candidate model.
+    - Rate limit: 20 calls/hr per recruiter.
+    - Deterministic fallback on API errors.
+    """
+    force_regenerate = regenerate or (req.regenerate if req else False)
+
+    jobs = db.query(JobPosting).filter(JobPosting.recruiter_id == current_user.id).all()
+    job_ids = [j.id for j in jobs]
+    candidate = db.query(Candidate).filter(
+        Candidate.id == candidate_id,
+        Candidate.job_posting_id.in_(job_ids)
+    ).first()
+
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    from app.services.interview_prep import generate_candidate_interview_questions
+
+    match_score = db.query(MatchScore).filter(MatchScore.candidate_id == candidate.id).first()
+
+    result = generate_candidate_interview_questions(
+        candidate=candidate,
+        match_score=match_score,
+        recruiter_id=current_user.id,
+        regenerate=force_regenerate,
+    )
+
+    # Persist cache on candidate record
+    if result.get("source") in ("chatgpt", "template"):
+        candidate.interview_questions = result
+        db.commit()
+
+    return result
+
+
+class SendRejectionRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    subject: str
+    body: str
+    mark_no_hire: Optional[bool] = True
+
+
+@router.get("/candidates/{candidate_id}/rejection-template")
+def get_candidate_rejection_template_endpoint(
+    candidate_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Feature 8: Templated Rejection Message
+    Recruiter moment: "I need to reject this person without ghosting them,
+    but I don't have time to write a personalized email."
+    - Deterministic, not LLM.
+    - Personal & Constructive: references matched strengths and honest primary gap.
+    - Compliance & Legal Safety: Zero protected characteristics.
+    """
+    jobs = db.query(JobPosting).filter(JobPosting.recruiter_id == current_user.id).all()
+    job_ids = [j.id for j in jobs]
+    candidate = db.query(Candidate).filter(
+        Candidate.id == candidate_id,
+        Candidate.job_posting_id.in_(job_ids)
+    ).first()
+
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    job = db.query(JobPosting).filter(JobPosting.id == candidate.job_posting_id).first()
+    match_score = db.query(MatchScore).filter(MatchScore.candidate_id == candidate.id).first()
+
+    from app.services.rejection import generate_templated_rejection
+    import urllib.parse
+
+    matched_skills = match_score.matched_skills if match_score else (candidate.extracted_skills or [])
+    missing_required = match_score.missing_skills if match_score else (job.required_skills if job else [])
+    cand_exp = candidate.experience_years or 0.0
+    min_exp = job.min_experience_years or 0.0 if job else 0.0
+    overall_score = match_score.overall_score if match_score else None
+    company_name = current_user.company_name or "Our Team"
+    job_title = job.title if job else "Software Engineer"
+
+    template = generate_templated_rejection(
+        candidate_name=candidate.name,
+        job_title=job_title,
+        company_name=company_name,
+        matched_skills=matched_skills,
+        missing_required_skills=missing_required,
+        candidate_experience=cand_exp,
+        min_experience_years=min_exp,
+        overall_score=overall_score,
+    )
+
+    cand_email = candidate.email or ""
+    mailto_params = urllib.parse.urlencode({
+        "subject": template["subject"],
+        "body": template["body"]
+    })
+    mailto_link = f"mailto:{cand_email}?{mailto_params}" if cand_email else None
+
+    return {
+        "candidate_id": candidate.id,
+        "candidate_name": candidate.name or f"Candidate #{candidate.id}",
+        "candidate_email": cand_email,
+        "job_title": job_title,
+        "company_name": company_name,
+        "subject": template["subject"],
+        "body": template["body"],
+        "gap_type": template["gap_type"],
+        "referenced_strengths": template["referenced_strengths"],
+        "referenced_gaps": template["referenced_gaps"],
+        "compliance_safe": template["compliance_safe"],
+        "compliance_badge": template["compliance_badge"],
+        "recruiter_disclaimer": template["recruiter_disclaimer"],
+        "mailto_link": mailto_link,
+        "is_already_rejected": candidate.pipeline_status == "No Hire" or candidate.rejection_sent_at is not None,
+        "rejection_sent_at": candidate.rejection_sent_at.isoformat() if candidate.rejection_sent_at else None,
+    }
+
+
+@router.post("/candidates/{candidate_id}/send-rejection")
+def send_candidate_rejection_endpoint(
+    candidate_id: int,
+    req: SendRejectionRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Feature 8: Send or record candidate rejection note.
+    Attempts delivery via SMTP/Resend, records rejection timestamp,
+    and updates candidate.pipeline_status to 'No Hire'.
+    """
+    import urllib.parse
+    from datetime import datetime
+    from app.services.email import send_candidate_rejection_email
+
+    jobs = db.query(JobPosting).filter(JobPosting.recruiter_id == current_user.id).all()
+    job_ids = [j.id for j in jobs]
+    candidate = db.query(Candidate).filter(
+        Candidate.id == candidate_id,
+        Candidate.job_posting_id.in_(job_ids)
+    ).first()
+
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    company_name = current_user.company_name or "HireRank"
+    email_delivered = False
+    delivery_error = None
+
+    if candidate.email and "@" in candidate.email:
+        email_delivered, delivery_error = send_candidate_rejection_email(
+            to_email=candidate.email,
+            candidate_name=candidate.name,
+            subject=req.subject,
+            body=req.body,
+            company_name=company_name,
+            from_name=company_name,
+        )
+
+    # Update candidate status to No Hire
+    if req.mark_no_hire:
+        candidate.pipeline_status = "No Hire"
+
+    now_utc = datetime.utcnow()
+    candidate.rejection_sent_at = now_utc
+    candidate.rejection_data = {
+        "subject": req.subject,
+        "body": req.body,
+        "sent_at": now_utc.isoformat(),
+        "delivered": email_delivered,
+        "delivery_error": delivery_error,
+    }
+    db.commit()
+    db.refresh(candidate)
+
+    cand_email = candidate.email or ""
+    mailto_params = urllib.parse.urlencode({
+        "subject": req.subject,
+        "body": req.body
+    })
+    mailto_link = f"mailto:{cand_email}?{mailto_params}" if cand_email else None
+
+    return {
+        "success": True,
+        "candidate_id": candidate.id,
+        "pipeline_status": candidate.pipeline_status,
+        "email_delivered": email_delivered,
+        "delivery_error": delivery_error,
+        "mailto_link": mailto_link,
+        "rejection_sent_at": candidate.rejection_sent_at.isoformat(),
+        "message": (
+            f"Candidate rejection note recorded and status updated to '{candidate.pipeline_status}'."
+            + (f" Email successfully delivered to {candidate.email}." if email_delivered else "")
+        ),
+    }
+
+
 
 

@@ -17,6 +17,7 @@ class Settings(BaseSettings):
 
     EMBEDDING_MODEL: Optional[str] = None
     APP_BASE_URL: str = "http://localhost:5173"
+    OPENAI_API_KEY: Optional[str] = None
     RESEND_API_KEY: Optional[str] = None
     EMAIL_FROM: str = "onboarding@resend.dev"
     EMAIL_FROM_NAME: str = "HireRank"
@@ -26,6 +27,15 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: Optional[str] = None
     GOOGLE_CLIENT_ID: Optional[str] = None
     GOOGLE_CLIENT_SECRET: Optional[str] = None
+    INTERNAL_API_SECRET: Optional[str] = None
+    ENVIRONMENT: str = "development"
+    ALLOWED_ORIGINS: list[str] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
 
 settings = Settings()
 

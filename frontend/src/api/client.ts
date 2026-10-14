@@ -32,7 +32,7 @@ client.interceptors.response.use(
 );
 
 export interface User { id: number; email: string; role: string; company_name?: string | null; }
-export interface JobPosting { id: number; title: string; description: string; required_skills: string[]; min_experience_years: number; education_requirement: string | null; status: string; created_at: string; candidate_count: number; }
+export interface JobPosting { id: number; title: string; description: string; required_skills: string[]; min_experience_years: number; education_requirement: string | null; weights?: Record<string, number> | null; status: string; created_at: string; candidate_count: number; }
 export interface CandidateWithScore {
   id: number;
   job_posting_id: number;
@@ -64,6 +64,28 @@ export interface CandidateWithScore {
   explanation_json?: Record<string, any> | null;
   job_title?: string;
   pipeline_status?: 'Screened' | 'Invited' | 'Hire' | 'No Hire' | string;
+  roles_count?: number;
+  promotion_count?: number;
+  avg_tenure_months?: number;
+  short_tenure_flag?: boolean;
+  career_pattern_summary?: string | null;
+  is_masked?: boolean;
+  is_adversarial?: boolean;
+  adversarial_details?: {
+    is_flagged?: boolean;
+    threat_level?: string;
+    threat_count?: number;
+    detections?: Array<{
+      type: string;
+      rule: string;
+      snippet?: string;
+      matched_text?: string;
+      explanation?: string;
+    }>;
+    action_taken?: string;
+    sanitized_text?: string;
+  } | null;
+  interview_questions?: InterviewQuestionsResponse | null;
   created_at: string;
 }
 
@@ -105,6 +127,87 @@ export interface JobStats {
   };
 }
 
+export interface ComparisonResult {
+  candidate_count: number;
+  candidates: Array<{
+    id: number;
+    name: string;
+    detected_title: string;
+    overall_score: number;
+    tier: string;
+    experience_years: number;
+    career_pattern_summary?: string | null;
+    scores: {
+      semantic: number;
+      skills: number;
+      experience: number;
+      title: number;
+      education: number;
+    };
+    skills_count: number;
+    matched_skills: string[];
+    missing_skills: string[];
+  }>;
+  radar_axes: Array<{ key: string; label: string }>;
+  skill_overlap: {
+    common_skills: string[];
+    unique_skills: Record<string, string[]>;
+  };
+  score_deltas: Array<{
+    component_key: string;
+    component_label: string;
+    leader_id: number | null;
+    leader_name: string;
+    delta: number;
+    scores: Record<string, number>;
+    sentence: string;
+  }>;
+}
+
+export interface InterviewQuestion {
+  question: string;
+  based_on: string;
+  listen_for: string;
+}
+
+export interface InterviewQuestionsResponse {
+  candidate_id: number;
+  questions: InterviewQuestion[];
+  is_adversarial_blocked: boolean;
+  warning?: string | null;
+  source: 'chatgpt' | 'claude' | 'template' | 'cached';
+}
+
+export interface RejectionTemplateResponse {
+  candidate_id: number;
+  candidate_name: string;
+  candidate_email: string;
+  job_title: string;
+  company_name: string;
+  subject: string;
+  body: string;
+  gap_type: 'missing_required_skills' | 'experience_gap' | 'competitive_pool' | string;
+  referenced_strengths: string[];
+  referenced_gaps: string[];
+  compliance_safe: boolean;
+  compliance_badge: string;
+  recruiter_disclaimer: string;
+  mailto_link?: string | null;
+  is_already_rejected: boolean;
+  rejection_sent_at?: string | null;
+}
+
+export interface SendRejectionResponse {
+  success: boolean;
+  candidate_id: number;
+  pipeline_status: string;
+  email_delivered: boolean;
+  delivery_error?: string | null;
+  mailto_link?: string | null;
+  rejection_sent_at: string;
+  message: string;
+}
+
 export const api = {
   signup: async (email: string, password: string, company_name?: string) => {
     const res = await client.post('/auth/signup', { email, password, company_name });
@@ -143,6 +246,38 @@ export const api = {
     const res = await client.delete(`/jobs/${id}`);
     return res.data;
   },
+  updateJobWeights: async (
+    jobId: string | number,
+    weights: {
+      semantic?: number;
+      skills?: number;
+      experience?: number;
+      title?: number;
+      education?: number;
+      rerank?: boolean;
+    }
+  ): Promise<{
+    message: string;
+    job_id: number;
+    weights: Record<string, number>;
+    tier_impact: {
+      promoted_to_strong: number;
+      demoted_from_strong: number;
+      tier_changes: Array<{
+        candidate_id: number;
+        candidate_name: string;
+        old_tier: string;
+        new_tier: string;
+        old_score: number;
+        new_score: number;
+      }>;
+      candidates_affected: number;
+      summary: string;
+    };
+  }> => {
+    const res = await client.patch(`/jobs/${jobId}/weights`, weights);
+    return res.data;
+  },
   uploadResume: async (jobId: string | number, file: File, onUploadProgress?: (progressEvent: any) => void) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -158,11 +293,12 @@ export const api = {
     const res = await client.get(`/candidates/${candidateId}/status`);
     return res.data;
   },
-  getRankedCandidates: async (jobId: string | number, sort_by?: string, min_score?: number, min_experience?: number) => {
+  getRankedCandidates: async (jobId: string | number, sort_by?: string, min_score?: number, min_experience?: number, blind_screening?: boolean) => {
     const params: any = {};
     if (sort_by) params.sort_by = sort_by;
     if (min_score !== undefined && min_score !== null) params.min_score = min_score;
     if (min_experience !== undefined && min_experience !== null) params.min_experience = min_experience;
+    if (blind_screening !== undefined) params.blind_screening = blind_screening;
     
     const res = await client.get(`/jobs/${jobId}/candidates`, { params });
     return res.data;
@@ -195,8 +331,26 @@ export const api = {
     const res = await client.get(`/jobs/${jobId}/export`, { responseType: 'blob' });
     return res.data;
   },
-  getCandidates: async (params?: { search?: string; tier?: string; skill?: string; job_id?: number; pipeline_status?: string; sort_by?: string }): Promise<CandidateWithScore[]> => {
+  getCandidates: async (params?: { search?: string; tier?: string; skill?: string; job_id?: number; pipeline_status?: string; sort_by?: string; blind_screening?: boolean }): Promise<CandidateWithScore[]> => {
     const res = await client.get('/candidates', { params });
+    return res.data;
+  },
+  compareCandidates: async (candidateIds: number[], blind_screening?: boolean): Promise<ComparisonResult> => {
+    const res = await client.post('/candidates/compare', { candidate_ids: candidateIds }, {
+      params: blind_screening !== undefined ? { blind_screening } : undefined
+    });
+    return res.data;
+  },
+  getInterviewQuestions: async (candidateId: number, regenerate = false): Promise<InterviewQuestionsResponse> => {
+    const res = await client.post(`/candidates/${candidateId}/interview-questions?regenerate=${regenerate}`);
+    return res.data;
+  },
+  getRejectionTemplate: async (candidateId: number): Promise<RejectionTemplateResponse> => {
+    const res = await client.get(`/candidates/${candidateId}/rejection-template`);
+    return res.data;
+  },
+  sendRejection: async (candidateId: number, data: { subject: string; body: string; mark_no_hire?: boolean }): Promise<SendRejectionResponse> => {
+    const res = await client.post(`/candidates/${candidateId}/send-rejection`, data);
     return res.data;
   },
   updateCandidatePipelineStatus: async (candidateId: number, pipelineStatus: string): Promise<{ id: number; pipeline_status: string; message: string }> => {

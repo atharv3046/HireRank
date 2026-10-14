@@ -1,17 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.core.security import hash_password, verify_password, create_access_token
+from app.core.security import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    decode_access_token,
+    decode_refresh_token,
+)
 from app.models.user import User
-from app.schemas.auth import SignupRequest, LoginRequest, TokenResponse
+from app.schemas.auth import SignupRequest, LoginRequest, TokenResponse, RefreshTokenRequest
 from app.core.config import settings
+from app.core.limiter import limiter
 import os, httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 from fastapi.security import OAuth2PasswordBearer
-from app.core.security import decode_access_token
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -31,7 +38,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 
 @router.post("/signup", response_model=TokenResponse)
-def signup(req: SignupRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def signup(request: Request, req: SignupRequest, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == req.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
     user = User(
@@ -43,26 +51,68 @@ def signup(req: SignupRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
-    token = create_access_token({"sub": str(user.id)})
-    return TokenResponse(access_token=token, user_id=user.id, email=user.email, role=user.role)
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token({"sub": str(user.id)})
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user_id=user.id,
+        email=user.email,
+        role=user.role
+    )
 
 @router.post("/login", response_model=TokenResponse)
-def login(req: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, req: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == req.email).first()
     if not user or not verify_password(req.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = create_access_token({"sub": str(user.id)})
-    return TokenResponse(access_token=token, user_id=user.id, email=user.email, role=user.role)
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token({"sub": str(user.id)})
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user_id=user.id,
+        email=user.email,
+        role=user.role
+    )
+
+@router.post("/refresh", response_model=TokenResponse)
+@limiter.limit("20/minute")
+def refresh(request: Request, req: RefreshTokenRequest, db: Session = Depends(get_db)):
+    payload = decode_refresh_token(req.refresh_token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+    user_id = payload.get("sub")
+    try:
+        user_id = int(user_id)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=401, detail="Invalid refresh token payload")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User account no longer exists")
+    new_access_token = create_access_token({"sub": str(user.id)})
+    new_refresh_token = create_refresh_token({"sub": str(user.id)})
+    return TokenResponse(
+        access_token=new_access_token,
+        refresh_token=new_refresh_token,
+        user_id=user.id,
+        email=user.email,
+        role=user.role
+    )
 
 
 # ── Native Google OAuth ───────────────────────────────────────────────────────
 
 class GoogleSigninRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     credential: str          # Google OAuth Access Token (from useGoogleLogin implicit flow)
     company_name: str | None = None
 
 @router.post("/google", response_model=TokenResponse)
-def google_signin(req: GoogleSigninRequest, db: Session = Depends(get_db)):
+@limiter.limit("15/minute")
+def google_signin(request: Request, req: GoogleSigninRequest, db: Session = Depends(get_db)):
     """
     Fix 7: Verifies the Google OAuth token AND checks that it was issued for
     THIS application specifically (aud == GOOGLE_CLIENT_ID).
@@ -179,8 +229,10 @@ def google_signin(req: GoogleSigninRequest, db: Session = Depends(get_db)):
         db.refresh(user)
 
     access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token({"sub": str(user.id)})
     return TokenResponse(
         access_token=access_token,
+        refresh_token=refresh_token,
         user_id=user.id,
         email=user.email,
         role=user.role,

@@ -70,8 +70,8 @@ const Sidebar: React.FC = () => {
 
   return (
     <div
-      className="w-60 flex-shrink-0 flex flex-col h-screen sticky top-0 border-r border-white/[0.06]"
-      style={{ background: '#0d0d14' }}
+      className="w-60 flex-shrink-0 flex flex-col h-screen sticky top-0 border-r border-white/[0.06] backdrop-blur-md"
+      style={{ background: 'rgba(0,0,0,0.75)' }}
     >
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/[0.05]">

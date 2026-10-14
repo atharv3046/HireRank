@@ -149,7 +149,7 @@ export default function UploadPage() {
   const allFinished = queue.length > 0 && queue.every(f => f.status === 'done' || f.status === 'error');
 
   return (
-    <div className="flex min-h-screen font-sans antialiased text-white" style={{ background: '#0a0a0f' }}>
+    <div className="flex min-h-screen font-sans antialiased text-white" style={{ background: 'transparent' }}>
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <div className="px-8 py-8 max-w-4xl mx-auto">

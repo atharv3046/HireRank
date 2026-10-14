@@ -1,7 +1,21 @@
+import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import GlobalBackground from './components/GlobalBackground'
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReduced(mq.matches);
+    const h = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener('change', h);
+    return () => mq.removeEventListener('change', h);
+  }, []);
+  return reduced;
+}
 
 // Existing pages
 import LoginPage       from './pages/LoginPage'
@@ -23,10 +37,13 @@ import GuestTriagePage      from './pages/GuestTriagePage'
 import ProcessingPage       from './pages/ProcessingPage'
 import ResultsPreviewPage   from './pages/ResultsPreviewPage'
 import MarketingPage        from './pages/MarketingPage'
+import NotFoundPage         from './pages/NotFoundPage'
+import { PrivacyPolicyPage, TermsOfServicePage } from './pages/LegalPages'
 
 const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID || import.meta.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '') as string;
 
 export default function App() {
+  const reduced = usePrefersReducedMotion();
   const routes = (
     <AuthProvider>
       <BrowserRouter>
@@ -38,6 +55,8 @@ export default function App() {
           <Route path="/processing/:sessionId" element={<ProcessingPage />} />
           <Route path="/results/:sessionId"    element={<ResultsPreviewPage />} />
           <Route path="/accept-invite"         element={<AcceptInvitePage />} />
+          <Route path="/privacy"               element={<PrivacyPolicyPage />} />
+          <Route path="/terms"                 element={<TermsOfServicePage />} />
 
           {/* ── Auth ───────────────────────────────────────────────── */}
           <Route path="/login"  element={<LoginPage />} />
@@ -53,6 +72,9 @@ export default function App() {
           <Route path="/jobs/:jobId"        element={<ProtectedRoute><JobDetailPage /></ProtectedRoute>} />
           <Route path="/jobs/:jobId/upload"  element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
           <Route path="/candidates"         element={<ProtectedRoute><CandidatesPage /></ProtectedRoute>} />
+
+          {/* ── 404 Catch-all ─────────────────────────────────────────── */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
@@ -60,7 +82,12 @@ export default function App() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || 'placeholder-id'}>
-      {routes}
+      {/* Global animated background — fixed, sits behind every page */}
+      <GlobalBackground reduced={reduced} />
+      {/* Page content — sits above the canvas */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {routes}
+      </div>
     </GoogleOAuthProvider>
   );
 }

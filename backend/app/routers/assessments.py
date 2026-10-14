@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 import re
 from app.core.database import get_db
 from app.models.user import User
@@ -25,6 +25,7 @@ class ScreeningBatchOption(BaseModel):
     candidate_count: int
 
 class ExtractBlueprintRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     job_description: str
     batch_id: Optional[int] = None
 
@@ -54,11 +55,13 @@ class ExtractedBlueprintResponse(BaseModel):
     pass_preview: PassRatePreview
 
 class SimulatePassRateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     required_skills: List[str]
     min_experience_years: float = 0.0
     batch_id: Optional[int] = None
 
 class CreateAssessmentRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     title: str
     job_description: str
     required_skills: List[str]

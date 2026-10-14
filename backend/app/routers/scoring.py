@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import logging
@@ -10,6 +10,7 @@ from app.schemas.candidate import CandidateWithScore
 from app.schemas.scoring import MatchScoreRead, RerankResponse
 from app.routers.auth import get_current_user
 from app.models.user import User
+from app.core.limiter import limiter
 from app.services.scoring import get_scorer
 from app.services.extraction import get_extractor
 from app.services.embeddings import get_embedding_service
@@ -20,13 +21,23 @@ router = APIRouter(tags=["scoring"])
 
 
 @router.post("/candidates/{candidate_id}/extract")
+@limiter.limit("60/minute")
 def trigger_extraction(
+    request: Request,
     candidate_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
     if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    
+    # IDOR Prevention: verify candidate belongs to a job posting owned by current recruiter
+    job = db.query(JobPosting).filter(
+        JobPosting.id == candidate.job_posting_id,
+        JobPosting.recruiter_id == current_user.id
+    ).first()
+    if not job:
         raise HTTPException(status_code=404, detail="Candidate not found")
     
     extractor = get_extractor()
@@ -36,13 +47,23 @@ def trigger_extraction(
 
 
 @router.post("/candidates/{candidate_id}/embed")
+@limiter.limit("60/minute")
 def trigger_embedding(
+    request: Request,
     candidate_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
     if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    
+    # IDOR Prevention: verify candidate belongs to a job posting owned by current recruiter
+    job = db.query(JobPosting).filter(
+        JobPosting.id == candidate.job_posting_id,
+        JobPosting.recruiter_id == current_user.id
+    ).first()
+    if not job:
         raise HTTPException(status_code=404, detail="Candidate not found")
     
     svc = get_embedding_service()
@@ -52,7 +73,9 @@ def trigger_embedding(
 
 
 @router.post("/jobs/{job_id}/score-candidate/{candidate_id}")
+@limiter.limit("60/minute")
 def score_candidate(
+    request: Request,
     job_id: int,
     candidate_id: int,
     db: Session = Depends(get_db),
@@ -62,6 +85,14 @@ def score_candidate(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
+    # IDOR Prevention: verify candidate actually belongs to this job
+    candidate = db.query(Candidate).filter(
+        Candidate.id == candidate_id,
+        Candidate.job_posting_id == job_id
+    ).first()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found for this job")
+    
     scorer = get_scorer()
     result = scorer.calculate_overall_score(candidate_id, job_id, db)
     return result
@@ -69,7 +100,9 @@ def score_candidate(
 
 @router.post("/jobs/{job_id}/rerank-all", response_model=RerankResponse)
 @router.post("/jobs/{job_id}/rerank", response_model=RerankResponse)
+@limiter.limit("30/minute")
 def rerank_all(
+    request: Request,
     job_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -159,7 +192,32 @@ def rerank_all(
             score_row.missing_skills = breakdown.missing_required_skills
             score_row.matched_preferred_skills = breakdown.matched_preferred_skills
             score_row.missing_preferred_skills = breakdown.missing_preferred_skills
-            score_row.explanation_json = breakdown.to_dict()
+            exp_dict = breakdown.to_dict()
+            try:
+                from app.services.evidence import generate_evidence_spans
+                cand_profile = {
+                    "skills": c.extracted_skills or [],
+                    "experience_years": c.experience_years or 0.0,
+                    "education_level": c.education_level,
+                    "education_details": c.education_details or "",
+                    "detected_title": c.detected_title or "",
+                    "roles_count": getattr(c, "roles_count", 0) or 0,
+                    "avg_tenure_months": getattr(c, "avg_tenure_months", 0) or 0,
+                }
+                job_crit = {
+                    "title": job.title,
+                    "description": job.description,
+                    "required_skills": job.required_skills or [],
+                    "preferred_skills": getattr(job, "preferred_skills", []) or [],
+                    "min_years": job.min_experience_years or 0.0,
+                    "required_education": job.education_requirement,
+                }
+                exp_dict["evidence_spans"] = generate_evidence_spans(
+                    c.raw_text, cand_profile, job_crit, exp_dict
+                )
+            except Exception as e:
+                logger.warning("Failed to generate evidence spans in rerank: %s", e)
+            score_row.explanation_json = exp_dict
             score_row.summary = f"Overall: {breakdown.final_score}% ({breakdown.tier.value})"
 
             c.processing_status = "done"
@@ -183,6 +241,7 @@ def get_ranked_candidates(
     sort_by: str = Query("overall_score", enum=["overall_score", "experience_years", "skills_score"]),
     min_score: Optional[float] = Query(None),
     min_experience: Optional[float] = Query(None),
+    blind_screening: bool = Query(False),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -199,6 +258,64 @@ def get_ranked_candidates(
     candidates_with_scores = []
     for candidate, score in results:
         t = score.tier if (score and score.tier) else ("Needs Review" if candidate.needs_manual_review else _tier(score.overall_score if score else None))
+        expl = (score.explanation_json if score else {}) or {}
+        if "evidence_spans" not in expl and candidate.raw_text:
+            try:
+                from app.services.evidence import generate_evidence_spans
+                cand_profile = {
+                    "skills": candidate.extracted_skills or [],
+                    "experience_years": candidate.experience_years or 0.0,
+                    "education_level": candidate.education_level,
+                    "education_details": candidate.education_details or "",
+                    "detected_title": candidate.detected_title or "",
+                    "roles_count": getattr(candidate, "roles_count", 0) or 0,
+                    "avg_tenure_months": getattr(candidate, "avg_tenure_months", 0) or 0,
+                }
+                job_crit = {
+                    "title": job.title,
+                    "description": job.description,
+                    "required_skills": job.required_skills or [],
+                    "preferred_skills": getattr(job, "preferred_skills", []) or [],
+                    "min_years": job.min_experience_years or 0.0,
+                    "required_education": job.education_requirement,
+                }
+                score_data = {
+                    "semantic_score": score.semantic_score if score else None,
+                    "skills_score": score.skills_score if score else None,
+                    "experience_score": score.experience_score if score else None,
+                    "title_score": score.title_score if score else None,
+                    "education_score": score.education_score if score else None,
+                    "matched_required_skills": score.matched_skills if score else [],
+                    "missing_required_skills": score.missing_skills if score else [],
+                    "is_capped": score.is_capped if score else False,
+                    "cap_reason": score.cap_reason if score else None,
+                }
+                expl["evidence_spans"] = generate_evidence_spans(
+                    candidate.raw_text, cand_profile, job_crit, score_data
+                )
+            except Exception as e:
+                logger.warning("Failed to on-the-fly populate evidence_spans: %s", e)
+        is_adv = bool(getattr(candidate, "is_adversarial", False))
+        adv_details = getattr(candidate, "adversarial_details", None)
+        if not is_adv and candidate.raw_text:
+            try:
+                from app.services.adversarial import scan_text_for_injections
+                text_injections = scan_text_for_injections(candidate.raw_text)
+                if text_injections:
+                    is_adv = True
+                    adv_details = {
+                        "is_flagged": True,
+                        "threat_level": "HIGH",
+                        "threat_count": len(text_injections),
+                        "detections": text_injections,
+                        "action_taken": "Flagged for manual review & gated from generative interview prompting."
+                    }
+            except Exception as e:
+                logger.warning("Adversarial check error: %s", e)
+
+        if adv_details and "adversarial_shield" not in expl:
+            expl["adversarial_shield"] = adv_details
+
         data = {
             "id": candidate.id,
             "job_posting_id": candidate.job_posting_id,
@@ -210,10 +327,22 @@ def get_ranked_candidates(
             "education_level": candidate.education_level,
             "education_details": candidate.education_details,
             "detected_title": candidate.detected_title,
-            "needs_manual_review": candidate.needs_manual_review,
-            "processing_status": candidate.processing_status,
+            "roles_count": getattr(candidate, "roles_count", 0) or 0,
+            "promotion_count": getattr(candidate, "promotion_count", 0) or 0,
+            "avg_tenure_months": getattr(candidate, "avg_tenure_months", 0) or 0,
+            "short_tenure_flag": bool(getattr(candidate, "short_tenure_flag", False)),
+            "career_pattern_summary": getattr(candidate, "career_pattern_summary", None) or (
+                f"{int(candidate.experience_years * 12)}mo exp" if candidate.experience_years else None
+            ),
+            "needs_manual_review": candidate.needs_manual_review or is_adv,
+            "processing_status": "needs_manual_review" if is_adv else candidate.processing_status,
             "pipeline_status": getattr(candidate, "pipeline_status", "Screened") or "Screened",
-            "error_message": candidate.error_message,
+            "is_adversarial": is_adv,
+            "adversarial_details": adv_details,
+            "error_message": candidate.error_message or (
+                "Adversarial Shield Alert: Prompt injection or hidden content detected. Quarantined for review."
+                if is_adv else None
+            ),
             "created_at": candidate.created_at,
             "overall_score": score.overall_score if score else None,
             "semantic_score": score.semantic_score if score else None,
@@ -221,7 +350,7 @@ def get_ranked_candidates(
             "experience_score": score.experience_score if score else None,
             "title_score": score.title_score if score else None,
             "education_score": score.education_score if score else None,
-            "tier": t,
+            "tier": "Needs Review" if is_adv else t,
             "is_capped": score.is_capped if score else False,
             "cap_reason": score.cap_reason if score else None,
             "matched_skills": score.matched_skills if score else [],
@@ -229,7 +358,7 @@ def get_ranked_candidates(
             "matched_preferred_skills": score.matched_preferred_skills if score else [],
             "missing_preferred_skills": score.missing_preferred_skills if score else [],
             "summary": score.summary if score else None,
-            "explanation_json": score.explanation_json if score else {},
+            "explanation_json": expl,
             "job_title": job.title,
         }
         
@@ -246,7 +375,14 @@ def get_ranked_candidates(
         candidates_with_scores.sort(key=lambda x: x["experience_years"] or 0, reverse=True)
     elif sort_by == "skills_score":
         candidates_with_scores.sort(key=lambda x: x["skills_score"] or 0, reverse=True)
-    
+
+    if blind_screening:
+        from app.services.masking import apply_blind_screening_to_candidate
+        candidates_with_scores = [
+            apply_blind_screening_to_candidate(c, index=idx + 1)
+            for idx, c in enumerate(candidates_with_scores)
+        ]
+
     return candidates_with_scores
 
 

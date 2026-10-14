@@ -390,7 +390,7 @@ export default function ResultsPreviewPage() {
 
   // Show a brief redirecting state while claim is in progress
   if (claiming) return (
-    <div className="min-h-screen flex flex-col font-sans" style={{ background: '#0a0a0f' }}>
+    <div className="min-h-screen flex flex-col font-sans" style={{ background: 'transparent' }}>
       <header className="border-b border-white/[0.06] px-8 py-4">
         <Logo onClick={() => navigate('/')} />
       </header>
@@ -405,7 +405,7 @@ export default function ResultsPreviewPage() {
 
   /* ── Loading ─────────────────────────────────────────────────────────── */
   if (loading) return (
-    <div className="min-h-screen flex flex-col font-sans" style={{ background: '#0a0a0f' }}>
+    <div className="min-h-screen flex flex-col font-sans" style={{ background: 'transparent' }}>
       <header className="border-b border-white/[0.06] px-8 py-4">
         <Logo onClick={() => navigate('/')} />
       </header>
@@ -420,7 +420,7 @@ export default function ResultsPreviewPage() {
 
   /* ── Error ───────────────────────────────────────────────────────────── */
   if (error || !data) return (
-    <div className="min-h-screen flex flex-col items-center justify-center font-sans gap-5 px-6 text-center" style={{ background: '#0a0a0f' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center font-sans gap-5 px-6 text-center" style={{ background: 'transparent' }}>
       <div className="w-14 h-14 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center">
         <svg className="w-7 h-7 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -440,7 +440,7 @@ export default function ResultsPreviewPage() {
   const { stats, candidates, job_title } = data;
 
   return (
-    <div className="min-h-screen font-sans antialiased text-white" style={{ background: '#0a0a0f' }}>
+    <div className="min-h-screen font-sans antialiased text-white" style={{ background: 'transparent' }}>
 
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <header

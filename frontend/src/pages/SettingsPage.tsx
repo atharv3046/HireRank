@@ -16,6 +16,7 @@ import {
   tabContentVariants,
   listItemVariants,
 } from '../utils/animations';
+import MiniOrbCanvas from '../components/MiniOrbCanvas';
 
 type SettingsTab = 'profile' | 'team';
 
@@ -194,7 +195,7 @@ export default function SettingsPage() {
   const userName = user?.email?.split('@')[0] || 'Atharv Ji';
 
   return (
-    <div className="flex min-h-screen font-sans text-white" style={{ background: '#0a0a0f' }}>
+    <div className="flex min-h-screen font-sans text-white" style={{ background: 'transparent' }}>
       <Sidebar />
 
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
@@ -233,7 +234,13 @@ export default function SettingsPage() {
           className="p-8 max-w-6xl w-full mx-auto space-y-6"
         >
           {/* Header Title */}
-          <motion.div variants={fadeInUpVariants}>
+          <motion.div variants={fadeInUpVariants} className="relative">
+            {/* Subtle 3D orb in settings header */}
+            <MiniOrbCanvas
+              color="#a78bfa"
+              reduced={shouldReduce ?? false}
+              className="absolute -top-4 right-0 w-28 h-28 opacity-20 pointer-events-none hidden xl:block"
+            />
             <h1 className="text-2xl font-extrabold text-white">Team Settings</h1>
             <p className="text-xs text-white/40 mt-1">
               Manage your company workspace and team member permissions.

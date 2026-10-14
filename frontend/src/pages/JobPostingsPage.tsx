@@ -13,171 +13,17 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import { api, JobPosting } from '../api/client';
+import { CreateJobModal } from '../components/CreateJobModal';
 import {
   useReducedMotion,
   fadeInUpVariants,
   staggerContainerVariants,
-  modalBackdropVariants,
-  modalContentVariants,
 } from '../utils/animations';
 
 const statusColors: Record<string, string> = {
   active: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   closed: 'bg-white/[0.04] text-white/40 border-white/[0.06]',
   draft:  'bg-amber-500/10 text-amber-400 border-amber-500/20',
-};
-
-/* ── Create Job Modal ─────────────────────────────────────────────────── */
-const CreateJobModal: React.FC<{ onClose: () => void; onCreated: (job: JobPosting) => void }> = ({ onClose, onCreated }) => {
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    required_skills: '',
-    min_experience_years: 0,
-    education_requirement: 'bachelors',
-    status: 'active',
-  });
-  const [loading, setLoading] = useState(false);
-  const shouldReduce = useReducedMotion();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const job = await api.createJob({
-        ...form,
-        required_skills: form.required_skills.split(',').map(s => s.trim()).filter(Boolean),
-      });
-      onCreated(job);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <motion.div
-      variants={modalBackdropVariants}
-      initial={shouldReduce ? false : "hidden"}
-      animate="visible"
-      exit="exit"
-      className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-    >
-      <motion.div
-        variants={modalContentVariants}
-        initial={shouldReduce ? false : "hidden"}
-        animate="visible"
-        exit="exit"
-        className="rounded-2xl border border-white/[0.08] w-full max-w-lg shadow-2xl shadow-black/80 overflow-hidden"
-        style={{ background: '#0d0d14' }}
-      >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06]">
-          <div>
-            <h2 className="text-lg font-bold text-white">Create New Job Posting</h2>
-            <p className="text-xs text-white/40 mt-0.5">Specify job description and requirements for screening</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-white/[0.04] text-white/40 hover:text-white hover:bg-white/[0.08] flex items-center justify-center transition-colors"
-          >
-            ✕
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
-              Job Title *
-            </label>
-            <input
-              required
-              value={form.title}
-              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              placeholder="e.g. Senior Python Engineer"
-              className="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
-              Description *
-            </label>
-            <textarea
-              required
-              rows={3}
-              value={form.description}
-              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              placeholder="Paste full job description with requirements…"
-              className="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all resize-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
-              Required Skills
-            </label>
-            <input
-              value={form.required_skills}
-              onChange={e => setForm(f => ({ ...f, required_skills: e.target.value }))}
-              placeholder="Python, FastAPI, Docker, PostgreSQL"
-              className="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
-            />
-            <p className="text-[11px] text-white/30 mt-1">Comma-separated (candidates missing any required skill are capped at 59.9%)</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
-                Min. Experience (yrs)
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={30}
-                value={form.min_experience_years}
-                onChange={e => setForm(f => ({ ...f, min_experience_years: +e.target.value }))}
-                className="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
-                Education
-              </label>
-              <select
-                value={form.education_requirement}
-                onChange={e => setForm(f => ({ ...f, education_requirement: e.target.value }))}
-                className="w-full px-3.5 py-2.5 bg-[#14141f] border border-white/[0.08] rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
-              >
-                <option value="high_school">High School</option>
-                <option value="associate">Associate</option>
-                <option value="bachelors">Bachelor's</option>
-                <option value="masters">Master's</option>
-                <option value="phd">PhD</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 pt-3 border-t border-white/[0.06]">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-white/[0.08] text-white/60 rounded-xl text-sm font-medium hover:bg-white/[0.04] hover:text-white transition-colors"
-            >
-              Cancel
-            </button>
-            <motion.button
-              type="submit"
-              disabled={loading}
-              whileHover={shouldReduce ? undefined : { scale: 1.01 }}
-              whileTap={shouldReduce ? undefined : { scale: 0.98 }}
-              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-60"
-            >
-              {loading ? 'Creating…' : 'Create Job'}
-            </motion.button>
-          </div>
-        </form>
-      </motion.div>
-    </motion.div>
-  );
 };
 
 /* ── Main Page ────────────────────────────────────────────────────────── */
@@ -195,7 +41,7 @@ export default function JobPostingsPage() {
   }, []);
 
   return (
-    <div className="flex min-h-screen font-sans text-white" style={{ background: '#0a0a0f' }}>
+    <div className="flex min-h-screen font-sans text-white" style={{ background: 'transparent' }}>
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <motion.div

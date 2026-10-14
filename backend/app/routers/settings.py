@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timedelta, timezone
 import uuid
 import os
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from app.core.database import get_db
 from app.core.security import hash_password, create_access_token
 from app.models.user import User
@@ -13,6 +13,7 @@ from app.models.candidate import Candidate
 from app.models.match_score import MatchScore
 from app.models.team_member import TeamMember
 from app.routers.auth import get_current_user
+from app.core.limiter import limiter
 from app.services.aggregates import compute_batch_aggregates
 from app.services.email import send_team_invite_email
 
@@ -29,6 +30,7 @@ class CompanyProfileResponse(BaseModel):
     role: str
 
 class UpdateCompanyProfileRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     workspace_name: str
     domain: Optional[str] = None
     admin_email: Optional[EmailStr] = None
@@ -51,16 +53,19 @@ class TeamResponse(BaseModel):
     members: List[TeamMemberRead]
 
 class InviteTeamMemberRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     email: EmailStr
     role: str = "Recruiter"
     name: Optional[str] = None
 
 class AcceptInviteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     token: str
     password: str
     name: Optional[str] = None
 
 class UpdateTeamMemberRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     role: Optional[str] = None
     status: Optional[str] = None
 
@@ -161,7 +166,9 @@ def get_team_members(
 
 
 @router.post("/team/invite", response_model=TeamMemberRead)
+@limiter.limit("10/minute")
 def invite_team_member(
+    request: Request,
     req: InviteTeamMemberRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -170,6 +177,13 @@ def invite_team_member(
     Invite a new team member. Validates seat capacity (5-seat limit).
     Generates a secure invitation token and URL.
     """
+    user_role = (current_user.role or "").lower()
+    if user_role not in ("admin", "owner", "recruiter"):
+        raise HTTPException(
+            status_code=403,
+            detail="Only workspace admins and recruiters are authorized to invite team members"
+        )
+
     # Ensure primary admin is seeded
     admin_exists = db.query(TeamMember).filter(TeamMember.org_user_id == current_user.id).first()
     if not admin_exists:
@@ -309,11 +323,19 @@ def verify_invite_token(token: str = Query(...), db: Session = Depends(get_db)):
 
 
 @router.post("/team/invite/accept")
-def accept_team_invite(req: AcceptInviteRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def accept_team_invite(
+    request: Request,
+    req: AcceptInviteRequest,
+    db: Session = Depends(get_db)
+):
     """
     Public endpoint: Accepts an invitation, creates or updates the user account,
     sets team member status to Active, and logs the user in immediately.
     """
+    if len(req.password) < 8:
+        raise HTTPException(status_code=422, detail="Password must be at least 8 characters")
+
     member = db.query(TeamMember).filter(TeamMember.invite_token == req.token).first()
     if not member:
         raise HTTPException(status_code=404, detail="Invalid invitation link")
@@ -374,6 +396,13 @@ def remove_team_member(
     """
     Remove a team member from the organization workspace.
     """
+    user_role = (current_user.role or "").lower()
+    if user_role not in ("admin", "owner", "recruiter"):
+        raise HTTPException(
+            status_code=403,
+            detail="Only workspace admins and recruiters are authorized to remove team members"
+        )
+
     member = db.query(TeamMember).filter(
         TeamMember.id == member_id,
         TeamMember.org_user_id == current_user.id
@@ -399,6 +428,13 @@ def update_team_member(
     """
     Update team member role or status.
     """
+    user_role = (current_user.role or "").lower()
+    if user_role not in ("admin", "owner", "recruiter"):
+        raise HTTPException(
+            status_code=403,
+            detail="Only workspace admins and recruiters are authorized to update team members"
+        )
+
     member = db.query(TeamMember).filter(
         TeamMember.id == member_id,
         TeamMember.org_user_id == current_user.id

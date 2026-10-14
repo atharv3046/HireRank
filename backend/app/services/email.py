@@ -15,6 +15,8 @@ uvicorn console so development still works without an API key.
 
 import os
 import logging
+import html as html_lib
+from typing import Optional
 
 from app.core.config import settings
 
@@ -117,13 +119,19 @@ def send_team_invite_email(
     display_name = to_name or to_email.split("@")[0].title()
     subject = f"You've been invited to join {workspace_name} on HireRank"
 
+    safe_display_name = html_lib.escape(display_name)
+    safe_workspace_name = html_lib.escape(workspace_name)
+    safe_inviter_email = html_lib.escape(inviter_email)
+    safe_role = html_lib.escape(role)
+    safe_invite_url = html_lib.escape(invite_url)
+
     # ── HTML body ──────────────────────────────────────────────────────────
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>{subject}</title>
+  <title>{html_lib.escape(subject)}</title>
 </head>
 <body style="margin:0;padding:0;background:#0a0a0f;font-family:'Segoe UI',Arial,sans-serif;color:#fff;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0f;padding:40px 0;">
@@ -149,19 +157,19 @@ def send_team_invite_email(
                        text-transform:uppercase;letter-spacing:2px;">Workspace Invitation</p>
             <h1 style="margin:0 0 20px;font-size:26px;font-weight:900;color:#fff;line-height:1.2;">
               You're invited to join<br/>
-              <span style="color:#06b6d4;">{workspace_name}</span>
+              <span style="color:#06b6d4;">{safe_workspace_name}</span>
             </h1>
 
             <p style="margin:0 0 28px;font-size:15px;color:rgba(255,255,255,0.6);line-height:1.65;">
-              Hi <strong style="color:#fff;">{display_name}</strong>,<br/><br/>
-              <strong style="color:#fff;">{inviter_email}</strong> has invited you to collaborate
-              on <strong style="color:#fff;">{workspace_name}</strong> as a
-              <span style="color:#06b6d4;font-weight:700;">{role}</span>.
+              Hi <strong style="color:#fff;">{safe_display_name}</strong>,<br/><br/>
+              <strong style="color:#fff;">{safe_inviter_email}</strong> has invited you to collaborate
+              on <strong style="color:#fff;">{safe_workspace_name}</strong> as a
+              <span style="color:#06b6d4;font-weight:700;">{safe_role}</span>.
             </p>
 
             <!-- CTA Button -->
             <div style="text-align:center;margin:32px 0;">
-              <a href="{invite_url}"
+              <a href="{safe_invite_url}"
                  style="display:inline-block;padding:16px 40px;
                         background:linear-gradient(135deg,#06b6d4,#3b82f6);
                         color:#fff;font-size:15px;font-weight:800;text-decoration:none;
@@ -177,7 +185,7 @@ def send_team_invite_email(
               <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);
                          text-transform:uppercase;letter-spacing:1.5px;">Or copy this link</p>
               <p style="margin:0;font-size:12px;color:#06b6d4;word-break:break-all;font-family:monospace;">
-                {invite_url}
+                {safe_invite_url}
               </p>
             </div>
 
@@ -273,11 +281,18 @@ def send_candidate_invite_email(
     stage_display = stage.replace("_", " ").capitalize()
     subject = f"Invitation: {stage_display} for {job_title} at {company_name}"
 
+    safe_display_name = html_lib.escape(display_name)
+    safe_stage_display = html_lib.escape(stage_display)
+    safe_job_title = html_lib.escape(job_title)
+    safe_company_name = html_lib.escape(company_name)
+    safe_recruiter_email = html_lib.escape(recruiter_email)
+    safe_message = html_lib.escape(message) if message else ""
+
     message_block = ""
-    if message and message.strip():
+    if safe_message and safe_message.strip():
         message_block = f"""
             <div style="background:rgba(255,255,255,0.04);border-left:3px solid #06b6d4;border-radius:0 12px 12px 0;padding:16px 20px;margin-bottom:24px;">
-              <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.85);line-height:1.5;">{message}</p>
+              <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.85);line-height:1.5;">{safe_message}</p>
             </div>
         """
 
@@ -286,7 +301,7 @@ def send_candidate_invite_email(
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>{subject}</title>
+  <title>{html_lib.escape(subject)}</title>
 </head>
 <body style="margin:0;padding:0;background:#0a0a0f;font-family:'Segoe UI',Arial,sans-serif;color:#fff;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0f;padding:40px 0;">
@@ -299,7 +314,7 @@ def send_candidate_invite_email(
           <td style="background:linear-gradient(135deg,#06b6d4,#3b82f6);padding:32px 40px;text-align:center;">
             <span style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.5px;">
               <span style="display:inline-block;width:36px;height:36px;background:rgba(255,255,255,0.2);border-radius:9px;line-height:36px;text-align:center;margin-right:8px;font-size:18px;">H</span>
-              {company_name}
+              {safe_company_name}
             </span>
           </td>
         </tr>
@@ -310,25 +325,25 @@ def send_candidate_invite_email(
             <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#06b6d4;text-transform:uppercase;letter-spacing:2px;">Application Update</p>
             <h1 style="margin:0 0 20px;font-size:24px;font-weight:900;color:#fff;line-height:1.2;">
               You're invited to the next stage for<br/>
-              <span style="color:#06b6d4;">{job_title}</span>
+              <span style="color:#06b6d4;">{safe_job_title}</span>
             </h1>
 
             <p style="margin:0 0 20px;font-size:15px;color:rgba(255,255,255,0.7);line-height:1.65;">
-              Hi <strong style="color:#fff;">{display_name}</strong>,<br/><br/>
-              Thank you for your interest in joining <strong style="color:#fff;">{company_name}</strong>.
+              Hi <strong style="color:#fff;">{safe_display_name}</strong>,<br/><br/>
+              Thank you for your interest in joining <strong style="color:#fff;">{safe_company_name}</strong>.
               We reviewed your profile and would like to invite you forward to the
-              <strong style="color:#06b6d4;">{stage_display}</strong> stage.
+              <strong style="color:#06b6d4;">{safe_stage_display}</strong> stage.
             </p>
 
             {message_block}
 
             <p style="margin:0 0 24px;font-size:14px;color:rgba(255,255,255,0.6);line-height:1.6;">
-              Please reply directly to this email or reach out to <strong style="color:#fff;">{recruiter_email}</strong> to coordinate interview scheduling.
+              Please reply directly to this email or reach out to <strong style="color:#fff;">{safe_recruiter_email}</strong> to coordinate interview scheduling.
             </p>
 
             <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.3);line-height:1.5;">
               Best regards,<br/>
-              <strong style="color:rgba(255,255,255,0.7);">{company_name} Recruiting Team</strong>
+              <strong style="color:rgba(255,255,255,0.7);">{safe_company_name} Recruiting Team</strong>
             </p>
           </td>
         </tr>
@@ -398,4 +413,86 @@ def send_candidate_invite_email(
     # 3. Fallback: neither configured
     logger.warning("[EMAIL] Neither SMTP nor RESEND_API_KEY set. Candidate invite for %s", to_email)
     return False, "Email sending is not configured (neither SMTP nor RESEND_API_KEY)"
+
+
+def send_candidate_rejection_email(
+    *,
+    to_email: str,
+    candidate_name: Optional[str],
+    subject: str,
+    body: str,
+    company_name: str,
+    from_name: Optional[str] = None,
+) -> tuple[bool, str | None]:
+    """
+    Sends a personalized rejection email to the candidate.
+    Uses SMTP if configured, else Resend, else returns fallback message.
+    """
+    api_key = _cfg("RESEND_API_KEY")
+    from_addr = _cfg("EMAIL_FROM", "onboarding@resend.dev")
+    sender_name = from_name or company_name or _cfg("EMAIL_FROM_NAME", "HireRank")
+
+    # Format HTML version preserving paragraphs
+    paragraphs = [p.strip() for p in body.split("\n\n") if p.strip()]
+    paragraphs_html = "".join([f'<p style="margin:0 0 16px 0;line-height:1.6;font-size:14px;color:#cbd5e1;">{html_lib.escape(p).replace(chr(10), "<br/>")}</p>' for p in paragraphs])
+
+    html = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"/></head>
+<body style="margin:0;padding:24px;background:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,sans-serif;color:#e2e8f0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;margin:0 auto;background:#13131a;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
+    <tr>
+      <td style="padding:28px 32px;border-bottom:1px solid rgba(255,255,255,0.06);background:linear-gradient(135deg,rgba(99,102,241,0.08) 0%,rgba(168,85,247,0.04) 100%);">
+        <h2 style="margin:0;font-size:18px;font-weight:700;color:#ffffff;">{html_lib.escape(company_name)}</h2>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:32px;">
+        {paragraphs_html}
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:18px 32px;border-top:1px solid rgba(255,255,255,0.05);text-align:center;">
+        <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.3);">
+          Powered by HireRank &bull; AI-driven Recruitment Platform
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+
+    smtp_user = _cfg("SMTP_USER")
+    smtp_pass = _cfg("SMTP_PASSWORD")
+
+    if smtp_user and smtp_pass:
+        return _send_smtp(
+            to_email=to_email,
+            subject=subject,
+            html=html,
+            plain=body,
+            from_name=sender_name,
+        )
+
+    if api_key:
+        try:
+            import resend
+            resend.api_key = api_key
+            params: resend.Emails.SendParams = {
+                "from": f"{sender_name} <{from_addr}>",
+                "to": [to_email],
+                "subject": subject,
+                "html": html,
+                "text": body,
+            }
+            resp = resend.Emails.send(params)
+            logger.info("[EMAIL] Rejection email sent to %s — id=%s", to_email, resp.get("id"))
+            return True, None
+        except Exception as exc:
+            err_str = str(exc)
+            logger.error("[EMAIL] Rejection email failed for %s: %s", to_email, err_str)
+            return False, err_str
+
+    logger.info("[EMAIL] No SMTP/Resend configured. Rejection note generated for %s (mailto available).", to_email)
+    return False, "Email sending service is not configured (neither SMTP nor RESEND_API_KEY)"
 

@@ -133,12 +133,50 @@ export default function ProcessingPage() {
   }, [sessionId, navigate]);
 
   const allDone = status?.status === 'done' || status?.status === 'completed';
-  const currentPct = allDone ? 100 : (status?.progress_pct ?? 0);
+
+  const computeProgressPct = (s: SessionStatus | null): number => {
+    if (!s) return 0;
+    if (s.status === 'done' || s.status === 'completed') return 100;
+
+    const total = s.total || 1;
+    const scoredRatio = Math.min(1, Math.max(0, s.done / total));
+
+    // Minimum baseline floor per stage so the percentage matches active stage
+    const stageFloors: Record<string, number> = {
+      parsing: 12,
+      extracting: 35,
+      scoring: 60,
+      ranking: 95,
+      done: 100,
+    };
+    const floor = stageFloors[s.stage] ?? 8;
+
+    if (typeof s.progress_pct === 'number' && s.progress_pct > 0) {
+      return Math.max(floor, s.progress_pct);
+    }
+
+    switch (s.stage) {
+      case 'parsing':
+        return Math.max(12, Math.round(10 + ((s.done || 0) / total) * 15));
+      case 'extracting':
+        return Math.max(35, Math.round(35 + ((s.done || 0) / total) * 20));
+      case 'scoring':
+        return Math.max(60, Math.round(60 + scoredRatio * 32));
+      case 'ranking':
+        return 96;
+      case 'done':
+        return 100;
+      default:
+        return Math.max(8, Math.round(scoredRatio * 100));
+    }
+  };
+
+  const currentPct = allDone ? 100 : computeProgressPct(status);
   const animatedPct = useCountUp(currentPct, 0.6);
   const isReduced = Boolean(shouldReduce);
 
   return (
-    <div className="min-h-screen font-sans flex flex-col antialiased text-white" style={{ background: '#0a0a0f' }}>
+    <div className="min-h-screen font-sans flex flex-col antialiased text-white" style={{ background: 'transparent' }}>
 
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <header className="border-b border-white/[0.06] px-8 py-4 flex items-center justify-between">
@@ -229,7 +267,11 @@ export default function ProcessingPage() {
                     {allDone
                       ? 'Redirecting to your results…'
                       : status
-                        ? `${status.done} of ${status.total} candidates scored`
+                        ? status.stage === 'scoring' || status.done > 0
+                          ? `${status.done} of ${status.total} candidates scored`
+                          : status.stage === 'extracting'
+                            ? `Extracting skills & experience (${status.total} resumes)`
+                            : `Parsing ${status.total} resume files…`
                         : 'Starting pipeline…'
                     }
                   </p>

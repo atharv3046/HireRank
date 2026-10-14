@@ -127,13 +127,25 @@ UNICODE_REPLACEMENTS = {
     "ﬁ": "fi", "ﬂ": "fl", "ﬀ": "ff", "ﬃ": "ffi", "ﬄ": "ffl",
 }
 
+# Regex to strip invisible/zero-width characters and directional overrides used in prompt injection / spoofing
+INVISIBLE_OR_OVERRIDE_CHARS = re.compile(
+    r"[\u200B-\u200D\uFEFF\u2060\u00AD"  # zero-width spaces, joiners, BOM, soft hyphen
+    r"\u202A-\u202E\u2066-\u2069"        # bidirectional text overrides
+    r"]"
+)
+
+MAX_PDF_PAGES = 8
+
 
 def normalise_text(raw: str) -> str:
-    """Normalize unicode, bullets, ligatures, and extra whitespace."""
+    """Normalize unicode, bullets, ligatures, extra whitespace, and strip invisible control characters."""
     if not raw:
         return ""
 
     text = raw
+    # Strip invisible/zero-width characters to prevent prompt injection
+    text = INVISIBLE_OR_OVERRIDE_CHARS.sub("", text)
+
     for src, dst in UNICODE_REPLACEMENTS.items():
         text = text.replace(src, dst)
 
@@ -212,21 +224,36 @@ class ResumeParser:
             import pdfplumber
             with pdfplumber.open(file_path) as pdf:
                 pages_text = []
-                for idx, page in enumerate(pdf.pages):
+                # Cap pages to prevent decompression/memory bombs
+                for idx, page in enumerate(pdf.pages[:MAX_PDF_PAGES]):
                     pt = page.extract_text() or ""
                     if pt.strip():
                         pages_text.append(pt)
                 extracted_text = "\n".join(pages_text)
+                if len(pdf.pages) > MAX_PDF_PAGES:
+                    notes.append(f"Capped extraction to first {MAX_PDF_PAGES} of {len(pdf.pages)} pages")
         except Exception as e:
-            notes.append(f"pdfplumber extraction failed: {e}")
+            err_str = str(e).lower()
+            if "encrypt" in err_str or "password" in err_str:
+                notes.append("PDF is encrypted/password-protected.")
+            else:
+                notes.append(f"pdfplumber extraction failed: {e}")
 
         # Fallback: pypdf
         if not extracted_text.strip():
             try:
                 import pypdf
+                from pypdf.errors import FileNotDecryptedError
                 reader = pypdf.PdfReader(str(file_path))
+                if getattr(reader, "is_encrypted", False):
+                    try:
+                        reader.decrypt("")
+                    except (Exception, FileNotDecryptedError):
+                        notes.append("PDF is encrypted and cannot be decrypted without a password.")
+                        return "", notes
+
                 pages_text = []
-                for page in reader.pages:
+                for idx, page in enumerate(reader.pages[:MAX_PDF_PAGES]):
                     pt = page.extract_text() or ""
                     if pt.strip():
                         pages_text.append(pt)
