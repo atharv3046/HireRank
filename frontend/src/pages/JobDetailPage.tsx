@@ -266,7 +266,7 @@ export default function JobDetailPage() {
         <Sidebar />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="w-10 h-10 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-10 h-10 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-sm text-white/40">Loading candidate roster…</p>
           </div>
         </main>
@@ -281,7 +281,7 @@ export default function JobDetailPage() {
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <p className="text-white font-bold text-lg mb-2">Screening Batch Not Found</p>
-            <button onClick={() => navigate('/dashboard')} className="text-cyan-400 text-sm font-semibold hover:underline">
+            <button onClick={() => navigate('/dashboard')} className="text-[var(--accent)] text-sm font-semibold hover:underline">
               ← Return to Dashboard
             </button>
           </div>
@@ -315,20 +315,20 @@ export default function JobDetailPage() {
           {/* Batch header card */}
           <motion.div
             variants={fadeInUpVariants}
-            className="rounded-2xl border border-white/[0.08] p-6 shadow-sm mb-6"
+            className="rounded-2xl border border-[var(--line)] p-6 shadow-sm mb-6"
             style={{ background: '#0d0d14' }}
           >
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold tracking-wider text-cyan-400 uppercase bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
+                  <span className="text-xs font-bold tracking-wider text-[var(--accent)] uppercase bg-[var(--accent-dim)] px-2.5 py-0.5 rounded-full border border-[var(--accent)]/30">
                     SCREENING BATCH #{job.id}
                   </span>
                   <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                     {job.status.toUpperCase()}
                   </span>
                   {job.weights && (
-                    <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center gap-1.5">
+                    <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/30 flex items-center gap-1.5">
                       <span>⚖️</span> Custom Scoring Weights Active
                     </span>
                   )}
@@ -355,7 +355,7 @@ export default function JobDetailPage() {
                   disabled={exporting || candidates.length === 0}
                   whileHover={shouldReduce ? undefined : { scale: 1.02 }}
                   whileTap={shouldReduce ? undefined : { scale: 0.98 }}
-                  className="flex items-center gap-2 border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
+                  className="flex items-center gap-2 border border-[var(--line)] bg-white/[0.04] hover:bg-white/[0.08] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
                 >
                   <svg className="w-4 h-4 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -370,8 +370,8 @@ export default function JobDetailPage() {
                   whileTap={shouldReduce ? undefined : { scale: 0.98 }}
                   className={`flex items-center gap-2 border text-sm font-semibold px-4 py-2.5 rounded-xl transition-all ${
                     showWeightCustomizer
-                      ? 'border-cyan-400 bg-cyan-500/20 text-cyan-300 shadow-lg shadow-cyan-500/10'
-                      : 'border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-white'
+                      ? 'border-[var(--accent)] bg-[var(--accent-dim)] text-[var(--accent)] shadow-none'
+                      : 'border-[var(--line)] bg-white/[0.04] hover:bg-white/[0.08] text-white'
                   }`}
                   title="Tune scoring weights (Semantic, Skills, Experience, Title, Education)"
                 >
@@ -384,7 +384,7 @@ export default function JobDetailPage() {
                   disabled={reranking || candidates.length === 0}
                   whileHover={shouldReduce ? undefined : { scale: 1.02 }}
                   whileTap={shouldReduce ? undefined : { scale: 0.98 }}
-                  className="flex items-center gap-2 border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
+                  className="flex items-center gap-2 border border-[var(--accent)]/30 bg-[var(--accent-dim)] hover:bg-[var(--accent-dim)] text-[var(--accent)] text-sm font-semibold px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
                 >
                   <svg className={`w-4 h-4 ${reranking ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -396,7 +396,7 @@ export default function JobDetailPage() {
                   onClick={() => navigate(`/jobs/${jobId}/upload`)}
                   whileHover={shouldReduce ? undefined : { scale: 1.02 }}
                   whileTap={shouldReduce ? undefined : { scale: 0.98 }}
-                  className="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-cyan-500/20"
+                  className="flex items-center gap-2 bg-[var(--accent)] text-[#04110f] font-semibold text-sm font-semibold px-4 py-2.5 rounded-xl transition-all shadow-none"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -408,10 +408,10 @@ export default function JobDetailPage() {
 
             {/* Required skills tags */}
             {job.required_skills && job.required_skills.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center gap-2 flex-wrap text-xs">
+              <div className="mt-4 pt-4 border-t border-[var(--line)] flex items-center gap-2 flex-wrap text-xs">
                 <span className="font-semibold text-white/50">Required Must-Have Skills:</span>
                 {job.required_skills.map(s => (
-                  <span key={s} className="bg-white/[0.04] text-white/80 border border-white/[0.06] px-2.5 py-0.5 rounded-md font-medium">
+                  <span key={s} className="bg-white/[0.04] text-white/80 border border-[var(--line)] px-2.5 py-0.5 rounded-md font-medium">
                     {s}
                   </span>
                 ))}
@@ -466,7 +466,7 @@ export default function JobDetailPage() {
           {/* Filters and controls */}
           <motion.div
             variants={fadeInUpVariants}
-            className="rounded-2xl border border-white/[0.08] p-4 shadow-sm mb-6"
+            className="rounded-2xl border border-[var(--line)] p-4 shadow-sm mb-6"
             style={{ background: '#0d0d14' }}
           >
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -482,12 +482,12 @@ export default function JobDetailPage() {
                   value={skillFilter}
                   onChange={e => setSkillFilter(e.target.value)}
                   placeholder="Filter by skill (e.g. React, Python)..."
-                  className="w-full pl-9 pr-4 py-2 text-sm bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="w-full pl-9 pr-4 py-2 text-sm bg-white/[0.04] border border-[var(--line)] rounded-xl text-white placeholder-[#7d838f] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
                 />
               </div>
 
               {/* 4-Tier Filter Buttons */}
-              <div className="flex items-center gap-1.5 p-1 bg-white/[0.04] rounded-xl text-xs font-semibold border border-white/[0.06]">
+              <div className="flex items-center gap-1.5 p-1 bg-white/[0.04] rounded-xl text-xs font-semibold border border-[var(--line)]">
                 {(['all', 'Strong', 'Potential', 'Low', 'Needs Review'] as const).map(tier => (
                   <button
                     key={tier}
@@ -509,7 +509,7 @@ export default function JobDetailPage() {
                 <select
                   value={sortBy}
                   onChange={e => setSortBy(e.target.value as any)}
-                  className="bg-[#14141f] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  className="bg-[#14141f] border border-[var(--line)] rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
                 >
                   <option value="score_desc">Highest Match Score</option>
                   <option value="score_asc">Lowest Match Score</option>
@@ -526,15 +526,15 @@ export default function JobDetailPage() {
 
             {/* Selection info bar */}
             {selectedIds.size > 0 && (
-              <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
+              <div className="mt-3 pt-3 border-t border-[var(--line)] flex items-center justify-between text-xs">
                 <div className="flex items-center gap-3">
-                  <span className="font-bold text-cyan-300">
+                  <span className="font-bold text-[var(--accent)]">
                     {selectedIds.size} of {filteredCandidates.length} candidate(s) selected
                   </span>
                   {selectedIds.size >= 2 && selectedIds.size <= 3 && (
                     <button
                       onClick={() => setShowComparisonModal(true)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-bold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 flex items-center gap-1.5 transition-colors"
+                      className="px-2.5 py-1 rounded-lg text-xs font-bold bg-[var(--accent-dim)] hover:bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/30 flex items-center gap-1.5 transition-colors"
                     >
                       <span>⚔️</span>
                       <span>Compare Selected ({selectedIds.size})</span>
@@ -554,19 +554,19 @@ export default function JobDetailPage() {
           {/* Candidates Full Table */}
           <motion.div
             variants={fadeInUpVariants}
-            className="rounded-2xl border border-white/[0.08] overflow-hidden shadow-sm"
+            className="rounded-2xl border border-[var(--line)] overflow-hidden shadow-sm"
             style={{ background: '#0d0d14' }}
           >
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-white/[0.06] bg-white/[0.02] text-[11px] font-bold text-white/40 uppercase tracking-wider">
+                  <tr className="border-b border-[var(--line)] bg-white/[0.02] text-[11px] font-bold text-white/40 uppercase tracking-wider">
                     <th className="py-4 pl-6 pr-2 w-10">
                       <input
                         type="checkbox"
                         checked={selectedIds.size === filteredCandidates.length && filteredCandidates.length > 0}
                         onChange={selectAll}
-                        className="rounded bg-white/[0.04] border-white/[0.2] text-cyan-500 focus:ring-cyan-500/50 accent-cyan-500"
+                        className="rounded bg-white/[0.04] border-white/[0.2] text-[var(--accent)] focus:ring-[var(--accent)]/30 accent-[var(--accent)]"
                       />
                     </th>
                     <th className="py-4 px-4">Candidate & Contact (Unblurred)</th>
@@ -581,7 +581,7 @@ export default function JobDetailPage() {
                     <tr>
                       <td colSpan={6} className="py-16 text-center">
                         <div className="max-w-md mx-auto space-y-3">
-                          <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mx-auto text-cyan-400">
+                          <div className="w-12 h-12 rounded-2xl bg-[var(--accent-dim)] border border-[var(--accent)]/30 flex items-center justify-center mx-auto text-[var(--accent)]">
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
@@ -597,7 +597,7 @@ export default function JobDetailPage() {
                           {candidates.length === 0 && (
                             <button
                               onClick={() => navigate(`/jobs/${jobId}/upload`)}
-                              className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all shadow-md shadow-cyan-500/20 mt-2"
+                              className="inline-flex items-center gap-2 bg-[var(--accent)] text-[#04110f] font-semibold text-xs font-semibold px-4 py-2 rounded-xl transition-all shadow-none mt-2"
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -635,7 +635,7 @@ export default function JobDetailPage() {
                         <React.Fragment key={c.id}>
                           <tr
                             className={`transition-colors hover:bg-white/[0.02] ${
-                              isSelected ? 'bg-cyan-500/10' : ''
+                              isSelected ? 'bg-[var(--accent-dim)]' : ''
                             }`}
                           >
                             {/* Checkbox */}
@@ -644,7 +644,7 @@ export default function JobDetailPage() {
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={() => toggleSelect(c.id)}
-                                className="rounded bg-white/[0.04] border-white/[0.2] text-cyan-500 focus:ring-cyan-500/50 accent-cyan-500"
+                                className="rounded bg-white/[0.04] border-white/[0.2] text-[var(--accent)] focus:ring-[var(--accent)]/30 accent-[var(--accent)]"
                               />
                             </td>
 
@@ -654,8 +654,8 @@ export default function JobDetailPage() {
                                 <div
                                   className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-extrabold flex-shrink-0 shadow-md ${
                                     isMasked
-                                      ? 'bg-gradient-to-br from-indigo-500/30 to-purple-600/30 border border-indigo-500/40 text-indigo-300'
-                                      : 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-cyan-500/20'
+                                      ? 'bg-[var(--accent-dim)] border border-[var(--accent)]/30 text-[var(--accent)]'
+                                      : 'bg-[var(--accent-dim)] border border-[var(--accent)]/30 text-[var(--accent)] text-white shadow-none'
                                   }`}
                                 >
                                   {isMasked ? `#${rowIdx + 1}` : (c.name ? c.name.slice(0, 2).toUpperCase() : 'CD')}
@@ -747,7 +747,7 @@ export default function JobDetailPage() {
                             <td className="py-4 pr-6 pl-4 text-right">
                               <button
                                 onClick={() => toggleExpand(c.id)}
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent)] hover:text-[var(--accent)] transition-colors"
                               >
                                 {isExpanded ? 'Hide' : 'Explain'}
                                 <svg
@@ -766,7 +766,7 @@ export default function JobDetailPage() {
 
                           {/* ── EXPANDABLE EXPLANATION ROW WITH ANIMATION ── */}
                           {isExpanded && (
-                            <tr className="bg-white/[0.015] border-b border-white/[0.06]">
+                            <tr className="bg-white/[0.015] border-b border-[var(--line)]">
                               <td colSpan={6} className="p-0">
                                 <motion.div
                                   variants={accordionVariants}
@@ -807,7 +807,7 @@ export default function JobDetailPage() {
                                         )}
 
                                         {/* Recruiter Pipeline Stage & Blind Screening Unmask Action */}
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-[var(--line)]">
                                           <div className="flex items-center gap-2 text-xs">
                                             <span className="text-white/40 font-medium">Pipeline Status:</span>
                                             <span className={`px-2.5 py-0.5 rounded-md font-bold text-xs uppercase tracking-wider ${
@@ -815,7 +815,7 @@ export default function JobDetailPage() {
                                                 ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                                                 : c.pipeline_status === 'Hire'
                                                 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                                : 'bg-white/[0.06] text-white/70 border border-white/[0.08]'
+                                                : 'bg-white/[0.06] text-white/70 border border-[var(--line)]'
                                             }`}>
                                               {c.pipeline_status || 'Screened'}
                                             </span>
@@ -834,7 +834,7 @@ export default function JobDetailPage() {
                                             <button
                                               onClick={() => handleAdvanceToInterview(c.id)}
                                               disabled={updatingPipelineId === c.id}
-                                              className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white shadow-sm transition-all flex items-center gap-1.5"
+                                              className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[var(--accent)] text-[#04110f] hover:bg-[#2dd4bf] text-white shadow-sm transition-all flex items-center gap-1.5"
                                             >
                                               {updatingPipelineId === c.id ? (
                                                 <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -872,31 +872,31 @@ export default function JobDetailPage() {
                                             Traceable Component Breakdown
                                           </div>
                                           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                                            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                            <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--line)]">
                                               <div className="text-[11px] text-white/40">Semantic Fit (35%)</div>
                                               <div className="text-base font-black text-white mt-0.5">
                                                 {c.semantic_score != null ? `${Math.round(c.semantic_score)}%` : '—'}
                                               </div>
                                             </div>
-                                            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                            <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--line)]">
                                               <div className="text-[11px] text-white/40">Skill Coverage (30%)</div>
                                               <div className="text-base font-black text-white mt-0.5">
                                                 {c.skills_score != null ? `${Math.round(c.skills_score)}%` : '—'}
                                               </div>
                                             </div>
-                                            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                            <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--line)]">
                                               <div className="text-[11px] text-white/40">Experience (20%)</div>
                                               <div className="text-base font-black text-white mt-0.5">
                                                 {c.experience_score != null ? `${Math.round(c.experience_score)}%` : '—'}
                                               </div>
                                             </div>
-                                            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                            <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--line)]">
                                               <div className="text-[11px] text-white/40">Title Relevance (10%)</div>
                                               <div className="text-base font-black text-white mt-0.5">
                                                 {c.title_score != null ? `${Math.round(c.title_score)}%` : '—'}
                                               </div>
                                             </div>
-                                            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                            <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--line)]">
                                               <div className="text-[11px] text-white/40">Education (5%)</div>
                                               <div className="text-base font-black text-white mt-0.5">
                                                 {c.education_score != null ? `${Math.round(c.education_score)}%` : '—'}
@@ -908,7 +908,7 @@ export default function JobDetailPage() {
                                         {/* Matched vs Missing vs Beyond Skills */}
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
                                           {/* Matched Required Skills */}
-                                          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                          <div className="p-4 rounded-xl bg-white/[0.03] border border-[var(--line)]">
                                             <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 mb-2.5">
                                               <span className="w-2 h-2 rounded-full bg-emerald-500" />
                                               Matched Required Skills ({c.matched_skills?.length || 0})
@@ -930,7 +930,7 @@ export default function JobDetailPage() {
                                           </div>
 
                                           {/* Missing Required Skills */}
-                                          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                          <div className="p-4 rounded-xl bg-white/[0.03] border border-[var(--line)]">
                                             <div className="flex items-center gap-1.5 text-xs font-bold text-rose-400 mb-2.5">
                                               <span className="w-2 h-2 rounded-full bg-rose-500" />
                                               Missing Required Skills ({c.missing_skills?.length || 0})
@@ -952,9 +952,9 @@ export default function JobDetailPage() {
                                           </div>
 
                                           {/* Beyond JD Strengths */}
-                                          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                                            <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-400 mb-2.5">
-                                              <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                                          <div className="p-4 rounded-xl bg-white/[0.03] border border-[var(--line)]">
+                                            <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--accent)] mb-2.5">
+                                              <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
                                               Bonus Strengths Beyond JD ({beyondSkills.length})
                                             </div>
                                             <div className="flex flex-wrap gap-1.5">
@@ -962,7 +962,7 @@ export default function JobDetailPage() {
                                                 beyondSkills.slice(0, 8).map(s => (
                                                   <span
                                                     key={s}
-                                                    className="bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 px-2 py-0.5 rounded text-xs font-medium"
+                                                    className="bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/30 px-2 py-0.5 rounded text-xs font-medium"
                                                   >
                                                     ★ {s}
                                                   </span>
@@ -975,7 +975,7 @@ export default function JobDetailPage() {
                                         </div>
 
                                         {/* Traceable Evidence Panel */}
-                                        <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                                        <div className="p-4 rounded-xl bg-white/[0.02] border border-[var(--line)]">
                                           <EvidencePanel
                                             evidenceSpans={c.explanation_json?.evidence_spans}
                                             candidateName={displayName}
@@ -1017,10 +1017,10 @@ export default function JobDetailPage() {
               initial={{ opacity: 0, y: 24, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 24, scale: 0.95 }}
-              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#0d0d16]/95 backdrop-blur-md border border-cyan-500/40 shadow-2xl shadow-cyan-950/80 px-5 py-3 rounded-2xl flex items-center gap-4"
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#0d0f14]/95 backdrop-blur-md border border-[var(--accent)]/30 shadow-2xl shadow-none px-5 py-3 rounded-2xl flex items-center gap-4"
             >
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[var(--accent)] animate-pulse" />
                 <span className="text-xs font-bold text-white">
                   {selectedIds.size} Finalists Selected
                 </span>
@@ -1030,7 +1030,7 @@ export default function JobDetailPage() {
 
               <button
                 onClick={() => setShowComparisonModal(true)}
-                className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-lg shadow-cyan-500/25 transition-all"
+                className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl bg-[var(--accent)] text-[#04110f] font-semibold shadow-none transition-all"
               >
                 <span>⚔️</span>
                 <span>Compare Selected ({selectedIds.size})</span>

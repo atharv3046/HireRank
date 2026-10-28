@@ -8,28 +8,21 @@ interface ScoreBarProps {
 
 const ScoreBar: React.FC<ScoreBarProps> = ({ label, score, showPercentage = true }) => {
   const displayScore = score === null ? 0 : Math.round(score * (showPercentage ? 100 : 1));
-  const numericScore = score === null ? 0 : score * 100;
-  
-  let colorClass = 'bg-gray-200';
-  if (score !== null) {
-    if (numericScore >= 80) colorClass = 'bg-green-500';
-    else if (numericScore >= 50) colorClass = 'bg-yellow-400';
-    else colorClass = 'bg-red-500';
-  }
+  const numericScore = score === null ? 0 : Math.min(100, Math.max(0, score * 100));
 
   return (
     <div className="mb-3">
-      <div className="flex justify-between items-center mb-1">
-        <span className="text-sm font-medium text-gray-700">{label}</span>
-        <span className="text-sm font-semibold text-gray-900">
+      <div className="flex justify-between items-center mb-1.5 text-xs">
+        <span className="font-medium text-[var(--muted)]">{label}</span>
+        <span className="font-mono tabular-nums font-semibold text-[var(--text)]">
           {score === null ? 'N/A' : `${displayScore}${showPercentage ? '%' : ''}`}
         </span>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-2">
-        <div 
-          className={`h-2 rounded-full ${colorClass}`} 
+      <div className="w-full bg-white/[0.05] border border-[var(--line)] rounded-full h-2 overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-500 bg-[var(--accent)]"
           style={{ width: `${score === null ? 0 : numericScore}%` }}
-        ></div>
+        />
       </div>
     </div>
   );

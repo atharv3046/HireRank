@@ -16,7 +16,6 @@ import {
   tabContentVariants,
   listItemVariants,
 } from '../utils/animations';
-import MiniOrbCanvas from '../components/MiniOrbCanvas';
 
 type SettingsTab = 'profile' | 'team';
 
@@ -200,9 +199,9 @@ export default function SettingsPage() {
 
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* Top Header Bar */}
-        <div className="px-8 py-4 border-b border-white/[0.06] flex items-center justify-between">
+        <div className="px-8 py-4 border-b border-[var(--line)] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs font-semibold text-white/80">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-[var(--line)] text-xs font-semibold text-white/80">
               <svg className="w-3.5 h-3.5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -236,12 +235,8 @@ export default function SettingsPage() {
           {/* Header Title */}
           <motion.div variants={fadeInUpVariants} className="relative">
             {/* Subtle 3D orb in settings header */}
-            <MiniOrbCanvas
-              color="#a78bfa"
-              reduced={shouldReduce ?? false}
-              className="absolute -top-4 right-0 w-28 h-28 opacity-20 pointer-events-none hidden xl:block"
-            />
-            <h1 className="text-2xl font-extrabold text-white">Team Settings</h1>
+            
+            <h1 className="font-serif-display text-3xl font-normal text-[var(--text)] tracking-tight">Team Settings</h1>
             <p className="text-xs text-white/40 mt-1">
               Manage your company workspace and team member permissions.
             </p>
@@ -250,7 +245,7 @@ export default function SettingsPage() {
           {/* Settings Tabs Bar */}
           <motion.div
             variants={fadeInUpVariants}
-            className="flex items-center gap-2 border-b border-white/[0.08] pb-1"
+            className="flex items-center gap-2 border-b border-[var(--line)] pb-1"
           >
             {[
               { id: 'profile', label: 'Company Profile' },
@@ -269,7 +264,7 @@ export default function SettingsPage() {
                   {isActive && (
                     <motion.div
                       layoutId="settingsTabIndicator"
-                      className="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-500"
+                      className="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-[var(--accent)]"
                     />
                   )}
                 </button>
@@ -279,7 +274,7 @@ export default function SettingsPage() {
 
           {loading ? (
             <div className="py-24 text-center text-white/30">
-              <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
               Loading settings details...
             </div>
           ) : (
@@ -298,7 +293,7 @@ export default function SettingsPage() {
                 >
                   <form
                     onSubmit={handleSaveProfile}
-                    className="p-6 rounded-2xl border border-white/[0.08] space-y-6"
+                    className="p-6 rounded-2xl border border-[var(--line)] space-y-6"
                     style={{ background: '#0d0d14' }}
                   >
                     <div>
@@ -329,7 +324,7 @@ export default function SettingsPage() {
                           value={workspaceName}
                           onChange={e => setWorkspaceName(e.target.value)}
                           placeholder="e.g. Acme Corporation"
-                          className="w-full px-3.5 py-2.5 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                          className="w-full px-3.5 py-2.5 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-[#7d838f] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30"
                         />
                       </div>
 
@@ -344,7 +339,7 @@ export default function SettingsPage() {
                           value={adminEmail}
                           onChange={e => setAdminEmail(e.target.value)}
                           placeholder="admin@company.com"
-                          className="w-full px-3.5 py-2.5 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                          className="w-full px-3.5 py-2.5 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-[#7d838f] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30"
                         />
                       </div>
 
@@ -358,7 +353,7 @@ export default function SettingsPage() {
                           value={domain}
                           onChange={e => setDomain(e.target.value)}
                           placeholder="company.com"
-                          className="w-full px-3.5 py-2.5 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                          className="w-full px-3.5 py-2.5 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-[#7d838f] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30"
                         />
                       </div>
 
@@ -372,7 +367,7 @@ export default function SettingsPage() {
                             type="text"
                             readOnly
                             value={profile?.org_id || 'org_0001'}
-                            className="w-full px-3.5 py-2.5 text-xs bg-white/[0.02] border border-white/[0.06] rounded-xl text-white/60 font-mono focus:outline-none cursor-default"
+                            className="w-full px-3.5 py-2.5 text-xs bg-white/[0.02] border border-[var(--line)] rounded-xl text-white/60 font-mono focus:outline-none cursor-default"
                           />
                           <button
                             type="button"
@@ -389,7 +384,7 @@ export default function SettingsPage() {
                       <button
                         type="submit"
                         disabled={savingProfile}
-                        className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 disabled:opacity-50 text-white rounded-xl shadow-lg shadow-cyan-500/20 transition-all"
+                        className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold bg-[var(--accent)] text-[#04110f] font-semibold disabled:opacity-45 rounded-xl shadow-none transition-all"
                       >
                         {savingProfile && (
                           <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -415,12 +410,12 @@ export default function SettingsPage() {
                 >
                   {/* Seat Usage Banner */}
                   <div
-                    className="p-6 rounded-2xl border border-white/[0.08] flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className="p-6 rounded-2xl border border-[var(--line)] flex flex-col md:flex-row md:items-center justify-between gap-4"
                     style={{ background: '#0d0d14' }}
                   >
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
+                        <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">
                           Team Capacity
                         </span>
                         <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
@@ -431,7 +426,7 @@ export default function SettingsPage() {
                       </h3>
                       <div className="w-48 bg-white/[0.06] rounded-full h-1.5 overflow-hidden mt-2">
                         <motion.div
-                          className="h-full bg-cyan-400 rounded-full"
+                          className="h-full bg-[var(--accent)] rounded-full"
                           initial={{ width: '0%' }}
                           animate={{ width: `${seatUsage.percentage}%` }}
                           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
@@ -441,7 +436,7 @@ export default function SettingsPage() {
 
                     <button
                       onClick={() => setShowInviteModal(true)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white rounded-xl shadow-lg shadow-cyan-500/20 transition-all self-start md:self-auto"
+                      className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold bg-[var(--accent)] text-[#04110f] font-semibold rounded-xl shadow-none transition-all self-start md:self-auto"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -452,13 +447,13 @@ export default function SettingsPage() {
 
                   {/* Team Members List */}
                   <div
-                    className="rounded-2xl border border-white/[0.08] overflow-hidden shadow-sm"
+                    className="rounded-2xl border border-[var(--line)] overflow-hidden shadow-sm"
                     style={{ background: '#0d0d14' }}
                   >
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse">
                         <thead>
-                          <tr className="border-b border-white/[0.06] bg-white/[0.01] text-[11px] font-bold text-white/40 uppercase tracking-wider">
+                          <tr className="border-b border-[var(--line)] bg-white/[0.01] text-[11px] font-bold text-white/40 uppercase tracking-wider">
                             <th className="py-4 px-6">MEMBER</th>
                             <th className="py-4 px-4">ROLE</th>
                             <th className="py-4 px-4 text-center">STATUS</th>
@@ -480,14 +475,14 @@ export default function SettingsPage() {
                               {/* Member */}
                               <td className="py-4 px-6">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300 font-extrabold text-xs">
+                                  <div className="w-9 h-9 rounded-full bg-[var(--accent-dim)] border border-[var(--accent)]/30 text-[var(--accent)] border border-[var(--accent)]/30 flex items-center justify-center text-[var(--accent)] font-extrabold text-xs">
                                     {(m.name || m.email).slice(0, 2).toUpperCase()}
                                   </div>
                                   <div>
                                     <div className="font-bold text-white flex items-center gap-2">
                                       <span>{m.name || m.email.split('@')[0]}</span>
                                       {m.is_primary && (
-                                        <span className="text-[10px] font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 px-1.5 py-0.5 rounded">
+                                        <span className="text-[10px] font-semibold bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/30 px-1.5 py-0.5 rounded">
                                           Workspace Owner
                                         </span>
                                       )}
@@ -532,7 +527,7 @@ export default function SettingsPage() {
                                     {m.status === 'Invited' && (
                                       <button
                                         onClick={() => handleCopyExistingMemberLink(m)}
-                                        className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1"
+                                        className="text-xs font-semibold text-[var(--accent)] hover:text-[var(--accent)] transition-colors flex items-center gap-1"
                                       >
                                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -582,7 +577,7 @@ export default function SettingsPage() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
+                  <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">
                     Workspace Collaboration
                   </span>
                   <h3 className="text-lg font-extrabold text-white">Invite Team Member</h3>
@@ -612,10 +607,10 @@ export default function SettingsPage() {
                       ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
                       : emailError
                       ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-                      : 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300'
+                      : 'bg-[var(--accent-dim)] border-[var(--accent)]/30 text-[var(--accent)]'
                   }`}>
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 font-bold ${
-                      emailSent ? 'bg-emerald-500/20 text-emerald-400' : emailError ? 'bg-amber-500/20 text-amber-400' : 'bg-cyan-500/20 text-cyan-400'
+                      emailSent ? 'bg-emerald-500/20 text-emerald-400' : emailError ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--accent-dim)] text-[var(--accent)]'
                     }`}>
                       {emailSent ? '✉' : emailError ? '!' : '✓'}
                     </div>
@@ -650,7 +645,7 @@ export default function SettingsPage() {
                         className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                           copiedLink
                             ? 'bg-emerald-500 text-black shadow-emerald-500/20 shadow-lg'
-                            : 'bg-cyan-500 hover:bg-cyan-400 text-black shadow-cyan-500/20 shadow-lg'
+                            : 'bg-[var(--accent)] hover:bg-[var(--accent)] text-black shadow-none shadow-lg'
                         }`}
                       >
                         {copiedLink ? 'Copied!' : 'Copy Link'}
@@ -683,7 +678,7 @@ export default function SettingsPage() {
                       value={inviteName}
                       onChange={e => setInviteName(e.target.value)}
                       placeholder="e.g. Sarah Connor"
-                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-[#7d838f] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30"
                     />
                   </div>
 
@@ -697,7 +692,7 @@ export default function SettingsPage() {
                       value={inviteEmail}
                       onChange={e => setInviteEmail(e.target.value)}
                       placeholder="colleague@company.com"
-                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-[#7d838f] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30"
                     />
                   </div>
 
@@ -708,7 +703,7 @@ export default function SettingsPage() {
                     <select
                       value={inviteRole}
                       onChange={e => setInviteRole(e.target.value)}
-                      className="w-full px-3.5 py-2 text-xs bg-[#14141f] border border-white/[0.1] rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50 cursor-pointer"
+                      className="w-full px-3.5 py-2 text-xs bg-[#14141f] border border-white/[0.1] rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 cursor-pointer"
                     >
                       <option value="Recruiter">Recruiter (Can screen & invite candidates)</option>
                       <option value="Admin">Admin (Full workspace access)</option>
@@ -727,7 +722,7 @@ export default function SettingsPage() {
                     <button
                       type="submit"
                       disabled={sendingInvite}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 disabled:opacity-50 text-white shadow-lg shadow-cyan-500/20 transition-all"
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[var(--accent)] text-[#04110f] font-semibold disabled:opacity-45 shadow-none transition-all"
                     >
                       {sendingInvite && (
                         <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />

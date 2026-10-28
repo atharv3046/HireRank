@@ -61,20 +61,18 @@ export interface PreviewData {
 const TIER_CONFIG: Record<CandidateTier, { pill: string; dot: string; bar: string; scoreColor: string }> = {
   Strong:         { pill: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25', dot: 'bg-emerald-400', bar: 'bg-emerald-500', scoreColor: 'text-emerald-400' },
   Potential:      { pill: 'bg-amber-500/15 text-amber-400 border-amber-500/25',       dot: 'bg-amber-400',   bar: 'bg-amber-400',   scoreColor: 'text-amber-400'   },
-  Low:            { pill: 'bg-white/[0.05] text-white/30 border-white/[0.08]',        dot: 'bg-white/20',    bar: 'bg-white/20',    scoreColor: 'text-white/40'    },
+  Low:            { pill: 'bg-white/[0.05] text-white/30 border-[var(--line)]',        dot: 'bg-white/20',    bar: 'bg-white/20',    scoreColor: 'text-white/40'    },
   'Needs Review': { pill: 'bg-purple-500/15 text-purple-300 border-purple-500/25',     dot: 'bg-purple-400',  bar: 'bg-purple-400',  scoreColor: 'text-purple-400'  },
 };
 
 /* ── Logo ────────────────────────────────────────────────────────────────── */
 const Logo = ({ onClick }: { onClick: () => void }) => (
   <button onClick={onClick} className="flex items-center gap-2.5 group">
-    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
+    <div className="w-7 h-7 rounded-lg bg-[var(--accent-dim)] border border-[var(--accent)]/30 flex items-center justify-center text-[var(--accent)] font-bold text-xs">
+      HR
     </div>
-    <span className="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors">
-      Hire<span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Rank</span>
+    <span className="font-bold text-lg tracking-tight text-[var(--text)] font-sans">
+      Hire<span className="text-[var(--accent)]">Rank</span>
     </span>
   </button>
 );
@@ -155,14 +153,14 @@ const CandidateCard = ({
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border ${
             isUnparseable
               ? 'bg-purple-500/20 border-purple-500/30'
-              : 'bg-gradient-to-br from-cyan-500/30 to-blue-600/30 border-cyan-500/20'
+              : 'bg-[var(--accent-dim)] border-[var(--accent)]/30'
           }`}>
             {isUnparseable ? (
               <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             ) : (
-              <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             )}
@@ -214,7 +212,7 @@ const CandidateCard = ({
             initial={shouldReduce ? false : "hidden"}
             animate="visible"
             exit="exit"
-            className="border-t border-white/[0.05] px-5 py-5 space-y-5 bg-white/[0.01]"
+            className="border-t border-[var(--line)] px-5 py-5 space-y-5 bg-white/[0.01]"
           >
             {isUnparseable ? (
               <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-200 text-xs leading-relaxed">
@@ -277,14 +275,14 @@ const CandidateCard = ({
             )}
 
             {/* Row-level CTA */}
-            <div className="flex items-center justify-between pt-3 border-t border-white/[0.05]">
+            <div className="flex items-center justify-between pt-3 border-t border-[var(--line)]">
               <p className="text-xs text-white/20">
                 🔒 Name and contact info hidden until you create a workspace.
               </p>
               <motion.button
                 whileHover={!shouldReduce ? { x: 2 } : undefined}
                 onClick={e => { e.stopPropagation(); onSignup(); }}
-                className="text-xs text-cyan-400 font-semibold hover:text-cyan-300 transition-colors flex items-center gap-1"
+                className="text-xs text-[var(--accent)] font-semibold hover:text-[var(--accent)] transition-colors flex items-center gap-1"
               >
                 Unlock
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -310,7 +308,6 @@ const StatCard = ({ value, label, sub, color }: {
       whileHover={!shouldReduce ? { y: -2, borderColor: 'rgba(255,255,255,0.12)' } : undefined}
       transition={{ duration: 0.2 }}
       className="rounded-2xl border border-white/[0.07] p-5 text-center transition-colors"
-      style={{ background: '#0d0d14' }}
     >
       <div className={`text-3xl font-extrabold mb-1 ${color}`}>{value}</div>
       <div className="text-sm font-medium text-white/50">{label}</div>
@@ -391,12 +388,12 @@ export default function ResultsPreviewPage() {
   // Show a brief redirecting state while claim is in progress
   if (claiming) return (
     <div className="min-h-screen flex flex-col font-sans" style={{ background: 'transparent' }}>
-      <header className="border-b border-white/[0.06] px-8 py-4">
+      <header className="border-b border-[var(--line)] px-8 py-4">
         <Logo onClick={() => navigate('/')} />
       </header>
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-10 h-10 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-sm text-white/50">Transferring your results to your workspace…</p>
         </div>
       </div>
@@ -406,12 +403,12 @@ export default function ResultsPreviewPage() {
   /* ── Loading ─────────────────────────────────────────────────────────── */
   if (loading) return (
     <div className="min-h-screen flex flex-col font-sans" style={{ background: 'transparent' }}>
-      <header className="border-b border-white/[0.06] px-8 py-4">
+      <header className="border-b border-[var(--line)] px-8 py-4">
         <Logo onClick={() => navigate('/')} />
       </header>
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-10 h-10 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-sm text-white/30">Loading your results…</p>
         </div>
       </div>
@@ -430,7 +427,7 @@ export default function ResultsPreviewPage() {
       <p className="text-white/60 font-medium max-w-sm">{error || 'No results found.'}</p>
       <button
         onClick={() => navigate('/screen')}
-        className="text-sm bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-cyan-400 hover:to-blue-400 transition-all"
+        className="btn-primary text-xs py-2.5 px-4"
       >
         ← Start new screening
       </button>
@@ -444,8 +441,8 @@ export default function ResultsPreviewPage() {
 
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <header
-        className="sticky top-0 z-20 border-b border-white/[0.06] px-8 py-4 backdrop-blur-md"
-        style={{ background: 'rgba(10,10,15,0.9)' }}
+        className="sticky top-0 z-20 border-b border-[var(--line)] px-8 py-4 backdrop-blur-md"
+        style={{ background: '#08090c' }}
       >
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Logo onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')} />
@@ -455,7 +452,7 @@ export default function ResultsPreviewPage() {
               whileHover={!shouldReduce ? { scale: 1.02 } : undefined}
               whileTap={!shouldReduce ? { scale: 0.98 } : undefined}
               onClick={() => navigate(data?.job_id ? `/resume-screenings?batch=${data.job_id}` : '/resume-screenings')}
-              className="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-cyan-500/15"
+              className="btn-primary text-xs py-2.5 px-4 gap-2"
             >
               Open in Workspace →
             </motion.button>
@@ -464,7 +461,7 @@ export default function ResultsPreviewPage() {
               whileHover={!shouldReduce ? { scale: 1.02 } : undefined}
               whileTap={!shouldReduce ? { scale: 0.98 } : undefined}
               onClick={goSignup}
-              className="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-cyan-500/15"
+              className="btn-primary text-xs py-2.5 px-4 gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -485,12 +482,12 @@ export default function ResultsPreviewPage() {
           animate="visible"
         >
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
+            <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">
               Screening results
             </span>
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
           </div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">{job_title}</h1>
+          <h1 className="font-serif-display text-3xl md:text-4xl font-normal text-[var(--text)] tracking-tight">{job_title}</h1>
           <p className="text-sm text-white/30 mt-1.5 max-w-lg">
             {isAuthenticated
               ? 'Candidate screening results are ready. Open the batch in your recruiter workspace to take action.'
@@ -511,7 +508,7 @@ export default function ResultsPreviewPage() {
           <StatCard
             value={stats.average_score != null ? `${stats.average_score}%` : '—'}
             label="Avg. score"
-            color="text-cyan-400"
+            color="text-[var(--accent)]"
           />
         </motion.div>
 
@@ -523,7 +520,6 @@ export default function ResultsPreviewPage() {
             whileInView="visible"
             viewport={{ once: true }}
             className="rounded-2xl border border-white/[0.07] p-5"
-            style={{ background: '#0d0d14' }}
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-white/60">Tier distribution</h3>
@@ -596,11 +592,11 @@ export default function ResultsPreviewPage() {
           </div>
 
           {candidates.length === 0 ? (
-            <div className="rounded-2xl border border-white/[0.07] p-12 text-center" style={{ background: '#0d0d14' }}>
+            <div className="rounded-2xl border border-white/[0.07] p-12 text-center">
               <p className="text-white/30 text-sm">No candidates were successfully processed.</p>
               <button
                 onClick={() => navigate('/screen')}
-                className="mt-4 text-cyan-400 text-sm font-medium hover:text-cyan-300 transition-colors"
+                className="mt-4 text-[var(--accent)] text-sm font-medium hover:text-[var(--accent)] transition-colors"
               >
                 ← Try uploading again
               </button>
@@ -633,11 +629,11 @@ export default function ResultsPreviewPage() {
           initial={shouldReduce ? false : "hidden"}
           whileInView="visible"
           viewport={{ once: true }}
-          className="relative rounded-2xl overflow-hidden p-10 text-center border border-white/[0.08]"
+          className="relative rounded-2xl overflow-hidden p-10 text-center border border-[var(--line)]"
           style={{ background: 'linear-gradient(135deg, rgba(6,182,212,0.12) 0%, rgba(59,130,246,0.12) 100%)' }}
         >
           <div className="relative">
-            <div className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-semibold px-3 py-1 rounded-full mb-4">
+            <div className="inline-flex items-center gap-2 bg-[var(--accent-dim)] border border-[var(--accent)]/30 text-[var(--accent)] text-xs font-semibold px-3 py-1 rounded-full mb-4">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d={isAuthenticated ? "M5 13l4 4L19 7" : "M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"} />
@@ -661,7 +657,7 @@ export default function ResultsPreviewPage() {
                 onClick={isAuthenticated
                   ? () => navigate(data?.job_id ? `/resume-screenings?batch=${data.job_id}` : '/resume-screenings')
                   : goSignup}
-                className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold px-8 py-3.5 rounded-xl text-sm shadow-lg shadow-cyan-500/20 hover:from-cyan-400 hover:to-blue-400 transition-all"
+                className="bg-[var(--accent)] text-[#04110f] font-semibold-white font-bold px-8 py-3.5 rounded-xl text-sm shadow-none  transition-all"
               >
                 {isAuthenticated ? 'Open in Workspace →' : 'Create free workspace →'}
               </motion.button>

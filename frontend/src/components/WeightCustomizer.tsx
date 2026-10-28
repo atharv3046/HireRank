@@ -257,18 +257,18 @@ export const WeightCustomizer: React.FC<WeightCustomizerProps> = ({
   };
 
   return (
-    <div className="rounded-2xl border border-white/[0.1] bg-[#0d0d16] p-6 shadow-2xl">
+    <div className="rounded-2xl border border-white/[0.1] bg-[#0d0f14] p-6 shadow-2xl">
       {/* Header with Title and Recruiter Moment */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/[0.08]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[var(--line)]">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-base font-black tracking-tight text-white flex items-center gap-2">
-              <span className="p-1 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              <span className="p-1 rounded-lg bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/30">
                 ⚖️
               </span>
               Role Scoring Weight Customizer
             </span>
-            <span className="text-[11px] font-semibold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
+            <span className="text-[11px] font-semibold text-[var(--accent)] bg-[var(--accent-dim)] px-2 py-0.5 rounded-full border border-[var(--accent)]/30">
               Feature 5: Tuning
             </span>
           </div>
@@ -280,7 +280,7 @@ export const WeightCustomizer: React.FC<WeightCustomizerProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={handleReset}
-            className="text-xs font-semibold text-white/50 hover:text-white px-3 py-1.5 rounded-lg border border-white/[0.08] hover:bg-white/[0.05] transition-colors"
+            className="text-xs font-semibold text-white/50 hover:text-white px-3 py-1.5 rounded-lg border border-[var(--line)] hover:bg-white/[0.05] transition-colors"
           >
             Reset to Default
           </button>
@@ -319,15 +319,15 @@ export const WeightCustomizer: React.FC<WeightCustomizerProps> = ({
                 onClick={() => applyPreset(p.weights)}
                 className={`text-left p-3 rounded-xl border transition-all ${
                   isMatch
-                    ? 'border-cyan-500/50 bg-cyan-500/10 shadow-sm'
-                    : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.12]'
+                    ? 'border-[var(--accent)]/40 bg-[var(--accent-dim)] shadow-sm'
+                    : 'border-[var(--line)] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.12]'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className={`text-xs font-bold ${isMatch ? 'text-cyan-300' : 'text-white'}`}>
+                  <span className={`text-xs font-bold ${isMatch ? 'text-[var(--accent)]' : 'text-white'}`}>
                     {p.name}
                   </span>
-                  <span className="text-[10px] text-white/40 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">
+                  <span className="text-[10px] text-white/40 bg-white/[0.04] px-1.5 py-0.5 rounded border border-[var(--line)]">
                     {p.tag}
                   </span>
                 </div>
@@ -341,14 +341,14 @@ export const WeightCustomizer: React.FC<WeightCustomizerProps> = ({
       </div>
 
       {/* Live Recruiter Impact Banner (Mandatory Prompt Spec) */}
-      <div className="mt-5 p-4 rounded-xl border border-cyan-500/30 bg-gradient-to-r from-cyan-950/40 via-cyan-900/20 to-blue-950/30">
+      <div className="mt-5 p-4 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent-dim)]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-start sm:items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-bold text-sm shrink-0 border border-cyan-500/30">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent-dim)] text-[var(--accent)] flex items-center justify-center font-bold text-sm shrink-0 border border-[var(--accent)]/30">
               📊
             </div>
             <div>
-              <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--accent)]">
                 Live Recruiter Impact Simulation
               </div>
               <div className="text-sm font-bold text-white mt-0.5">
@@ -387,8 +387,8 @@ export const WeightCustomizer: React.FC<WeightCustomizerProps> = ({
           value={weights.semantic}
           normalizedPct={normalizedPercentages.semantic}
           onChange={(v) => handleSliderChange('semantic', v)}
-          color="accent-cyan-400"
-          badgeColor="text-cyan-400 bg-cyan-500/10 border-cyan-500/20"
+          color="accent-[var(--accent)]"
+          badgeColor="text-[var(--accent)] bg-[var(--accent-dim)] border-[var(--accent)]/30"
         />
 
         {/* Factor 2: Skills */}
@@ -448,7 +448,7 @@ export const WeightCustomizer: React.FC<WeightCustomizerProps> = ({
       )}
 
       {/* Save Action Footer */}
-      <div className="mt-6 pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="mt-6 pt-4 border-t border-[var(--line)] flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2 text-xs text-white/50">
           <span>Weights sum:</span>
           <span className={`font-mono font-bold ${totalPoints === 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
@@ -466,7 +466,7 @@ export const WeightCustomizer: React.FC<WeightCustomizerProps> = ({
             <button
               onClick={onClose}
               disabled={saving}
-              className="flex-1 sm:flex-none text-xs font-semibold text-white/60 hover:text-white px-4 py-2.5 rounded-xl border border-white/[0.08] hover:bg-white/[0.04] transition-all"
+              className="flex-1 sm:flex-none text-xs font-semibold text-white/60 hover:text-white px-4 py-2.5 rounded-xl border border-[var(--line)] hover:bg-white/[0.04] transition-all"
             >
               Cancel
             </button>
@@ -478,7 +478,7 @@ export const WeightCustomizer: React.FC<WeightCustomizerProps> = ({
             className={`flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg transition-all ${
               saveSuccess
                 ? 'bg-emerald-500 text-white'
-                : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-cyan-500/20'
+                : 'bg-[var(--accent)] text-[#04110f] font-semibold shadow-none'
             } disabled:opacity-50`}
           >
             {saving ? (
@@ -532,7 +532,7 @@ const FactorSlider: React.FC<FactorSliderProps> = ({
   badgeColor,
 }) => {
   return (
-    <div className="p-3.5 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] transition-all">
+    <div className="p-3.5 rounded-xl border border-[var(--line)] bg-white/[0.02] hover:bg-white/[0.04] transition-all">
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
           <span className="text-sm">{icon}</span>

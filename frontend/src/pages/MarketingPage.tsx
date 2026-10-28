@@ -1,26 +1,28 @@
 /**
  * MarketingPage.tsx - HireRank Landing Page
- * Features:
- *  - 3D tactile push-depth buttons with specular light beams and neon glow
- *  - 3D interactive tilt cards with holographic glass glare tracking the cursor
- *  - 3D floating hero headline with animated gradient glow & live pulsing eyebrow badge
- *  - Sweeping cyber laser scanner on the interactive demo card
- *  - Dynamic step connector beam and floating 3D orb icons
- *  - Interactive role marquee with hover freeze & neon highlights
- *  - Transparent outer wrapper ensuring GlobalBackground cursor constellation is visible
+ *
+ * Redesigned per modern editorial aesthetic:
+ *  - Left-aligned headline with Instrument Serif typography
+ *  - Single unified accent (--accent: #5eead4)
+ *  - Flat, crisp buttons without neon glows or 3D extrusions
+ *  - Authentic product mock card on the right with 84 match score ring & parsed skills
+ *  - Wireframe sphere canvas positioned softly behind the mock (keeping text crystal clear)
+ *  - Single row stats with dividers and credible metrics
+ *  - Numbered steps joined by connecting line with simple Lucide icons
+ *  - Single marquee row with CSS mask fade and deduplicated roles
+ *  - High-contrast body text with readable muted tones
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   ChevronDown, Menu, X, ArrowRight,
-  Shield, Brain, BarChart3, FileSearch, Sparkles, CheckCircle2
+  Shield, Brain, BarChart3, FileSearch, Sparkles, CheckCircle2,
+  UploadCloud, Cpu, Layers, ListOrdered
 } from 'lucide-react';
-import { motion, useInView, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import HeroCanvas from '../components/HeroCanvas';
-import MiniOrbCanvas from '../components/MiniOrbCanvas';
-import ParticleFieldCanvas from '../components/ParticleFieldCanvas';
 
 /* ── Reduced-motion hook ─────────────────────────────────────────── */
 function usePrefersReducedMotion() {
@@ -35,307 +37,89 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
-/* ── 3-D mouse-tilt card wrapper with Holographic Glare (Zero Re-render) ── */
-function TiltCard({
+/* ── Card Spotlight Hover Effect ─────────────────────────────────── */
+function SpotlightCard({
   children,
   className = '',
-  accentColor = '#22d3ee',
 }: {
   children: React.ReactNode;
   className?: string;
-  accentColor?: string;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const glareRef = useRef<HTMLDivElement>(null);
-  const rectRef = useRef<DOMRect | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ x: -1000, y: -1000 });
+  const [isHovered, setIsHovered] = useState(false);
 
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotX = useSpring(useTransform(y, [-1, 1], [9, -9]), { stiffness: 220, damping: 22 });
-  const rotY = useSpring(useTransform(x, [-1, 1], [-9, 9]),  { stiffness: 220, damping: 22 });
-  const scale = useSpring(1, { stiffness: 300, damping: 20 });
-
-  const onEnter = useCallback(() => {
-    scale.set(1.02);
-    if (ref.current) rectRef.current = ref.current.getBoundingClientRect();
-  }, [scale]);
-
-  const onMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = rectRef.current || (ref.current ? (rectRef.current = ref.current.getBoundingClientRect()) : null);
-    if (!rect) return;
-    const nx = ((e.clientX - rect.left) / rect.width  - 0.5) * 2;
-    const ny = ((e.clientY - rect.top)  / rect.height - 0.5) * 2;
-    x.set(nx);
-    y.set(ny);
-
-    if (glareRef.current) {
-      const gx = ((e.clientX - rect.left) / rect.width) * 100;
-      const gy = ((e.clientY - rect.top) / rect.height) * 100;
-      glareRef.current.style.background = `radial-gradient(circle 240px at ${gx}% ${gy}%, rgba(255, 255, 255, 0.16), transparent 75%)`;
-      glareRef.current.style.opacity = '1';
-    }
-  }, [x, y]);
-
-  const onLeave = useCallback(() => {
-    rectRef.current = null;
-    x.set(0);
-    y.set(0);
-    scale.set(1);
-    if (glareRef.current) {
-      glareRef.current.style.opacity = '0';
-    }
-  }, [x, y, scale]);
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    setPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
 
   return (
-    <motion.div
-      ref={ref}
-      onMouseMove={onMove}
-      onMouseLeave={onLeave}
-      onMouseEnter={onEnter}
-      style={{
-        rotateX: rotX,
-        rotateY: rotY,
-        scale,
-        transformStyle: 'preserve-3d',
-        perspective: 900,
-        willChange: 'transform',
+    <div
+      ref={cardRef}
+      onMouseMove={onMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setPos({ x: -1000, y: -1000 });
       }}
-      className={`relative overflow-hidden group/card ${className}`}
+      className={`relative overflow-hidden rounded-2xl border border-[var(--line)] bg-[#0d0f14]/80 backdrop-blur-sm transition-colors duration-200 ${className}`}
     >
-      {/* Dynamic Specular Holographic Glare that tracks cursor */}
       <div
-        ref={glareRef}
-        className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-30 opacity-0"
-      />
-      {/* Subtle glowing accent border on hover */}
-      <div
-        className="absolute inset-0 rounded-2xl opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 pointer-events-none z-20"
+        className="pointer-events-none absolute -inset-px transition-opacity duration-300"
         style={{
-          boxShadow: `inset 0 0 0 1px ${accentColor}40, 0 0 20px ${accentColor}15`,
+          opacity: isHovered ? 1 : 0,
+          background: `radial-gradient(380px circle at ${pos.x}px ${pos.y}px, rgba(94, 234, 212, 0.08), transparent 75%)`,
         }}
       />
       {children}
-    </motion.div>
+    </div>
   );
 }
 
-/* ── 3-D Tactile Button Component ────────────────────────────────── */
-function Button3D({
-  children,
-  onClick,
-  href,
-  variant = 'primary',
-  size = 'md',
-  className = '',
-  id,
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  href?: string;
-  variant?: 'primary' | 'secondary' | 'glass';
-  size?: 'sm' | 'md' | 'lg';
-  className?: string;
-  id?: string;
-}) {
-  const ref = useRef<any>(null);
-  const rectRef = useRef<DOMRect | null>(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotX = useSpring(useTransform(y, [-0.5, 0.5], [8, -8]), { stiffness: 350, damping: 25 });
-  const rotY = useSpring(useTransform(x, [-0.5, 0.5], [-8, 8]), { stiffness: 350, damping: 25 });
-
-  const onEnter = () => {
-    if (ref.current) rectRef.current = ref.current.getBoundingClientRect();
-  };
-
-  const onMove = (e: React.MouseEvent) => {
-    const rect = rectRef.current || (ref.current ? (rectRef.current = ref.current.getBoundingClientRect()) : null);
-    if (!rect) return;
-    x.set((e.clientX - rect.left) / rect.width - 0.5);
-    y.set((e.clientY - rect.top) / rect.height - 0.5);
-  };
-
-  const onLeave = () => {
-    rectRef.current = null;
-    x.set(0);
-    y.set(0);
-  };
-
-  const sizeClasses = {
-    sm: 'px-4 py-2 text-xs',
-    md: 'px-7 py-3.5 text-sm',
-    lg: 'px-9 py-4 text-base',
-  }[size];
-
-  const motionProps = {
-    ref,
-    id,
-    onMouseEnter: onEnter,
-    onMouseMove: onMove,
-    onMouseLeave: onLeave,
-    style: {
-      rotateX: rotX,
-      rotateY: rotY,
-      transformStyle: 'preserve-3d' as const,
-      perspective: 600,
-      willChange: 'transform',
-    },
-    whileHover: { scale: 1.05 },
-    whileTap: { scale: 0.96, translateY: 3 },
-    transition: { type: 'spring' as const, stiffness: 350, damping: 22 },
-  };
-
-  if (variant === 'primary') {
-    const inner = (
-      <>
-        {/* Pulsing neon aura under button */}
-        <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 opacity-60 blur-md group-hover:opacity-100 group-hover:blur-xl transition-all duration-300" />
-
-        {/* 3D bottom bevel extrusion */}
-        <div className="absolute inset-0 translate-y-1.5 rounded-xl bg-gradient-to-b from-cyan-600 to-blue-800 shadow-lg" />
-
-        {/* Top button surface with tactile gloss */}
-        <div className={`relative rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-blue-500 text-black ${sizeClasses} font-bold flex items-center justify-center gap-2 shadow-[inset_0_1px_2px_rgba(255,255,255,0.95),inset_0_-2px_4px_rgba(0,0,0,0.3)] overflow-hidden transition-all duration-200`}>
-          {/* Animated specular light beam sweep */}
-          <div className="absolute inset-0 -translate-x-[150%] group-hover:translate-x-[150%] bg-gradient-to-r from-transparent via-white/60 to-transparent transition-transform duration-1000 ease-out pointer-events-none" />
-          <span className="relative z-10 flex items-center gap-2 drop-shadow-[0_1px_0_rgba(255,255,255,0.7)]">
-            {children}
-          </span>
-        </div>
-      </>
-    );
-
-    if (href) {
-      return (
-        <motion.a
-          {...motionProps}
-          href={href}
-          className={`group relative inline-block select-none cursor-pointer rounded-xl ${className}`}
-        >
-          {inner}
-        </motion.a>
-      );
-    }
-
-    return (
-      <motion.button
-        {...motionProps}
-        onClick={onClick}
-        className={`group relative select-none cursor-pointer rounded-xl ${className}`}
-      >
-        {inner}
-      </motion.button>
-    );
-  }
-
-  // Secondary / Glass variant
-  const glassInner = (
-    <>
-      <div className="absolute -inset-0.5 rounded-xl bg-cyan-500/25 opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-300" />
-      <div className={`relative rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.12] hover:border-cyan-400/50 text-white/80 hover:text-white ${sizeClasses} font-medium flex items-center justify-center gap-2 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.15)] transition-all duration-300 overflow-hidden`}>
-        <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-800 ease-out pointer-events-none" />
-        <span className="relative z-10 flex items-center gap-2">
-          {children}
-        </span>
-      </div>
-    </>
-  );
-
-  if (href) {
-    return (
-      <motion.a
-        {...motionProps}
-        href={href}
-        className={`group relative inline-block select-none cursor-pointer rounded-xl ${className}`}
-      >
-        {glassInner}
-      </motion.a>
-    );
-  }
-
-  return (
-    <motion.button
-      {...motionProps}
-      onClick={onClick}
-      className={`group relative select-none cursor-pointer rounded-xl ${className}`}
-    >
-      {glassInner}
-    </motion.button>
-  );
-}
-
-/* ── 3-D floating logo mark ──────────────────────────────────────── */
-function FloatingLogoMark({ reduced }: { reduced: boolean }) {
-  return (
-    <motion.div
-      className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-lg shadow-cyan-500/20"
-      animate={reduced ? {} : { y: [0, -5, 0], rotateZ: [0, 2, 0] }}
-      transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-      style={{ transformStyle: 'preserve-3d' }}
-    >
-      <MiniOrbCanvas color="#22d3ee" reduced={reduced} className="absolute inset-0 w-full h-full" />
-    </motion.div>
-  );
-}
-
-/* === CSS KEYFRAMES === */
+/* ── CSS KEYFRAMES ───────────────────────────────────────────────── */
 const GLOBAL_STYLES = `
-  @keyframes marqueeLeft  { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }
-  @keyframes marqueeRight { from { transform: translate3d(-50%, 0, 0); } to { transform: translate3d(0, 0, 0); } }
-  @keyframes orbitSpin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
-  }
-  @keyframes laserSweep {
-    0%   { top: 0%; opacity: 0; }
-    15%  { opacity: 0.85; }
-    85%  { opacity: 0.85; }
-    100% { top: 100%; opacity: 0; }
-  }
-  @keyframes pulseNeon {
-    0%, 100% { filter: drop-shadow(0 0 15px rgba(34, 211, 238, 0.4)); }
-    50%      { filter: drop-shadow(0 0 28px rgba(99, 102, 241, 0.6)); }
-  }
-  @keyframes shimmerBar {
-    0%   { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+  @keyframes marqueeLeft {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-50%, 0, 0); }
   }
 `;
 
-/* === LOGO === */
+/* ── Logo ────────────────────────────────────────────────────────── */
 function HireRankLogo({ height = 28 }: { height?: number }) {
   const fontSize = Math.round(height * 0.58);
   return (
     <span
       style={{
         fontSize: `${fontSize}px`,
-        fontWeight: 800,
-        letterSpacing: '-0.03em',
+        fontWeight: 700,
+        letterSpacing: '-0.02em',
         lineHeight: 1,
-        fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
+      className="text-[var(--text)] tracking-tight font-sans"
     >
-      Hire<span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Rank</span>
+      Hire<span className="text-[var(--accent)]">Rank</span>
     </span>
   );
 }
 
-/* === NAVBAR === */
+/* ── Navbar ──────────────────────────────────────────────────────── */
 const NAV_LINKS = [
-  { label: 'How It Works', href: '#how',      chevron: false },
-  { label: 'Features',     href: '#features', chevron: false },
-  { label: 'Demo',         href: '#demo',     chevron: true  },
-  { label: 'Resources',    href: '#faq',      chevron: true  },
+  { label: 'How It Works', href: '#how', chevron: false },
+  { label: 'Features', href: '#features', chevron: false },
+  { label: 'Demo', href: '#demo', chevron: false },
+  { label: 'FAQ', href: '#faq', chevron: false },
 ];
 
-function Navbar({ reduced }: { reduced: boolean }) {
+function Navbar() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -343,102 +127,111 @@ function Navbar({ reduced }: { reduced: boolean }) {
   return (
     <>
       <nav
-        className={`sticky top-0 z-50 flex items-center justify-between px-6 md:px-10 h-18 transition-all duration-300 ${
+        className={`sticky top-0 z-50 flex items-center justify-between px-6 md:px-12 h-18 transition-all duration-200 ${
           scrolled
-            ? 'bg-black/70 backdrop-blur-2xl border-b border-white/[0.07] shadow-[0_1px_40px_rgba(0,0,0,0.6)]'
+            ? 'bg-[#08090c]/85 backdrop-blur-xl border-b border-[var(--line)] shadow-sm'
             : 'bg-transparent'
         }`}
         style={{ height: '4.5rem' }}
       >
-        <Link to="/" className="text-white flex-shrink-0 flex items-center gap-3 group" aria-label="HireRank home">
-          <FloatingLogoMark reduced={reduced} />
-          <HireRankLogo height={36} />
+        <Link to="/" className="flex items-center gap-2.5" aria-label="HireRank home">
+          <div className="w-7 h-7 rounded-lg bg-[var(--accent-dim)] border border-[var(--accent)]/30 flex items-center justify-center text-[var(--accent)] font-bold text-xs">
+            HR
+          </div>
+          <HireRankLogo height={32} />
         </Link>
-        <div className="hidden md:flex items-center gap-8 px-6 py-2 rounded-full bg-white/[0.02] border border-white/[0.06] backdrop-blur-md">
+
+        <div className="hidden md:flex items-center gap-8 text-[14px]">
           {NAV_LINKS.map((l) => (
             <a
               key={l.label}
               href={l.href}
-              className="flex items-center gap-1 text-[14px] font-normal text-white/50 hover:text-white transition-colors duration-200"
+              className="text-[var(--muted)] hover:text-[var(--text)] transition-colors duration-150"
             >
               {l.label}
-              {l.chevron && <ChevronDown className="w-3.5 h-3.5 opacity-40" strokeWidth={2} />}
             </a>
           ))}
         </div>
-        <div className="hidden md:flex items-center gap-5">
+
+        <div className="hidden md:flex items-center gap-4">
           <Link
             to="/login"
-            className="text-[14px] font-normal text-white/50 hover:text-white transition-colors duration-200"
+            className="text-[14px] text-[var(--muted)] hover:text-[var(--text)] transition-colors duration-150 px-2 py-1"
           >
             Sign In
           </Link>
-          <Button3D
+          <button
             id="navbar-cta"
-            size="sm"
             onClick={() => navigate(isAuthenticated ? '/dashboard' : '/screen')}
+            className="btn-primary text-xs py-2.5 px-4.5"
           >
             {isAuthenticated ? 'Dashboard' : 'Get Started'}
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-          </Button3D>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
+
         <button
           id="mobile-menu-open"
           onClick={() => setMobileOpen(true)}
-          className="md:hidden text-white/70 hover:text-white p-2 transition-colors rounded-xl bg-white/[0.04] border border-white/[0.08]"
+          className="md:hidden text-[var(--muted)] hover:text-[var(--text)] p-2 transition-colors rounded-lg border border-[var(--line)]"
           aria-label="Open menu"
         >
           <Menu className="w-5 h-5" strokeWidth={1.8} />
         </button>
       </nav>
+
+      {/* Mobile Drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col px-8 pt-8 pb-12"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 bg-[#08090c]/98 backdrop-blur-2xl flex flex-col px-8 pt-8 pb-12"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18 }}
           >
-            <div className="flex items-center justify-between mb-14">
-              <Link to="/" className="text-white" onClick={() => setMobileOpen(false)}>
+            <div className="flex items-center justify-between mb-12">
+              <Link to="/" onClick={() => setMobileOpen(false)}>
                 <HireRankLogo height={28} />
               </Link>
               <button
                 id="mobile-menu-close"
                 onClick={() => setMobileOpen(false)}
-                className="text-white/40 hover:text-white transition-colors p-2 rounded-xl bg-white/[0.04]"
+                className="text-[var(--muted)] hover:text-[var(--text)] p-2 rounded-lg border border-[var(--line)]"
                 aria-label="Close menu"
               >
                 <X className="w-5 h-5" strokeWidth={1.8} />
               </button>
             </div>
-            <div className="flex flex-col gap-7 flex-1">
+            <div className="flex flex-col gap-6 flex-1">
               {NAV_LINKS.map((l) => (
                 <a
                   key={l.label}
                   href={l.href}
                   onClick={() => setMobileOpen(false)}
-                  className="text-2xl font-normal text-white/60 hover:text-white transition-colors"
+                  className="text-xl text-[var(--muted)] hover:text-[var(--text)] transition-colors"
                 >
                   {l.label}
                 </a>
               ))}
             </div>
-            <div className="border-t border-white/[0.08] pt-8 flex flex-col gap-4">
+            <div className="border-t border-[var(--line)] pt-8 flex flex-col gap-4">
               <Link
                 to="/login"
                 onClick={() => setMobileOpen(false)}
-                className="text-lg font-normal text-white/50 hover:text-white transition-colors"
+                className="text-base text-[var(--muted)] hover:text-[var(--text)] py-2"
               >
                 Sign In
               </Link>
-              <Button3D
-                size="md"
-                onClick={() => { setMobileOpen(false); navigate('/screen'); }}
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  navigate('/screen');
+                }}
+                className="btn-primary w-full"
               >
                 Get Started Free
-              </Button3D>
+              </button>
             </div>
           </motion.div>
         )}
@@ -447,175 +240,290 @@ function Navbar({ reduced }: { reduced: boolean }) {
   );
 }
 
-/* === HERO === */
+/* ── Hero Product Mock Component ─────────────────────────────────── */
+function HeroProductMock({ reduced }: { reduced: boolean }) {
+  return (
+    <div className="relative w-full max-w-lg mx-auto lg:max-w-none">
+      {/* 3D Wireframe sphere positioned softly behind the mock */}
+      <div className="absolute -inset-10 opacity-30 pointer-events-none -z-10 flex items-center justify-center overflow-visible">
+        <HeroCanvas reduced={reduced} className="w-[125%] h-[125%]" />
+      </div>
+
+      {/* Product mock card */}
+      <div className="relative rounded-2xl bg-[#0d0f14]/95 border border-white/[0.1] p-6 shadow-2xl backdrop-blur-xl">
+        {/* Candidate header + match ring */}
+        <div className="flex items-start justify-between gap-4 pb-5 border-b border-[var(--line)]">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-full bg-[var(--accent-dim)] border border-[var(--accent)]/30 flex items-center justify-center text-[var(--accent)] font-semibold text-sm">
+              AC
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-semibold text-[var(--text)]">Alex Chen</h3>
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                  Verified
+                </span>
+              </div>
+              <p className="text-xs text-[var(--muted)] mt-0.5">
+                Senior Backend Engineer · 6 yrs exp · San Francisco, CA
+              </p>
+            </div>
+          </div>
+
+          {/* 84 Strong Match Ring */}
+          <div className="flex flex-col items-center flex-shrink-0">
+            <div className="relative w-14 h-14 flex items-center justify-center">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="20"
+                  stroke="rgba(255,255,255,0.08)"
+                  strokeWidth="3.5"
+                  fill="none"
+                />
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="20"
+                  stroke="var(--accent)"
+                  strokeWidth="3.5"
+                  fill="none"
+                  strokeDasharray="125.6"
+                  strokeDashoffset={125.6 * (1 - 0.84)}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <span className="absolute text-base font-bold text-[var(--text)] tabular-nums">
+                84
+              </span>
+            </div>
+            <span className="text-[10px] font-semibold text-[var(--accent)] tracking-wider uppercase mt-1">
+              Strong match
+            </span>
+          </div>
+        </div>
+
+        {/* Applied role & multi-factor breakdown */}
+        <div className="py-4 border-b border-[var(--line)]">
+          <div className="flex items-center justify-between text-xs mb-3">
+            <span className="text-[var(--muted)]">
+              Target Role:{' '}
+              <strong className="text-[var(--text)] font-medium">
+                Senior Python / Distributed Systems
+              </strong>
+            </span>
+            <span className="text-[11px] text-[var(--muted)] font-mono">Rank #1 of 50</span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="p-2.5 rounded-lg bg-white/[0.02] border border-[var(--line)]">
+              <span className="text-[11px] text-[var(--muted)] block">Semantic Fit</span>
+              <span className="text-xs font-bold text-[var(--text)] mt-0.5 block">88%</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-white/[0.02] border border-[var(--line)]">
+              <span className="text-[11px] text-[var(--muted)] block">Skill Match</span>
+              <span className="text-xs font-bold text-[var(--text)] mt-0.5 block">84%</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-white/[0.02] border border-[var(--line)]">
+              <span className="text-[11px] text-[var(--muted)] block">Experience</span>
+              <span className="text-xs font-bold text-[var(--text)] mt-0.5 block">80%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Parsed skills section */}
+        <div className="py-4 border-b border-[var(--line)]">
+          <span className="text-[11px] font-medium text-[var(--muted)] uppercase tracking-wider block mb-2.5">
+            Parsed Skills Coverage
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {['Python', 'FastAPI', 'PostgreSQL', 'Docker', 'Redis', 'Celery'].map((s) => (
+              <span
+                key={s}
+                className="text-xs px-2.5 py-1 rounded-md bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/20 font-medium"
+              >
+                ✓ {s}
+              </span>
+            ))}
+            <span className="text-xs px-2.5 py-1 rounded-md bg-rose-500/10 text-rose-300 border border-rose-500/25 font-medium flex items-center gap-1">
+              ✕ Missing: Kubernetes
+            </span>
+          </div>
+        </div>
+
+        {/* Evidence extraction snippet */}
+        <div className="pt-3.5 flex items-center justify-between text-xs">
+          <p className="text-[var(--muted)] truncate max-w-[300px]">
+            <span className="text-[var(--text)] font-medium">Evidence:</span> "Scaled async pipelines to 15k req/s using FastAPI & Redis..."
+          </p>
+          <span className="text-[var(--accent)] font-medium hover:underline cursor-pointer flex-shrink-0">
+            View breakdown →
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Hero Section ────────────────────────────────────────────────── */
 function Hero({ reduced }: { reduced: boolean }) {
   const navigate = useNavigate();
 
   return (
-    <section id="hero" className="relative flex items-center justify-center text-center px-6 pt-4 pb-20" style={{ minHeight: '100svh' }}>
-      {/* 3D Canvas — fills the hero section */}
-      <HeroCanvas
-        reduced={reduced}
-        className="absolute inset-0 w-full h-full opacity-70"
-      />
+    <section id="hero" className="relative px-6 md:px-12 pt-8 pb-20 min-h-[85vh] flex items-center">
+      <div className="max-w-6xl mx-auto w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+          {/* Left Column: Headline and Actions */}
+          <div className="lg:col-span-7 text-left">
+            {/* Plain text eyebrow badge */}
+            <div className="inline-flex items-center text-xs tracking-wider uppercase text-[var(--muted)] border border-[var(--line)] px-3 py-1 rounded-md mb-6 font-mono bg-white/[0.02]">
+              Resume screening, explained
+            </div>
 
-      {/* Radial vignette to keep text readable */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse 70% 65% at 50% 50%, transparent 30%, rgba(0,0,0,0.75) 100%)' }}
-      />
+            {/* Editorial Headline */}
+            <h1 className="hero-title mb-6">
+              Screen Smart.<br />
+              <em>Hire Better.</em>
+            </h1>
 
-      {/* Content */}
-      <div className="relative z-10 max-w-4xl mx-auto" style={{ perspective: 1000 }}>
-        {/* Animated 3D Eyebrow with Neon Dot */}
-        <motion.div
-          className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-semibold tracking-wider uppercase mb-7 shadow-[0_0_20px_rgba(6,182,212,0.25)] backdrop-blur-md cursor-default"
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          whileHover={{ scale: 1.05, borderColor: 'rgba(34,211,238,0.6)' }}
-        >
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
-          </span>
-          AI-Powered Resume Screening
-        </motion.div>
+            {/* High-contrast subtitle */}
+            <p className="text-[17px] leading-relaxed text-[var(--muted)] mb-8 max-w-lg">
+              Instant multi-factor resume ranking with explainable AI scores.
+              Upload candidates, paste a JD, and get your shortlist in 60 seconds.
+            </p>
 
-        {/* Headline with 3D depth and Holographic Gradient Glow */}
-        <motion.h1
-          className="text-[44px] sm:text-[58px] md:text-[72px] font-extrabold leading-[1.04] tracking-tight mb-7"
-          initial={{ opacity: 0, y: 30, rotateX: 14 }}
-          animate={{ opacity: 1, y: 0, rotateX: 0 }}
-          transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          style={{ transformStyle: 'preserve-3d' }}
-        >
-          <span className="text-white drop-shadow-[0_8px_30px_rgba(0,0,0,0.9)]">Screen Smart. </span>
-          <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(34,211,238,0.45)]">
-            Hire Better.
-          </span>
-        </motion.h1>
+            {/* Flat CTA row */}
+            <div className="flex flex-wrap items-center gap-4 mb-8">
+              <button
+                id="hero-cta"
+                onClick={() => navigate('/screen')}
+                className="btn-primary"
+              >
+                Get Started Free
+                <ArrowRight className="w-4 h-4" />
+              </button>
 
-        {/* Subtitle */}
-        <motion.p
-          className="text-[16px] md:text-[18px] font-light text-white/60 leading-relaxed mb-10 mx-auto max-w-xl"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.25 }}
-        >
-          Instant multi-factor resume ranking with explainable AI scores.
-          Upload candidates, paste a JD, and get your shortlist in 60 seconds.
-        </motion.p>
+              <a href="#how" className="btn-ghost">
+                See how it works
+              </a>
+            </div>
 
-        {/* 3D Action CTA Row */}
-        <motion.div
-          className="flex flex-wrap items-center justify-center gap-5"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
-          <Button3D
-            id="hero-cta"
-            size="lg"
-            onClick={() => navigate('/screen')}
-          >
-            <Sparkles className="w-4 h-4 text-cyan-900" />
-            Get Started Free
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </Button3D>
+            {/* Plain trust facts */}
+            <div className="flex flex-wrap items-center gap-6 text-xs text-[var(--muted)]">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[var(--accent)]" />
+                60s processing
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[var(--accent)]" />
+                Bias-free blind mode
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[var(--accent)]" />
+                No credit card required
+              </span>
+            </div>
+          </div>
 
-          <Button3D
-            variant="glass"
-            size="lg"
-            href="#how"
-          >
-            See how it works
-          </Button3D>
-        </motion.div>
-
-        {/* Interactive 3D Trust Badges */}
-        <motion.div
-          className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mt-10"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-        >
-          {[
-            { icon: Shield, text: 'Bias-free scoring', color: '#22d3ee' },
-            { icon: Brain,  text: 'Explainable AI',   color: '#818cf8' },
-            { icon: FileSearch, text: 'No login to try', color: '#34d399' },
-          ].map(({ icon: Icon, text, color }, idx) => (
-            <motion.div
-              key={text}
-              className="flex items-center gap-2 text-[12px] font-medium text-white/50 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.07] hover:border-cyan-500/40 hover:text-white transition-all duration-200 cursor-default shadow-sm backdrop-blur-sm"
-              whileHover={{ y: -2, scale: 1.04 }}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 + idx * 0.1 }}
-            >
-              <Icon className="w-3.5 h-3.5" style={{ color }} strokeWidth={1.8} />
-              {text}
-            </motion.div>
-          ))}
-        </motion.div>
+          {/* Right Column: Real Product Mock */}
+          <div className="lg:col-span-5">
+            <HeroProductMock reduced={reduced} />
+          </div>
+        </div>
       </div>
     </section>
   );
 }
 
-/* === HOW IT WORKS === */
+/* ── Stats Section (Single Row with Dividers) ────────────────────── */
+function StatsSection() {
+  return (
+    <section className="border-t border-b border-[var(--line)] my-12 bg-transparent">
+      <div className="max-w-6xl mx-auto stats-grid">
+        <div className="hover:bg-white/[0.02]">
+          <b>50</b>
+          <span>resumes per batch</span>
+        </div>
+        <div className="hover:bg-white/[0.02]">
+          <b>~4×</b>
+          <span>faster than manual review</span>
+        </div>
+        <div className="hover:bg-white/[0.02]">
+          <b>PDF · DOCX</b>
+          <span>supported formats</span>
+        </div>
+        <div className="hover:bg-white/[0.02]">
+          <b>Per-skill</b>
+          <span>score breakdown</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── How It Works (Numbered Steps with Connecting Line) ──────────── */
 const STEPS = [
-  { num: '01', icon: FileSearch, title: 'Upload resumes and JD',  desc: 'Drop in the job description and resume files (PDF or DOCX). Instant parsing with no signup required.', color: '#22d3ee' },
-  { num: '02', icon: Brain,      title: 'AI parses everything',   desc: 'NLP extracts skills, career timelines, education, and credentials from every resume automatically.', color: '#60a5fa' },
-  { num: '03', icon: BarChart3,  title: 'Semantic scoring',       desc: 'Dense embeddings measure skill match, experience fit, and semantic relevance against the role requirements.', color: '#34d399' },
-  { num: '04', icon: Shield,     title: 'Ranked shortlist',       desc: 'Receive an explainable tiered ranking with matched and missing requirements. Export to CSV in one click.', color: '#f59e0b' },
+  {
+    num: '01',
+    icon: UploadCloud,
+    title: 'Upload resumes and JD',
+    desc: 'Drop in candidate resumes in PDF or DOCX format alongside the target job description. No signup needed.',
+  },
+  {
+    num: '02',
+    icon: Cpu,
+    title: 'NLP entity extraction',
+    desc: 'Dual-engine parser extracts technical skills, career timelines, and education qualifications automatically.',
+  },
+  {
+    num: '03',
+    icon: Layers,
+    title: 'Multi-factor scoring',
+    desc: 'Dense sentence embeddings measure semantic depth, skill coverage, and experience requirements.',
+  },
+  {
+    num: '04',
+    icon: ListOrdered,
+    title: 'Ranked candidate shortlist',
+    desc: 'Receive transparent tiered rankings with verified matches and missing requirements in under 60 seconds.',
+  },
 ];
 
-function HowItWorks({ reduced }: { reduced: boolean }) {
+function HowItWorks() {
   return (
-    <section id="how" className="py-28 px-6 border-t border-white/[0.06] relative">
+    <section id="how" className="py-24 px-6 md:px-12 border-t border-[var(--line)]">
       <div className="max-w-6xl mx-auto">
-        <motion.div
-          className="text-center mb-20"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.5 }}
-        >
-          <p className="text-[11px] font-semibold text-cyan-400 uppercase tracking-[0.2em] mb-4">How it works</p>
-          <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight">From JD to ranked shortlist in 60s</h2>
-          <p className="text-white/40 mt-4 text-base max-w-md mx-auto">Four transparent steps. Zero guesswork. Every score explained.</p>
-        </motion.div>
+        <div className="text-center mb-16">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-3">
+            Workflow
+          </p>
+          <h2 className="text-3xl md:text-5xl font-extrabold text-[var(--text)] tracking-tight">
+            From JD to ranked shortlist in 60s
+          </h2>
+          <p className="text-[var(--muted)] mt-3 text-base max-w-md mx-auto">
+            Four transparent steps. Zero guesswork. Every score explained.
+          </p>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 relative">
-          {STEPS.map((step, i) => {
+        <div className="steps-row">
+          {STEPS.map((step) => {
             const Icon = step.icon;
             return (
-              <motion.div
-                key={step.num}
-                className="flex flex-col items-center text-center"
-                initial={{ opacity: 0, y: 35 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.5, delay: i * 0.12 }}
-              >
-                {/* 3D Tilt Icon Card with Specular Glare */}
-                <TiltCard
-                  accentColor={step.color}
-                  className="relative w-24 h-24 rounded-2xl bg-white/[0.03] border border-white/[0.09] mb-6 flex items-center justify-center shadow-lg"
-                >
-                  <MiniOrbCanvas color={step.color} reduced={reduced} className="absolute inset-0 w-full h-full opacity-60" />
-                  <Icon className="relative z-10 w-8 h-8 text-white" strokeWidth={1.7} />
-                  {/* Glowing 3D Number Badge */}
-                  <span
-                    className="absolute -top-2.5 -right-2.5 w-6 h-6 bg-gradient-to-tr from-cyan-400 to-blue-500 text-black rounded-full text-[10px] font-black flex items-center justify-center shadow-md border-2 border-black z-20"
-                  >
-                    {step.num}
-                  </span>
-                </TiltCard>
-                <h3 className="text-base font-bold text-white mb-2">{step.title}</h3>
-                <p className="text-xs text-white/40 leading-relaxed max-w-[220px]">{step.desc}</p>
-              </motion.div>
+              <div key={step.num} className="flex flex-col items-center text-center">
+                <div className="step-num mb-6">
+                  {step.num}
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-[var(--line)] flex items-center justify-center mb-4 text-[var(--accent)]">
+                  <Icon className="w-5 h-5" strokeWidth={1.8} />
+                </div>
+                <h3 className="text-base font-semibold text-[var(--text)] mb-2">
+                  {step.title}
+                </h3>
+                <p className="step-desc max-w-[240px]">
+                  {step.desc}
+                </p>
+              </div>
             );
           })}
         </div>
@@ -624,88 +532,49 @@ function HowItWorks({ reduced }: { reduced: boolean }) {
   );
 }
 
-/* === STATS SECTION === */
-const STATS = [
-  { value: '50',  suffix: '+', label: 'Resumes per batch',    color: '#22d3ee', icon: '📄' },
-  { value: '4',   suffix: 'x', label: 'Faster than manual',   color: '#60a5fa', icon: '⚡' },
-  { value: '92',  suffix: '%', label: 'Parse accuracy',       color: '#34d399', icon: '🎯' },
-  { value: '100', suffix: '%', label: 'Explainable scores',   color: '#f59e0b', icon: '🔍' },
+/* ── Marquee Section (Single Row, No Duplicates, CSS Mask Fade) ──── */
+const MARQUEE_ROLES = [
+  'Backend Engineers',
+  'Frontend Developers',
+  'Full-Stack Engineers',
+  'DevOps Engineers',
+  'Data Scientists',
+  'Machine Learning Engineers',
+  'Site Reliability Engineers',
+  'Cloud Architects',
+  'Product Managers',
+  'Security Engineers',
+  'QA Automation Engineers',
+  'Engineering Managers',
+  'AI Researchers',
+  'UI/UX Designers',
 ];
 
-function AnimatedCounter({ target, suffix, inView }: { target: number; suffix: string; inView: boolean }) {
-  const [val, setVal] = useState(0);
-  useEffect(() => {
-    if (!inView) return;
-    let start = 0;
-    const step = target / 40;
-    const id = setInterval(() => {
-      start = Math.min(start + step, target);
-      setVal(Math.round(start));
-      if (start >= target) clearInterval(id);
-    }, 30);
-    return () => clearInterval(id);
-  }, [inView, target]);
-  return <span>{val}{suffix}</span>;
-}
-
-function StatsSection({ reduced }: { reduced: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.3 });
+function MarqueeSection() {
+  const row = [...MARQUEE_ROLES, ...MARQUEE_ROLES];
   return (
-    <section className="relative py-24 px-6 border-t border-white/[0.06] overflow-hidden">
-      <div className="absolute inset-0 opacity-25 pointer-events-none">
-        <ParticleFieldCanvas
-          reduced={reduced}
-          color="#3b82f6"
-          particleCount={50}
-          connectDistance={0.22}
-          className="w-full h-full"
-        />
-      </div>
-      <div className="max-w-6xl mx-auto relative z-10" ref={ref}>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {STATS.map((s, i) => (
-            <motion.div
-              key={s.label}
-              className="group relative"
-              initial={{ opacity: 0, y: 40, rotateX: 20 }}
-              animate={inView ? { opacity: 1, y: 0, rotateX: 0 } : {}}
-              transition={{ duration: 0.6, delay: i * 0.12, ease: [0.16, 1, 0.3, 1] }}
-              style={{ perspective: 600, transformStyle: 'preserve-3d' }}
+    <section className="py-16 overflow-hidden border-t border-[var(--line)] group/marquee">
+      <p className="text-center text-xs font-medium uppercase tracking-[0.2em] text-[var(--muted)] mb-7">
+        Screening talent across technical disciplines
+      </p>
+      <div
+        className="relative overflow-hidden"
+        style={{
+          maskImage: 'linear-gradient(to right, transparent, black 12%, black 88%, transparent)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent, black 12%, black 88%, transparent)',
+        }}
+      >
+        <div
+          className="marquee-track flex gap-3 w-max group-hover/marquee:[animation-play-state:paused]"
+          style={{ animation: 'marqueeLeft 36s linear infinite' }}
+        >
+          {row.map((r, i) => (
+            <span
+              key={i}
+              className="px-4 py-2 rounded-lg border border-[var(--line)] bg-white/[0.02] text-sm text-[var(--muted)] hover:text-[var(--text)] hover:border-[var(--accent)]/40 hover:bg-[var(--accent-dim)] transition-colors duration-150 whitespace-nowrap cursor-default"
             >
-              <TiltCard
-                accentColor={s.color}
-                className="relative bg-white/[0.03] border border-white/[0.08] hover:border-white/20 rounded-2xl p-6 flex flex-col items-center text-center gap-3 transition-colors duration-300"
-              >
-                {/* Colored glow blob */}
-                <div
-                  className="absolute -inset-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none blur-2xl"
-                  style={{ background: `radial-gradient(circle at 50% 50%, ${s.color}35, transparent 70%)` }}
-                />
-                {!reduced && (
-                  <div
-                    className="absolute w-24 h-24 rounded-full border border-white/[0.05]"
-                    style={{ animation: `orbitSpin ${6 + i * 1.5}s linear infinite`, top: '-16px', left: '-16px' }}
-                  />
-                )}
-                <div className="relative w-12 h-12 rounded-xl overflow-hidden shadow-inner">
-                  <MiniOrbCanvas color={s.color} reduced={reduced} className="absolute inset-0 w-full h-full" />
-                  <span className="absolute inset-0 flex items-center justify-center text-xl">{s.icon}</span>
-                </div>
-                <div
-                  className="text-4xl font-extrabold tracking-tight"
-                  style={{
-                    background: `linear-gradient(135deg, ${s.color}, #ffffff)`,
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                  }}
-                >
-                  <AnimatedCounter target={parseInt(s.value)} suffix={s.suffix} inView={inView} />
-                </div>
-                <p className="text-xs text-white/45 font-medium">{s.label}</p>
-              </TiltCard>
-            </motion.div>
+              {r}
+            </span>
           ))}
         </div>
       </div>
@@ -713,102 +582,73 @@ function StatsSection({ reduced }: { reduced: boolean }) {
   );
 }
 
-/* === MARQUEE === */
-const ROLES_A = ['Backend Engineers', 'Frontend Developers', 'Full-Stack Engineers', 'DevOps Engineers', 'Data Scientists', 'Machine Learning Engineers', 'Product Managers', 'QA Engineers'];
-const ROLES_B = ['Mobile Developers', 'Cloud Architects', 'Security Engineers', 'Solutions Architects', 'Engineering Managers', 'SRE Engineers', 'AI Researchers', 'UI/UX Designers'];
-
-function MarqueeSection() {
-  const rowA = [...ROLES_A, ...ROLES_A];
-  const rowB = [...ROLES_B, ...ROLES_B];
-  return (
-    <section className="py-16 overflow-hidden border-t border-white/[0.06] group/marquee">
-      <p className="text-center text-[11px] font-semibold text-cyan-400 uppercase tracking-[0.2em] mb-8">Screens resumes for</p>
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
-        <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
-        <div className="space-y-4">
-          <div className="marquee-track flex gap-3 w-max group-hover/marquee:[animation-play-state:paused]" style={{ animation: 'marqueeLeft 40s linear infinite' }}>
-            {rowA.map((r, i) => (
-              <span
-                key={i}
-                className="px-4 py-2 rounded-xl border border-white/[0.08] bg-white/[0.03] text-sm text-white/50 hover:text-cyan-300 hover:border-cyan-500/40 hover:bg-cyan-500/10 transition-all duration-200 cursor-pointer whitespace-nowrap backdrop-blur-sm shadow-sm"
-              >
-                {r}
-              </span>
-            ))}
-          </div>
-          <div className="marquee-track flex gap-3 w-max group-hover/marquee:[animation-play-state:paused]" style={{ animation: 'marqueeRight 46s linear infinite' }}>
-            {rowB.map((r, i) => (
-              <span
-                key={i}
-                className="px-4 py-2 rounded-xl border border-white/[0.08] bg-white/[0.03] text-sm text-white/50 hover:text-cyan-300 hover:border-cyan-500/40 hover:bg-cyan-500/10 transition-all duration-200 cursor-pointer whitespace-nowrap backdrop-blur-sm shadow-sm"
-              >
-                {r}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* === FEATURES === */
+/* ── Feature Grid (Spotlight Cards, Crisp Typography) ────────────── */
 const FEATURES = [
-  { icon: FileSearch, title: 'Intelligent Parsing',    desc: 'Extracts skills, career timelines, education, and credentials from any PDF or DOCX using rule-based NLP with fuzzy alias matching.', detail: 'Handles aliases like ReactJS, React.js, and React automatically.', color: '#22d3ee' },
-  { icon: Brain,      title: 'Semantic Matching',      desc: 'Dense sentence-transformer embeddings compare contextual depth of each resume against the JD, beyond mere keywords.', detail: 'Score = 50% semantic + 25% skills + 15% experience + 10% education.', color: '#60a5fa' },
-  { icon: BarChart3,  title: 'Explainable Ranking',    desc: 'Every score breaks down into four traceable components. See matched skills, missing requirements, and bonus strengths for each candidate.', detail: 'Strong: 75 or above. Potential: 55 to 74. Low: below 55.', color: '#34d399' },
-  { icon: Shield,     title: 'Bias-Free Screening',    desc: 'Blind mode masks names, contact details, institution prestige, and graduation years to prevent unconscious hiring bias.', detail: 'NYC Local Law 144 compliance support built in.', color: '#f59e0b' },
+  {
+    icon: FileSearch,
+    title: 'Intelligent Parsing',
+    desc: 'Extracts skills, career timelines, education, and credentials from any PDF or DOCX using rule-based NLP with fuzzy alias matching.',
+    detail: 'Handles aliases like ReactJS, React.js, and React automatically.',
+  },
+  {
+    icon: Brain,
+    title: 'Semantic Matching',
+    desc: 'Dense sentence-transformer embeddings compare contextual depth of each resume against the JD, beyond mere keywords.',
+    detail: 'Composite score: 50% semantic + 25% skills + 15% experience + 10% education.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Explainable Ranking',
+    desc: 'Every score breaks down into traceable components. Inspect verified matched skills, missing requirements, and bonus strengths.',
+    detail: 'Tiered classification: Strong (75+), Potential (55-74), Low (<55).',
+  },
+  {
+    icon: Shield,
+    title: 'Bias-Free Screening',
+    desc: 'Blind mode masks candidate names, contact details, institution prestige, and graduation years to mitigate unconscious hiring bias.',
+    detail: 'NYC Local Law 144 compliance support built in.',
+  },
 ];
 
-function FeatureGrid({ reduced }: { reduced: boolean }) {
+function FeatureGrid() {
   return (
-    <section id="features" className="py-28 px-6 border-t border-white/[0.06]">
+    <section id="features" className="py-24 px-6 md:px-12 border-t border-[var(--line)]">
       <div className="max-w-6xl mx-auto">
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.5 }}
-        >
-          <p className="text-[11px] font-semibold text-cyan-400 uppercase tracking-[0.2em] mb-4">Under the hood</p>
-          <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight">Engineered for absolute accuracy</h2>
-          <p className="text-white/40 mt-4 text-base max-w-lg mx-auto">Zero hallucinated scores. Every decision is verifiable and traceable back to the JD.</p>
-        </motion.div>
+        <div className="text-center mb-16">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-3">
+            Under the hood
+          </p>
+          <h2 className="text-3xl md:text-5xl font-extrabold text-[var(--text)] tracking-tight">
+            Engineered for transparent accuracy
+          </h2>
+          <p className="text-[var(--muted)] mt-3 text-base max-w-lg mx-auto">
+            Zero hallucinated scores. Every decision is verifiable and traceable back to the JD.
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {FEATURES.map((feat, i) => {
+          {FEATURES.map((feat) => {
             const Icon = feat.icon;
             return (
-              <motion.div
-                key={feat.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-              >
-                <TiltCard
-                  accentColor={feat.color}
-                  className="bg-white/[0.025] border border-white/[0.07] hover:border-white/[0.18] rounded-2xl p-8 transition-colors duration-300 h-full flex flex-col justify-between"
-                >
-                  <div>
-                    {/* 3D icon */}
-                    <div className="relative w-14 h-14 rounded-xl overflow-hidden mb-6 flex items-center justify-center shadow-md">
-                      <MiniOrbCanvas color={feat.color} reduced={reduced} className="absolute inset-0 w-full h-full opacity-70" />
-                      <Icon className="relative z-10 w-6 h-6 text-white" strokeWidth={1.8} />
-                    </div>
-                    <h3 className="text-lg font-bold text-white mb-2">{feat.title}</h3>
-                    <p className="text-sm text-white/45 leading-relaxed mb-6">{feat.desc}</p>
+              <SpotlightCard key={feat.title} className="p-8 flex flex-col justify-between">
+                <div>
+                  <div className="w-12 h-12 rounded-xl bg-[var(--accent-dim)] border border-[var(--accent)]/20 flex items-center justify-center mb-6 text-[var(--accent)]">
+                    <Icon className="w-6 h-6" strokeWidth={1.8} />
                   </div>
-                  <div className="pt-4 border-t border-white/[0.05]">
-                    <p className="text-xs text-cyan-400/80 font-mono flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                      {feat.detail}
-                    </p>
-                  </div>
-                </TiltCard>
-              </motion.div>
+                  <h3 className="text-lg font-bold text-[var(--text)] mb-2.5">
+                    {feat.title}
+                  </h3>
+                  <p className="text-sm text-[var(--muted)] leading-relaxed mb-6">
+                    {feat.desc}
+                  </p>
+                </div>
+                <div className="pt-4 border-t border-[var(--line)]">
+                  <p className="text-xs text-[var(--accent)] font-mono flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+                    {feat.detail}
+                  </p>
+                </div>
+              </SpotlightCard>
             );
           })}
         </div>
@@ -817,294 +657,302 @@ function FeatureGrid({ reduced }: { reduced: boolean }) {
   );
 }
 
-/* === DEMO SECTION WITH SCANNING LASER === */
+/* ── Live Demo Preview Section ───────────────────────────────────── */
 function DemoSection() {
   const navigate = useNavigate();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.3 });
+
   const MOCK = [
-    { name: 'Sarah Chen', score: 94, label: 'Strong', color: '#22d3ee' },
-    { name: 'Alex Rivera', score: 86, label: 'Strong', color: '#38bdf8' },
-    { name: 'David Kim', score: 72, label: 'Potential', color: '#818cf8' },
-    { name: 'Elena Rostova', score: 64, label: 'Potential', color: '#a78bfa' },
-    { name: 'Marcus Brody', score: 48, label: 'Low', color: '#f43f5e' },
+    { name: 'Sarah Chen', score: 94, label: 'Strong' },
+    { name: 'Alex Rivera', score: 86, label: 'Strong' },
+    { name: 'David Kim', score: 72, label: 'Potential' },
+    { name: 'Elena Rostova', score: 64, label: 'Potential' },
+    { name: 'Marcus Brody', score: 48, label: 'Low' },
   ];
 
   return (
-    <section id="demo" className="py-28 px-6 border-t border-white/[0.06] relative">
+    <section id="demo" className="py-24 px-6 md:px-12 border-t border-[var(--line)]">
       <div className="max-w-4xl mx-auto">
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.5 }}
-        >
-          <p className="text-[11px] font-semibold text-cyan-400 uppercase tracking-[0.2em] mb-4">See it live</p>
-          <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight">From upload to shortlist in 60s</h2>
-          <p className="text-white/40 mt-4 text-base max-w-md mx-auto">Instant AI matching. Every score categorized and explained.</p>
-        </motion.div>
+        <div className="text-center mb-16">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-3">
+            Interactive Preview
+          </p>
+          <h2 className="text-3xl md:text-5xl font-extrabold text-[var(--text)] tracking-tight">
+            From upload to shortlist in 60s
+          </h2>
+          <p className="text-[var(--muted)] mt-3 text-base max-w-md mx-auto">
+            Instant multi-candidate evaluation with ranked score distributions.
+          </p>
+        </div>
 
-        <motion.div
-          ref={ref}
-          className="relative mb-12"
-          initial={{ opacity: 0, y: 25 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.6 }}
-        >
-          <TiltCard
-            accentColor="#22d3ee"
-            className="bg-white/[0.025] border border-white/[0.09] rounded-2xl overflow-hidden shadow-2xl"
-          >
-            {/* Animated Laser Sweep Scanner */}
-            <div
-              className="absolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-75 blur-[1px] pointer-events-none z-20"
-              style={{ animation: 'laserSweep 4s ease-in-out infinite' }}
-            />
-
+        <div ref={ref} className="mb-10">
+          <SpotlightCard className="overflow-hidden">
             {/* Header bar */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] bg-white/[0.02]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--line)] bg-white/[0.01]">
               <div className="flex items-center gap-2.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs text-white/50 font-semibold uppercase tracking-wider">Live Screening Preview</span>
+                <div className="w-2 h-2 rounded-full bg-[var(--accent)]" />
+                <span className="text-xs text-[var(--muted)] font-medium uppercase tracking-wider">
+                  Senior Backend Engineer Screening
+                </span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-cyan-400 font-mono bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-0.5 rounded-full">5 Resumes Ranked</span>
-              </div>
+              <span className="text-xs text-[var(--accent)] font-mono bg-[var(--accent-dim)] px-2.5 py-0.5 rounded-md border border-[var(--accent)]/20">
+                5 Resumes Ranked
+              </span>
             </div>
 
-            {/* Candidates ranking list */}
-            <div className="p-6 space-y-4">
+            {/* Candidate list */}
+            <div className="p-6 space-y-3.5">
               {MOCK.map((c, i) => (
                 <div
                   key={c.name}
-                  className="flex items-center gap-4 p-2 rounded-xl hover:bg-white/[0.03] transition-colors"
+                  className="flex items-center gap-4 p-2.5 rounded-lg hover:bg-white/[0.02] transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500/20 to-blue-500/20 border border-white/[0.08] flex items-center justify-center flex-shrink-0 font-bold text-white text-xs">
+                  <div className="w-7 h-7 rounded-md bg-white/[0.04] border border-[var(--line)] flex items-center justify-center flex-shrink-0 text-xs font-semibold text-[var(--muted)]">
                     {i + 1}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-semibold text-white/90">{c.name}</span>
-                      <span className="text-sm font-bold tabular-nums" style={{ color: c.color }}>{c.score}%</span>
+                      <span className="text-sm font-medium text-[var(--text)]">{c.name}</span>
+                      <span className="text-sm font-semibold tabular-nums text-[var(--text)]">
+                        {c.score}%
+                      </span>
                     </div>
-                    {/* Animated progress bar */}
-                    <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden relative">
+                    <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                       <motion.div
-                        className="h-full rounded-full"
-                        style={{
-                          background: `linear-gradient(90deg, ${c.color}, #38bdf8)`,
-                        }}
+                        className="h-full rounded-full bg-[var(--accent)]"
                         initial={{ width: 0 }}
                         animate={inView ? { width: `${c.score}%` } : { width: 0 }}
-                        transition={{ duration: 0.9, delay: 0.3 + i * 0.1, ease: 'easeOut' }}
+                        transition={{ duration: 0.8, delay: 0.2 + i * 0.1, ease: 'easeOut' }}
                       />
                     </div>
                   </div>
                   <span
-                    className="text-[10px] font-bold rounded-lg px-2.5 py-1 flex-shrink-0 border"
-                    style={{
-                      color: c.color,
-                      borderColor: `${c.color}35`,
-                      backgroundColor: `${c.color}10`,
-                    }}
+                    className={`text-[11px] font-medium rounded px-2 py-0.5 border ${
+                      c.label === 'Strong'
+                        ? 'bg-[var(--accent-dim)] text-[var(--accent)] border-[var(--accent)]/20'
+                        : c.label === 'Potential'
+                        ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                        : 'bg-rose-500/10 text-rose-300 border-rose-500/20'
+                    }`}
                   >
                     {c.label}
                   </span>
                 </div>
               ))}
             </div>
-          </TiltCard>
-        </motion.div>
+          </SpotlightCard>
+        </div>
 
         <div className="text-center">
-          <Button3D
+          <button
             id="demo-cta"
-            size="md"
             onClick={() => navigate('/screen')}
+            className="btn-primary"
           >
             Start a free screening
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </Button3D>
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </section>
   );
 }
 
-/* === FAQ === */
+/* ── FAQ Section ─────────────────────────────────────────────────── */
 const FAQ_ITEMS = [
-  { q: 'Do I need an account to try HireRank?', a: 'No. You can paste a job description, upload up to 10 resumes, and view the full ranked shortlist instantly, no signup required. Create an account only when you want to save results to a persistent workspace.' },
-  { q: 'What file formats are supported?', a: 'PDF and DOCX files up to 10 MB each. Most professionally formatted resumes parse cleanly with our dual-engine extraction.' },
-  { q: 'How is the match score calculated?', a: 'Each candidate receives a weighted composite score: 50% semantic similarity, 25% required skill coverage, 15% experience fit (parsed date ranges), and 10% education match.' },
-  { q: 'Can the score be gamed by keyword stuffing?', a: 'Harder than you would think. The semantic embedding component understands meaning and context, not just keyword counts. Experience is validated from parsed career milestones.' },
-  { q: 'How many resumes can I screen at once?', a: 'Guest sessions support up to 10 resumes per batch. Authenticated recruiter workspaces support up to 50 resumes per batch.' },
-  { q: 'Is my data stored on your servers?', a: 'Guest session files are processed in-memory and never persisted to disk. Authenticated workspace uploads are encrypted and associated strictly with your workspace.' },
+  {
+    q: 'Do I need an account to try HireRank?',
+    a: 'No. You can paste a job description, upload up to 10 resumes, and view the full ranked shortlist instantly, no signup required. Create an account only when you want to save results to a persistent workspace.',
+  },
+  {
+    q: 'What file formats are supported?',
+    a: 'PDF and DOCX files up to 10 MB each. Standard resume layouts parse cleanly with our dual-engine extraction pipeline.',
+  },
+  {
+    q: 'How is the match score calculated?',
+    a: 'Each candidate receives an explainable composite score: 50% semantic similarity, 25% required skill coverage, 15% experience fit (parsed date ranges), and 10% education match.',
+  },
+  {
+    q: 'Can the score be gamed by keyword stuffing?',
+    a: 'Dense sentence embeddings evaluate context and semantic relevance, not raw keyword repetitions. Career depth is validated against parsed chronological milestones.',
+  },
+  {
+    q: 'How many resumes can I screen at once?',
+    a: 'Guest sessions support up to 10 resumes per batch. Authenticated recruiter workspaces support up to 50 resumes per batch.',
+  },
+  {
+    q: 'Is my data stored on your servers?',
+    a: 'Guest session files are processed in-memory and never stored to disk. Authenticated workspace uploads are encrypted and associated strictly with your workspace.',
+  },
 ];
-
-function FaqItem({ item, isOpen, onToggle }: { item: (typeof FAQ_ITEMS)[0]; isOpen: boolean; onToggle: () => void }) {
-  return (
-    <motion.div layout className="border border-white/[0.08] hover:border-cyan-500/30 rounded-xl overflow-hidden transition-colors">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left hover:bg-white/[0.02] transition-colors"
-        aria-expanded={isOpen}
-      >
-        <span className="text-sm font-semibold text-white/85">{item.q}</span>
-        <motion.span
-          animate={{ rotate: isOpen ? 45 : 0 }}
-          transition={{ duration: 0.18 }}
-          className="text-cyan-400 flex-shrink-0 text-2xl font-light leading-none"
-        >
-          +
-        </motion.span>
-      </button>
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            key="content"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22 }}
-            className="overflow-hidden"
-          >
-            <div className="px-6 pb-6 pt-2 text-sm text-white/45 leading-relaxed border-t border-white/[0.04]">
-              {item.a}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-}
 
 function FaqSection() {
   const [open, setOpen] = useState<number | null>(0);
+
   return (
-    <section id="faq" className="py-28 px-6 border-t border-white/[0.06]">
+    <section id="faq" className="py-24 px-6 md:px-12 border-t border-[var(--line)]">
       <div className="max-w-3xl mx-auto">
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.5 }}
-        >
-          <p className="text-[11px] font-semibold text-cyan-400 uppercase tracking-[0.2em] mb-4">FAQ</p>
-          <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight">Frequently asked questions</h2>
-          <p className="text-white/40 mt-4 text-base">Everything you need to know before your first screening.</p>
-        </motion.div>
-        <div className="space-y-3">
-          {FAQ_ITEMS.map((item, i) => (
-            <FaqItem key={item.q} item={item} isOpen={open === i} onToggle={() => setOpen(open === i ? null : i)} />
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* === CTA BAND === */
-function CtaBand({ reduced }: { reduced: boolean }) {
-  const navigate = useNavigate();
-  return (
-    <section className="py-28 px-6 border-t border-white/[0.06] relative overflow-hidden">
-      <div className="absolute inset-0 opacity-20 pointer-events-none">
-        <ParticleFieldCanvas reduced={reduced} color="#22d3ee" particleCount={60} connectDistance={0.2} className="w-full h-full" />
-      </div>
-      <div className="absolute inset-0 flex items-center justify-center opacity-15 pointer-events-none">
-        <div className="w-[500px] h-[500px]">
-          <MiniOrbCanvas color="#22d3ee" reduced={reduced} className="w-full h-full" />
-        </div>
-      </div>
-      <div className="max-w-3xl mx-auto text-center relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.6 }}
-          className="space-y-8"
-        >
-          <h2 className="text-4xl md:text-6xl font-extrabold text-white leading-tight tracking-tight">
-            Ready to find your best candidates faster?
+        <div className="text-center mb-16">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-3">
+            FAQ
+          </p>
+          <h2 className="text-3xl md:text-5xl font-extrabold text-[var(--text)] tracking-tight">
+            Frequently asked questions
           </h2>
-          <p className="text-white/45 text-base md:text-lg max-w-xl mx-auto leading-relaxed">
-            Paste your job description, upload resumes, and receive your ranked shortlist free in under a minute.
+          <p className="text-[var(--muted)] mt-3 text-base">
+            Essential facts about the screening and scoring engine.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-5 pt-3">
-            <Button3D
-              id="final-cta-primary"
-              size="lg"
-              onClick={() => navigate('/screen')}
-            >
-              Start screening free
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Button3D>
-            <Button3D
-              id="final-cta-secondary"
-              variant="glass"
-              size="lg"
-              onClick={() => navigate('/login')}
-            >
-              Sign in
-            </Button3D>
-          </div>
-          <p className="text-xs text-white/30 pt-2 flex items-center justify-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-cyan-400" />
-            No account required to test. Processed securely in-memory.
-          </p>
-        </motion.div>
+        </div>
+
+        <div className="space-y-3">
+          {FAQ_ITEMS.map((item, i) => {
+            const isOpen = open === i;
+            return (
+              <div
+                key={item.q}
+                className="border border-[var(--line)] rounded-xl overflow-hidden bg-white/[0.01]"
+              >
+                <button
+                  onClick={() => setOpen(isOpen ? null : i)}
+                  className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left hover:bg-white/[0.02] transition-colors"
+                  aria-expanded={isOpen}
+                >
+                  <span className="text-sm font-semibold text-[var(--text)]">{item.q}</span>
+                  <span className="text-[var(--accent)] text-lg leading-none font-mono">
+                    {isOpen ? '−' : '+'}
+                  </span>
+                </button>
+                {isOpen && (
+                  <div className="px-6 pb-6 pt-1 text-sm text-[var(--muted)] leading-relaxed border-t border-[var(--line)]">
+                    {item.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
 }
 
-/* === FOOTER === */
+/* ── Final CTA Band ──────────────────────────────────────────────── */
+function CtaBand() {
+  const navigate = useNavigate();
+
+  return (
+    <section className="py-24 px-6 md:px-12 border-t border-[var(--line)] text-center">
+      <div className="max-w-3xl mx-auto space-y-6">
+        <h2 className="text-3xl md:text-5xl font-extrabold text-[var(--text)] leading-tight tracking-tight">
+          Ready to find your best candidates faster?
+        </h2>
+        <p className="text-[var(--muted)] text-base md:text-lg max-w-xl mx-auto leading-relaxed">
+          Paste your job description, upload resumes, and receive your ranked shortlist free in under a minute.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+          <button
+            id="final-cta-primary"
+            onClick={() => navigate('/screen')}
+            className="btn-primary"
+          >
+            Start screening free
+            <ArrowRight className="w-4 h-4" />
+          </button>
+          <button
+            id="final-cta-secondary"
+            onClick={() => navigate('/login')}
+            className="btn-ghost"
+          >
+            Sign in
+          </button>
+        </div>
+        <p className="text-xs text-[var(--muted)] pt-2 flex items-center justify-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-[var(--accent)]" />
+          No account required to test. Processed securely in-memory.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/* ── Footer ──────────────────────────────────────────────────────── */
 function Footer() {
   return (
-    <footer className="border-t border-white/[0.06] px-6 py-16">
+    <footer className="border-t border-[var(--line)] px-6 md:px-12 py-16 text-xs text-[var(--muted)]">
       <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-14">
-          <div className="md:col-span-1">
-            <div className="text-white mb-4"><HireRankLogo height={28} /></div>
-            <p className="text-xs text-white/30 leading-relaxed max-w-[220px]">
-              AI-powered resume screening, explainable candidate ranking, and skill gap assessment for high-velocity hiring teams.
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+          <div>
+            <div className="mb-4">
+              <HireRankLogo height={28} />
+            </div>
+            <p className="leading-relaxed max-w-[240px]">
+              AI-powered resume screening, explainable candidate ranking, and skill gap assessment for engineering hiring teams.
             </p>
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-cyan-400 uppercase tracking-[0.2em] mb-4">Product</p>
-            <ul className="space-y-3">
-              {[{ label: 'How it Works', href: '#how' }, { label: 'Features', href: '#features' }, { label: 'Demo', href: '#demo' }, { label: 'FAQ', href: '#faq' }].map((l) => (
-                <li key={l.label}><a href={l.href} className="text-sm text-white/40 hover:text-white transition-colors">{l.label}</a></li>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text)] mb-4">Product</p>
+            <ul className="space-y-2.5">
+              {['How it Works', 'Features', 'Demo', 'FAQ'].map((l) => (
+                <li key={l}>
+                  <a href={`#${l.toLowerCase().replace(/\s+/g, '')}`} className="hover:text-[var(--text)] transition-colors">
+                    {l}
+                  </a>
+                </li>
               ))}
             </ul>
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-cyan-400 uppercase tracking-[0.2em] mb-4">App</p>
-            <ul className="space-y-3">
-              {[{ label: 'Screen Resumes', href: '/screen' }, { label: 'Dashboard', href: '/dashboard' }, { label: 'Sign Up', href: '/signup' }, { label: 'Log In', href: '/login' }].map((l) => (
-                <li key={l.label}><Link to={l.href} className="text-sm text-white/40 hover:text-white transition-colors">{l.label}</Link></li>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text)] mb-4">Application</p>
+            <ul className="space-y-2.5">
+              {[
+                { label: 'Screen Resumes', href: '/screen' },
+                { label: 'Dashboard', href: '/dashboard' },
+                { label: 'Sign Up', href: '/signup' },
+                { label: 'Log In', href: '/login' },
+              ].map((l) => (
+                <li key={l.label}>
+                  <Link to={l.href} className="hover:text-[var(--text)] transition-colors">
+                    {l.label}
+                  </Link>
+                </li>
               ))}
             </ul>
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-cyan-400 uppercase tracking-[0.2em] mb-4">Legal</p>
-            <ul className="space-y-3">
-              <li><Link to="/privacy" className="text-sm text-white/40 hover:text-white transition-colors">Privacy Policy</Link></li>
-              <li><Link to="/terms" className="text-sm text-white/40 hover:text-white transition-colors">Terms of Service</Link></li>
-              <li><a href="https://github.com/atharv3046/HireRank" target="_blank" rel="noreferrer" className="text-sm text-white/40 hover:text-white transition-colors">GitHub</a></li>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text)] mb-4">Legal & Source</p>
+            <ul className="space-y-2.5">
+              <li>
+                <Link to="/privacy" className="hover:text-[var(--text)] transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/terms" className="hover:text-[var(--text)] transition-colors">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <a
+                  href="https://github.com/atharv3046/HireRank"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-[var(--text)] transition-colors"
+                >
+                  GitHub Repository
+                </a>
+              </li>
             </ul>
           </div>
         </div>
-        <div className="border-t border-white/[0.05] pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-white/20">© {new Date().getFullYear()} HireRank. Final-Year Engineering Project. Built with React, FastAPI, and spaCy.</p>
+
+        <div className="border-t border-[var(--line)] pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p>© {new Date().getFullYear()} HireRank. Final-Year Engineering Project. Built with React, FastAPI, and spaCy.</p>
           <div className="flex items-center gap-6">
-            <Link to="/privacy" className="text-xs text-white/25 hover:text-white transition-colors">Privacy</Link>
-            <Link to="/terms"   className="text-xs text-white/25 hover:text-white transition-colors">Terms</Link>
-            <div className="flex items-center gap-2 text-xs text-white/25">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <Link to="/privacy" className="hover:text-[var(--text)] transition-colors">Privacy</Link>
+            <Link to="/terms" className="hover:text-[var(--text)] transition-colors">Terms</Link>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
               All systems operational
             </div>
           </div>
@@ -1114,23 +962,23 @@ function Footer() {
   );
 }
 
-/* === PAGE ROOT === */
+/* ── Page Root ───────────────────────────────────────────────────── */
 export default function MarketingPage() {
   const reduced = usePrefersReducedMotion();
 
   return (
-    <div className="text-white min-h-screen font-sans antialiased overflow-x-hidden selection:bg-cyan-500/20">
+    <div className="text-[var(--text)] min-h-screen font-sans antialiased overflow-x-hidden selection:bg-[var(--accent)]/20">
       <style>{GLOBAL_STYLES}</style>
 
-      <Navbar reduced={reduced} />
+      <Navbar />
       <Hero reduced={reduced} />
-      <HowItWorks  reduced={reduced} />
-      <StatsSection reduced={reduced} />
+      <StatsSection />
+      <HowItWorks />
       <MarqueeSection />
-      <FeatureGrid reduced={reduced} />
+      <FeatureGrid />
       <DemoSection />
       <FaqSection />
-      <CtaBand reduced={reduced} />
+      <CtaBand />
       <Footer />
     </div>
   );

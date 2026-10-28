@@ -1,0 +1,502 @@
+[
+  {
+    "resume": "Staff Accountant experienced in accounts payable/receivable (AP/AR), month-end closing, bank reconciliations, payroll processing, and QuickBooks.",
+    "job": "Financial Planning & Analysis (FP&A) Manager: Seeking an analyst to manage annual budgeting, quarterly forecasts, financial modeling, and management reporting. Advanced financial modeling skills required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Frontend Developer with expertise in React, Next.js, Vue, Tailwind CSS, and state management (Redux, Zustand). Passionate about web performance, accessibility, responsive UI, and unit testing with Jest.",
+    "job": "Senior Talent Acquisition Specialist: Seeking an experienced technical recruiter to manage full-cycle hiring for engineering and product roles. Strong outbound sourcing and negotiation skills required.",
+    "score": 0.0
+  },
+  {
+    "resume": "Full Stack Software Engineer with 5+ years of experience building scalable web applications. Proficient in React, Node.js, TypeScript, PostgreSQL, and AWS. Designed REST and GraphQL APIs, implemented microservices architecture, and optimized database queries.",
+    "job": "Senior Talent Acquisition Specialist: Seeking an experienced technical recruiter to manage full-cycle hiring for engineering and product roles. Strong outbound sourcing and negotiation skills required.",
+    "score": 0.0
+  },
+  {
+    "resume": "Technical Recruiter with 4 years experience sourcing, interviewing, and hiring software engineering and product talent for hyper-growth tech startups. Experienced with ATS systems (Greenhouse, Lever).",
+    "job": "Python Backend Developer: Seeking a developer proficient in Python, FastAPI, relational databases (PostgreSQL), Redis caching, and Docker. Must have experience building secure REST APIs and background task processing.",
+    "score": 0.0
+  },
+  {
+    "resume": "Digital Marketing Specialist with 5 years experience managing SEO, SEM, Google Ads, and content marketing campaigns. Proven record of increasing organic traffic by 140% and lowering customer acquisition cost (CAC).",
+    "job": "Senior Business Intelligence & Data Analyst: Responsible for writing complex SQL queries, building dashboard solutions in Tableau, and providing actionable business insights to stakeholders.",
+    "score": 0.0
+  },
+  {
+    "resume": "Machine Learning Engineer experienced in fine-tuning Transformer models, LLM integration, HuggingFace, PyTorch, and Vector databases (Pinecone, ChromaDB). Track record in semantic search and NLP pipelines.",
+    "job": "Senior Talent Acquisition Specialist: Seeking an experienced technical recruiter to manage full-cycle hiring for engineering and product roles. Strong outbound sourcing and negotiation skills required.",
+    "score": 0.0
+  },
+  {
+    "resume": "Data Analyst skilled in SQL, Tableau, Power BI, Python, and dimensional data modeling. Experienced in building executive dashboards, KPI tracking, and conducting exploratory data analysis.",
+    "job": "Data Scientist: Looking for a Data Scientist to build predictive ML models. Requirements: Python, Pandas, Scikit-Learn, SQL, experience with regression, classification, and statistical hypothesis testing.",
+    "score": 1.0
+  },
+  {
+    "resume": "Digital Marketing Specialist with 5 years experience managing SEO, SEM, Google Ads, and content marketing campaigns. Proven record of increasing organic traffic by 140% and lowering customer acquisition cost (CAC).",
+    "job": "Human Resources Generalist: Looking for an HR professional to oversee employee onboarding, HR policy adherence, benefits administration, and culture initiatives.",
+    "score": 0.0
+  },
+  {
+    "resume": "Technical Recruiter with 4 years experience sourcing, interviewing, and hiring software engineering and product talent for hyper-growth tech startups. Experienced with ATS systems (Greenhouse, Lever).",
+    "job": "Senior Software Engineer: We are looking for an experienced developer with strong skills in TypeScript, React, Node.js, and distributed systems. Responsible for designing clean architectures, mentoring engineers, and delivering robust SaaS products.",
+    "score": 0.0
+  },
+  {
+    "resume": "Data Analyst skilled in SQL, Tableau, Power BI, Python, and dimensional data modeling. Experienced in building executive dashboards, KPI tracking, and conducting exploratory data analysis.",
+    "job": "Staff Accountant: Looking for an accountant to handle general ledger accounting, AP/AR operations, journal entries, and bank account reconciliations using QuickBooks.",
+    "score": 0.0
+  },
+  {
+    "resume": "Data Scientist with 4 years experience applying machine learning and statistical modeling to solve business problems. Proficient in Python, Scikit-Learn, PyTorch, Pandas, and SQL. Deployed predictive models in production.",
+    "job": "AI/NLP Engineer: Seeking an engineer to develop and fine-tune natural language processing models and embedding pipelines. Strong background in PyTorch, Transformers, and semantic vector search required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Machine Learning Engineer experienced in fine-tuning Transformer models, LLM integration, HuggingFace, PyTorch, and Vector databases (Pinecone, ChromaDB). Track record in semantic search and NLP pipelines.",
+    "job": "AI/NLP Engineer: Seeking an engineer to develop and fine-tune natural language processing models and embedding pipelines. Strong background in PyTorch, Transformers, and semantic vector search required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Digital Marketing Specialist with 5 years experience managing SEO, SEM, Google Ads, and content marketing campaigns. Proven record of increasing organic traffic by 140% and lowering customer acquisition cost (CAC).",
+    "job": "Senior Talent Acquisition Specialist: Seeking an experienced technical recruiter to manage full-cycle hiring for engineering and product roles. Strong outbound sourcing and negotiation skills required.",
+    "score": 0.0
+  },
+  {
+    "resume": "Data Scientist with 4 years experience applying machine learning and statistical modeling to solve business problems. Proficient in Python, Scikit-Learn, PyTorch, Pandas, and SQL. Deployed predictive models in production.",
+    "job": "Data Scientist: Looking for a Data Scientist to build predictive ML models. Requirements: Python, Pandas, Scikit-Learn, SQL, experience with regression, classification, and statistical hypothesis testing.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Account Executive with 6 years experience in B2B SaaS sales. Exceeded annual quota by 130%, closed enterprise deals, and managed the full sales cycle from prospecting to negotiation.",
+    "job": "Content Marketing Manager: Looking for a creative writer to lead blog, whitepaper, and case study production. Knowledge of SEO best practices and editorial calendar management required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Data Analyst skilled in SQL, Tableau, Power BI, Python, and dimensional data modeling. Experienced in building executive dashboards, KPI tracking, and conducting exploratory data analysis.",
+    "job": "Senior Business Intelligence & Data Analyst: Responsible for writing complex SQL queries, building dashboard solutions in Tableau, and providing actionable business insights to stakeholders.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Financial Analyst with background in financial planning and analysis (FP&A), budget forecasting, cash flow modeling, and variance analysis using Excel and ERP systems (SAP, Oracle).",
+    "job": "Corporate Controller / Senior Accountant: Requires CPA certification, 5+ years experience in GAAP financial statements, balance sheet reconciliations, external audit preparation, and corporate tax.",
+    "score": 1.0
+  },
+  {
+    "resume": "Data Analyst skilled in SQL, Tableau, Power BI, Python, and dimensional data modeling. Experienced in building executive dashboards, KPI tracking, and conducting exploratory data analysis.",
+    "job": "Data Scientist: Looking for a Data Scientist to build predictive ML models. Requirements: Python, Pandas, Scikit-Learn, SQL, experience with regression, classification, and statistical hypothesis testing.",
+    "score": 1.0
+  },
+  {
+    "resume": "Technical Recruiter with 4 years experience sourcing, interviewing, and hiring software engineering and product talent for hyper-growth tech startups. Experienced with ATS systems (Greenhouse, Lever).",
+    "job": "Data Scientist: Looking for a Data Scientist to build predictive ML models. Requirements: Python, Pandas, Scikit-Learn, SQL, experience with regression, classification, and statistical hypothesis testing.",
+    "score": 0.0
+  },
+  {
+    "resume": "Data Analyst skilled in SQL, Tableau, Power BI, Python, and dimensional data modeling. Experienced in building executive dashboards, KPI tracking, and conducting exploratory data analysis.",
+    "job": "Growth & Performance Marketing Manager: Seeking a marketer with proven experience running Google Ads, Facebook Ads, SEO strategy, and analytics to scale customer acquisition.",
+    "score": 0.0
+  },
+  {
+    "resume": "Senior Financial Analyst with background in financial planning and analysis (FP&A), budget forecasting, cash flow modeling, and variance analysis using Excel and ERP systems (SAP, Oracle).",
+    "job": "Senior Talent Acquisition Specialist: Seeking an experienced technical recruiter to manage full-cycle hiring for engineering and product roles. Strong outbound sourcing and negotiation skills required.",
+    "score": 0.0
+  },
+  {
+    "resume": "HR Generalist experienced in employee relations, onboarding, performance reviews, benefits administration, and HR compliance with federal and state labor laws.",
+    "job": "Frontend Engineer: Join our product team to build high-performance web interfaces. Requirements: Modern JavaScript/TypeScript, React, CSS architectures, responsive design, and component-driven development.",
+    "score": 0.0
+  },
+  {
+    "resume": "Staff Accountant experienced in accounts payable/receivable (AP/AR), month-end closing, bank reconciliations, payroll processing, and QuickBooks.",
+    "job": "Financial Planning & Analysis (FP&A) Manager: Seeking an analyst to manage annual budgeting, quarterly forecasts, financial modeling, and management reporting. Advanced financial modeling skills required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Certified Public Accountant (CPA) with 7 years of corporate accounting and auditing experience. Expert in GAAP compliance, general ledger reconciliation, financial reporting, and tax return preparation.",
+    "job": "Human Resources Generalist: Looking for an HR professional to oversee employee onboarding, HR policy adherence, benefits administration, and culture initiatives.",
+    "score": 0.0
+  },
+  {
+    "resume": "Digital Marketing Specialist with 5 years experience managing SEO, SEM, Google Ads, and content marketing campaigns. Proven record of increasing organic traffic by 140% and lowering customer acquisition cost (CAC).",
+    "job": "Staff Accountant: Looking for an accountant to handle general ledger accounting, AP/AR operations, journal entries, and bank account reconciliations using QuickBooks.",
+    "score": 0.0
+  },
+  {
+    "resume": "HR Generalist experienced in employee relations, onboarding, performance reviews, benefits administration, and HR compliance with federal and state labor laws.",
+    "job": "Human Resources Generalist: Looking for an HR professional to oversee employee onboarding, HR policy adherence, benefits administration, and culture initiatives.",
+    "score": 1.0
+  },
+  {
+    "resume": "Content Strategist and Copywriter skilled in brand storytelling, email marketing, social media campaigns, and conversion rate optimization (CRO).",
+    "job": "Enterprise Account Executive (B2B SaaS): Responsible for prospecting enterprise accounts, conducting product demos, managing pipeline in Salesforce, and closing complex software contracts.",
+    "score": 1.0
+  },
+  {
+    "resume": "Backend Python Engineer specializing in FastAPI, Django, Celery, and Redis. Strong experience in building high-throughput asynchronous services, containerization with Docker, and CI/CD pipelines via GitHub Actions.",
+    "job": "Cloud DevOps Engineer: Seeking an engineer to manage our cloud infrastructure on AWS, automate deployments with Terraform, maintain Kubernetes clusters, and establish observability.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Financial Analyst with background in financial planning and analysis (FP&A), budget forecasting, cash flow modeling, and variance analysis using Excel and ERP systems (SAP, Oracle).",
+    "job": "Corporate Controller / Senior Accountant: Requires CPA certification, 5+ years experience in GAAP financial statements, balance sheet reconciliations, external audit preparation, and corporate tax.",
+    "score": 1.0
+  },
+  {
+    "resume": "Anusha Anu Prasad \nB.Tech Information Technology | MITS, Gwalior | 2nd Year | Batch 2024-28 prasadanushaanu@gmail.com | 7507457695 | Gwalior, India\nEDUCATION\nB.Tech - Information Technology | MITS, Gwalior 2024 - 2028 (Ongoing)\nCurrent SGPA: 8.09 \nClass XII (CBSE) 2024\nScore: 91% | JEE Mains: 91 Percentile (1st attempt), 94 Percentile (2nd attempt)\nClass X - Podar International School, Gwalior 2022\nScore: 96%\nTECHNICAL SKILLS\nPROJECTS\nScholarship Discovery Platform | Python, Web Dev, ML\nDeveloped a platform helping Indian students discover scholarships based on personal eligibility criteria.\nFeatures include eligibility checking, application tracking, and ML-based ranking of schemes by approval probability.\nEmergency Incident Reporting System | Full Stack, Geolocation | In Progress\nBuilding a community-driven incident reporting app where users can post and upvote incidents within a 50m radius.\nIncidents with significant upvotes are flagged for authorities, enabling faster emergency response.\nBanking Transaction & Rule-Based Fraud Monitor | Python, Redis, Celery, SQL \nArchitected a secure banking application handling ACID-compliant transactions and real-time, threshold-based fraud detection logic\nOptimized system performance and scalability by decoupling complex background tasks using Redis and Celery.\nACHIEVEMENTS & ACTIVITIES\nActive core member managing content creation and communications for the college's IETE student chapter.\nCERTIFICATIONS & COURSEWORK\nWeb Development - F",
+    "job": "Senior Full-Stack Engineer (React / Python)\nSenior Full-Stack Engineer (React / Python)\r\nCompany: TechScale Solutions\r\n\r\nLocation: Remote (India)\r\n\r\nJob Type: Full-Time\r\n\r\nDepartment: Core Engineering\r\n\r\nSalary Range: $140,000 - $170,000 USD\r\n\r\nAbout the Role\r\nTechScale Solutions is looking for a Senior Full-Stack Engineer to lead the development of our next-generation cloud analytics platform. In this role, you will architect scalable backend microservices, design high-performance React frontends, and collaborate closely with our product and machine learning teams to ship robust features that serve millions of enterprise users.\r\n\r\nKey Responsibilities\r\nDesign, build, and maintain scalable full-stack web applications using React, TypeScript, Python, and FastAPI.\r\n\r\nOptimize database performance and manage data pipelines using PostgreSQL and Redis.\r\n\r\nIntegrate AI and NLP models into core product workflows to automate user data analysis.\r\n\r\nWrite clean, test-driven code (TDD) with high ",
+    "score": 0.41200000000000003
+  },
+  {
+    "resume": "HR Generalist experienced in employee relations, onboarding, performance reviews, benefits administration, and HR compliance with federal and state labor laws.",
+    "job": "Content Marketing Manager: Looking for a creative writer to lead blog, whitepaper, and case study production. Knowledge of SEO best practices and editorial calendar management required.",
+    "score": 0.0
+  },
+  {
+    "resume": "Data Scientist with 4 years experience applying machine learning and statistical modeling to solve business problems. Proficient in Python, Scikit-Learn, PyTorch, Pandas, and SQL. Deployed predictive models in production.",
+    "job": "Content Marketing Manager: Looking for a creative writer to lead blog, whitepaper, and case study production. Knowledge of SEO best practices and editorial calendar management required.",
+    "score": 0.0
+  },
+  {
+    "resume": "Certified Public Accountant (CPA) with 7 years of corporate accounting and auditing experience. Expert in GAAP compliance, general ledger reconciliation, financial reporting, and tax return preparation.",
+    "job": "Enterprise Account Executive (B2B SaaS): Responsible for prospecting enterprise accounts, conducting product demos, managing pipeline in Salesforce, and closing complex software contracts.",
+    "score": 0.0
+  },
+  {
+    "resume": "Staff Accountant experienced in accounts payable/receivable (AP/AR), month-end closing, bank reconciliations, payroll processing, and QuickBooks.",
+    "job": "Financial Planning & Analysis (FP&A) Manager: Seeking an analyst to manage annual budgeting, quarterly forecasts, financial modeling, and management reporting. Advanced financial modeling skills required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Anusha Anu Prasad \nB.Tech Information Technology | MITS, Gwalior | 2nd Year | Batch 2024-28 prasadanushaanu@gmail.com | 7507457695 | Gwalior, India\nEDUCATION\nB.Tech - Information Technology | MITS, Gwalior 2024 - 2028 (Ongoing)\nCurrent SGPA: 7.50 \nClass XII (CBSE) 2024\nScore: 91% | JEE Mains: 91 Percentile (1st attempt), 94 Percentile (2nd attempt)\nClass X - Podar International School, Gwalior 2022\nScore: 96%\nTECHNICAL SKILLS\nPROJECTS\nScholarship Discovery Platform | Python, Web Dev, ML\nDeveloped a platform helping Indian students discover scholarships based on personal eligibility criteria.\nFeatures include eligibility checking, application tracking, and ML-based ranking of schemes by approval probability.\nEmergency Incident Reporting System | Full Stack, Geolocation | In Progress\nCollaborated in a development environment to build secure backend endpoints handling concurrent location-based queries and geospatial data filtering where users can post and upvote incidents within a 50m radius.\nIncidents with significant upvotes are flagged for authorities, enabling faster emergency response.\nBanking Transaction & Rule-Based Fraud Monitor | Python, Redis, Celery, SQL \nDesigned and implemented secure, ACID-compliant backend transaction systems using Python, SQL, and OOP principles to ensure strict data integrity.\nEngineered asynchronous data workflows and REST API endpoints to process threshold-based fraud detection rules in real-time.\nACHIEVEMENTS & ACTIVITIES\nActive core member m",
+    "job": "Senior Full-Stack Engineer (React / Python)\nSenior Full-Stack Engineer (React / Python)\r\nCompany: TechScale Solutions\r\n\r\nLocation: Remote (India)\r\n\r\nJob Type: Full-Time\r\n\r\nDepartment: Core Engineering\r\n\r\nSalary Range: $140,000 - $170,000 USD\r\n\r\nAbout the Role\r\nTechScale Solutions is looking for a Senior Full-Stack Engineer to lead the development of our next-generation cloud analytics platform. In this role, you will architect scalable backend microservices, design high-performance React frontends, and collaborate closely with our product and machine learning teams to ship robust features that serve millions of enterprise users.\r\n\r\nKey Responsibilities\r\nDesign, build, and maintain scalable full-stack web applications using React, TypeScript, Python, and FastAPI.\r\n\r\nOptimize database performance and manage data pipelines using PostgreSQL and Redis.\r\n\r\nIntegrate AI and NLP models into core product workflows to automate user data analysis.\r\n\r\nWrite clean, test-driven code (TDD) with high ",
+    "score": 0.429
+  },
+  {
+    "resume": "Staff Accountant experienced in accounts payable/receivable (AP/AR), month-end closing, bank reconciliations, payroll processing, and QuickBooks.",
+    "job": "Python Backend Developer: Seeking a developer proficient in Python, FastAPI, relational databases (PostgreSQL), Redis caching, and Docker. Must have experience building secure REST APIs and background task processing.",
+    "score": 0.0
+  },
+  {
+    "resume": "HR Generalist experienced in employee relations, onboarding, performance reviews, benefits administration, and HR compliance with federal and state labor laws.",
+    "job": "Corporate Controller / Senior Accountant: Requires CPA certification, 5+ years experience in GAAP financial statements, balance sheet reconciliations, external audit preparation, and corporate tax.",
+    "score": 0.0
+  },
+  {
+    "resume": "Full Stack Software Engineer with 5+ years of experience building scalable web applications. Proficient in React, Node.js, TypeScript, PostgreSQL, and AWS. Designed REST and GraphQL APIs, implemented microservices architecture, and optimized database queries.",
+    "job": "Cloud DevOps Engineer: Seeking an engineer to manage our cloud infrastructure on AWS, automate deployments with Terraform, maintain Kubernetes clusters, and establish observability.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Frontend Developer with expertise in React, Next.js, Vue, Tailwind CSS, and state management (Redux, Zustand). Passionate about web performance, accessibility, responsive UI, and unit testing with Jest.",
+    "job": "Senior Software Engineer: We are looking for an experienced developer with strong skills in TypeScript, React, Node.js, and distributed systems. Responsible for designing clean architectures, mentoring engineers, and delivering robust SaaS products.",
+    "score": 1.0
+  },
+  {
+    "resume": "DevOps and Cloud Engineer with AWS and Kubernetes certifications. Expertise in Terraform, Docker, CI/CD, Prometheus monitoring, and infrastructure automation.",
+    "job": "Senior Software Engineer: We are looking for an experienced developer with strong skills in TypeScript, React, Node.js, and distributed systems. Responsible for designing clean architectures, mentoring engineers, and delivering robust SaaS products.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Account Executive with 6 years experience in B2B SaaS sales. Exceeded annual quota by 130%, closed enterprise deals, and managed the full sales cycle from prospecting to negotiation.",
+    "job": "Human Resources Generalist: Looking for an HR professional to oversee employee onboarding, HR policy adherence, benefits administration, and culture initiatives.",
+    "score": 0.0
+  },
+  {
+    "resume": "HR Generalist experienced in employee relations, onboarding, performance reviews, benefits administration, and HR compliance with federal and state labor laws.",
+    "job": "Senior Talent Acquisition Specialist: Seeking an experienced technical recruiter to manage full-cycle hiring for engineering and product roles. Strong outbound sourcing and negotiation skills required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Financial Analyst with background in financial planning and analysis (FP&A), budget forecasting, cash flow modeling, and variance analysis using Excel and ERP systems (SAP, Oracle).",
+    "job": "Financial Planning & Analysis (FP&A) Manager: Seeking an analyst to manage annual budgeting, quarterly forecasts, financial modeling, and management reporting. Advanced financial modeling skills required.",
+    "score": 1.0
+  },
+  {
+    "resume": "HR Generalist experienced in employee relations, onboarding, performance reviews, benefits administration, and HR compliance with federal and state labor laws.",
+    "job": "Human Resources Generalist: Looking for an HR professional to oversee employee onboarding, HR policy adherence, benefits administration, and culture initiatives.",
+    "score": 1.0
+  },
+  {
+    "resume": "Full Stack Software Engineer with 5+ years of experience building scalable web applications. Proficient in React, Node.js, TypeScript, PostgreSQL, and AWS. Designed REST and GraphQL APIs, implemented microservices architecture, and optimized database queries.",
+    "job": "AI/NLP Engineer: Seeking an engineer to develop and fine-tune natural language processing models and embedding pipelines. Strong background in PyTorch, Transformers, and semantic vector search required.",
+    "score": 0.0
+  },
+  {
+    "resume": "Technical Recruiter with 4 years experience sourcing, interviewing, and hiring software engineering and product talent for hyper-growth tech startups. Experienced with ATS systems (Greenhouse, Lever).",
+    "job": "Senior Talent Acquisition Specialist: Seeking an experienced technical recruiter to manage full-cycle hiring for engineering and product roles. Strong outbound sourcing and negotiation skills required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Account Executive with 6 years experience in B2B SaaS sales. Exceeded annual quota by 130%, closed enterprise deals, and managed the full sales cycle from prospecting to negotiation.",
+    "job": "Enterprise Account Executive (B2B SaaS): Responsible for prospecting enterprise accounts, conducting product demos, managing pipeline in Salesforce, and closing complex software contracts.",
+    "score": 1.0
+  },
+  {
+    "resume": "Digital Marketing Specialist with 5 years experience managing SEO, SEM, Google Ads, and content marketing campaigns. Proven record of increasing organic traffic by 140% and lowering customer acquisition cost (CAC).",
+    "job": "Content Marketing Manager: Looking for a creative writer to lead blog, whitepaper, and case study production. Knowledge of SEO best practices and editorial calendar management required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Frontend Developer with expertise in React, Next.js, Vue, Tailwind CSS, and state management (Redux, Zustand). Passionate about web performance, accessibility, responsive UI, and unit testing with Jest.",
+    "job": "AI/NLP Engineer: Seeking an engineer to develop and fine-tune natural language processing models and embedding pipelines. Strong background in PyTorch, Transformers, and semantic vector search required.",
+    "score": 0.0
+  },
+  {
+    "resume": "Staff Accountant experienced in accounts payable/receivable (AP/AR), month-end closing, bank reconciliations, payroll processing, and QuickBooks.",
+    "job": "Financial Planning & Analysis (FP&A) Manager: Seeking an analyst to manage annual budgeting, quarterly forecasts, financial modeling, and management reporting. Advanced financial modeling skills required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Certified Public Accountant (CPA) with 7 years of corporate accounting and auditing experience. Expert in GAAP compliance, general ledger reconciliation, financial reporting, and tax return preparation.",
+    "job": "Financial Planning & Analysis (FP&A) Manager: Seeking an analyst to manage annual budgeting, quarterly forecasts, financial modeling, and management reporting. Advanced financial modeling skills required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Data Scientist with 4 years experience applying machine learning and statistical modeling to solve business problems. Proficient in Python, Scikit-Learn, PyTorch, Pandas, and SQL. Deployed predictive models in production.",
+    "job": "Human Resources Generalist: Looking for an HR professional to oversee employee onboarding, HR policy adherence, benefits administration, and culture initiatives.",
+    "score": 0.0
+  },
+  {
+    "resume": "Content Strategist and Copywriter skilled in brand storytelling, email marketing, social media campaigns, and conversion rate optimization (CRO).",
+    "job": "Growth & Performance Marketing Manager: Seeking a marketer with proven experience running Google Ads, Facebook Ads, SEO strategy, and analytics to scale customer acquisition.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Account Executive with 6 years experience in B2B SaaS sales. Exceeded annual quota by 130%, closed enterprise deals, and managed the full sales cycle from prospecting to negotiation.",
+    "job": "Growth & Performance Marketing Manager: Seeking a marketer with proven experience running Google Ads, Facebook Ads, SEO strategy, and analytics to scale customer acquisition.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Financial Analyst with background in financial planning and analysis (FP&A), budget forecasting, cash flow modeling, and variance analysis using Excel and ERP systems (SAP, Oracle).",
+    "job": "Data Scientist: Looking for a Data Scientist to build predictive ML models. Requirements: Python, Pandas, Scikit-Learn, SQL, experience with regression, classification, and statistical hypothesis testing.",
+    "score": 0.0
+  },
+  {
+    "resume": "Certified Public Accountant (CPA) with 7 years of corporate accounting and auditing experience. Expert in GAAP compliance, general ledger reconciliation, financial reporting, and tax return preparation.",
+    "job": "Staff Accountant: Looking for an accountant to handle general ledger accounting, AP/AR operations, journal entries, and bank account reconciliations using QuickBooks.",
+    "score": 1.0
+  },
+  {
+    "resume": "Content Strategist and Copywriter skilled in brand storytelling, email marketing, social media campaigns, and conversion rate optimization (CRO).",
+    "job": "Growth & Performance Marketing Manager: Seeking a marketer with proven experience running Google Ads, Facebook Ads, SEO strategy, and analytics to scale customer acquisition.",
+    "score": 1.0
+  },
+  {
+    "resume": "Digital Marketing Specialist with 5 years experience managing SEO, SEM, Google Ads, and content marketing campaigns. Proven record of increasing organic traffic by 140% and lowering customer acquisition cost (CAC).",
+    "job": "Content Marketing Manager: Looking for a creative writer to lead blog, whitepaper, and case study production. Knowledge of SEO best practices and editorial calendar management required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Anusha Anu Prasad \nprasadanushaanu@gmail.com | 7507457695\nEDUCATION\nMadhav Institute of Technology & Science (MITS) - Gwalior, India\nBachelor of Technology (B.Tech) in Information Technology (2024 - 2028) Expected May 2028\nCurrent SGPA: 8.09 / 10.0\nClass XII - Central Board of Secondary Education (CBSE) 2024\nAggregate Score: 91% \nClass X - Podar International School, Gwalior (CBSE) 2022\nAggregate Score: 96%\nTECHNICAL SKILLS\nLanguages Python, SQL, C++, JavaScript, HTML, CSS\nFrontend HTML, CSS, React.js, Tailwind CSS, Vite\nDatabases MySQL, PostgreSQL, MongoDB, Firebase\nBackend and Libraries Node.js, Express.js, celery, Redis Task Queues, NumPy, Pandas\nDeveloper Tools Git/GitHub, Figma, Postman\nDomains Backend Engineering, Full-Stack Web Development, REST API Design, ML(Basics)\nSoft Skills Public Speaking, Leadership, Networking & Relationship Building\nPROJECTS\nScholarship Discovery Platform (Bharosa) | Python, Machine Learning, Full-Stack | Live Demo \nBuilt a full-stack platform for students to discover and filter 500+ government scholarships by eligibility, with ML-based approval probability ranking - deployed live on Vercel.\nImplemented application tracking dashboard and eligibility checker, reducing manual research time for applicants.\nBanking Transaction & Rule-Based Fraud Monitor | Python, Redis, Celery, PostgreSQL, REST API | Github \nDesigned secure, ACID-compliant backend transaction systems using Python, SQL, and OOP principles to ensure strict data integrity across con",
+    "job": "Senior Full-Stack Engineer (React / Python)\nSenior Full-Stack Engineer (React / Python)\r\nCompany: TechScale Solutions\r\n\r\nLocation: Remote (India)\r\n\r\nJob Type: Full-Time\r\n\r\nDepartment: Core Engineering\r\n\r\nSalary Range: $140,000 - $170,000 USD\r\n\r\nAbout the Role\r\nTechScale Solutions is looking for a Senior Full-Stack Engineer to lead the development of our next-generation cloud analytics platform. In this role, you will architect scalable backend microservices, design high-performance React frontends, and collaborate closely with our product and machine learning teams to ship robust features that serve millions of enterprise users.\r\n\r\nKey Responsibilities\r\nDesign, build, and maintain scalable full-stack web applications using React, TypeScript, Python, and FastAPI.\r\n\r\nOptimize database performance and manage data pipelines using PostgreSQL and Redis.\r\n\r\nIntegrate AI and NLP models into core product workflows to automate user data analysis.\r\n\r\nWrite clean, test-driven code (TDD) with high ",
+    "score": 0.49200000000000005
+  },
+  {
+    "resume": "Certified Public Accountant (CPA) with 7 years of corporate accounting and auditing experience. Expert in GAAP compliance, general ledger reconciliation, financial reporting, and tax return preparation.",
+    "job": "Human Resources Generalist: Looking for an HR professional to oversee employee onboarding, HR policy adherence, benefits administration, and culture initiatives.",
+    "score": 0.0
+  },
+  {
+    "resume": "Full Stack Software Engineer with 5+ years of experience building scalable web applications. Proficient in React, Node.js, TypeScript, PostgreSQL, and AWS. Designed REST and GraphQL APIs, implemented microservices architecture, and optimized database queries.",
+    "job": "Senior Talent Acquisition Specialist: Seeking an experienced technical recruiter to manage full-cycle hiring for engineering and product roles. Strong outbound sourcing and negotiation skills required.",
+    "score": 0.0
+  },
+  {
+    "resume": "Machine Learning Engineer experienced in fine-tuning Transformer models, LLM integration, HuggingFace, PyTorch, and Vector databases (Pinecone, ChromaDB). Track record in semantic search and NLP pipelines.",
+    "job": "Human Resources Generalist: Looking for an HR professional to oversee employee onboarding, HR policy adherence, benefits administration, and culture initiatives.",
+    "score": 0.0
+  },
+  {
+    "resume": "Machine Learning Engineer experienced in fine-tuning Transformer models, LLM integration, HuggingFace, PyTorch, and Vector databases (Pinecone, ChromaDB). Track record in semantic search and NLP pipelines.",
+    "job": "AI/NLP Engineer: Seeking an engineer to develop and fine-tune natural language processing models and embedding pipelines. Strong background in PyTorch, Transformers, and semantic vector search required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Digital Marketing Specialist with 5 years experience managing SEO, SEM, Google Ads, and content marketing campaigns. Proven record of increasing organic traffic by 140% and lowering customer acquisition cost (CAC).",
+    "job": "Growth & Performance Marketing Manager: Seeking a marketer with proven experience running Google Ads, Facebook Ads, SEO strategy, and analytics to scale customer acquisition.",
+    "score": 1.0
+  },
+  {
+    "resume": "Content Strategist and Copywriter skilled in brand storytelling, email marketing, social media campaigns, and conversion rate optimization (CRO).",
+    "job": "AI/NLP Engineer: Seeking an engineer to develop and fine-tune natural language processing models and embedding pipelines. Strong background in PyTorch, Transformers, and semantic vector search required.",
+    "score": 0.0
+  },
+  {
+    "resume": "Content Strategist and Copywriter skilled in brand storytelling, email marketing, social media campaigns, and conversion rate optimization (CRO).",
+    "job": "AI/NLP Engineer: Seeking an engineer to develop and fine-tune natural language processing models and embedding pipelines. Strong background in PyTorch, Transformers, and semantic vector search required.",
+    "score": 0.0
+  },
+  {
+    "resume": "Staff Accountant experienced in accounts payable/receivable (AP/AR), month-end closing, bank reconciliations, payroll processing, and QuickBooks.",
+    "job": "Enterprise Account Executive (B2B SaaS): Responsible for prospecting enterprise accounts, conducting product demos, managing pipeline in Salesforce, and closing complex software contracts.",
+    "score": 0.0
+  },
+  {
+    "resume": "Full Stack Software Engineer with 5+ years of experience building scalable web applications. Proficient in React, Node.js, TypeScript, PostgreSQL, and AWS. Designed REST and GraphQL APIs, implemented microservices architecture, and optimized database queries.",
+    "job": "Senior Software Engineer: We are looking for an experienced developer with strong skills in TypeScript, React, Node.js, and distributed systems. Responsible for designing clean architectures, mentoring engineers, and delivering robust SaaS products.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Frontend Developer with expertise in React, Next.js, Vue, Tailwind CSS, and state management (Redux, Zustand). Passionate about web performance, accessibility, responsive UI, and unit testing with Jest.",
+    "job": "Frontend Engineer: Join our product team to build high-performance web interfaces. Requirements: Modern JavaScript/TypeScript, React, CSS architectures, responsive design, and component-driven development.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Frontend Developer with expertise in React, Next.js, Vue, Tailwind CSS, and state management (Redux, Zustand). Passionate about web performance, accessibility, responsive UI, and unit testing with Jest.",
+    "job": "Cloud DevOps Engineer: Seeking an engineer to manage our cloud infrastructure on AWS, automate deployments with Terraform, maintain Kubernetes clusters, and establish observability.",
+    "score": 1.0
+  },
+  {
+    "resume": "Technical Recruiter with 4 years experience sourcing, interviewing, and hiring software engineering and product talent for hyper-growth tech startups. Experienced with ATS systems (Greenhouse, Lever).",
+    "job": "Senior Talent Acquisition Specialist: Seeking an experienced technical recruiter to manage full-cycle hiring for engineering and product roles. Strong outbound sourcing and negotiation skills required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Account Executive with 6 years experience in B2B SaaS sales. Exceeded annual quota by 130%, closed enterprise deals, and managed the full sales cycle from prospecting to negotiation.",
+    "job": "Senior Talent Acquisition Specialist: Seeking an experienced technical recruiter to manage full-cycle hiring for engineering and product roles. Strong outbound sourcing and negotiation skills required.",
+    "score": 0.0
+  },
+  {
+    "resume": "Senior Financial Analyst with background in financial planning and analysis (FP&A), budget forecasting, cash flow modeling, and variance analysis using Excel and ERP systems (SAP, Oracle).",
+    "job": "Content Marketing Manager: Looking for a creative writer to lead blog, whitepaper, and case study production. Knowledge of SEO best practices and editorial calendar management required.",
+    "score": 0.0
+  },
+  {
+    "resume": "Backend Python Engineer specializing in FastAPI, Django, Celery, and Redis. Strong experience in building high-throughput asynchronous services, containerization with Docker, and CI/CD pipelines via GitHub Actions.",
+    "job": "Frontend Engineer: Join our product team to build high-performance web interfaces. Requirements: Modern JavaScript/TypeScript, React, CSS architectures, responsive design, and component-driven development.",
+    "score": 1.0
+  },
+  {
+    "resume": "Certified Public Accountant (CPA) with 7 years of corporate accounting and auditing experience. Expert in GAAP compliance, general ledger reconciliation, financial reporting, and tax return preparation.",
+    "job": "Financial Planning & Analysis (FP&A) Manager: Seeking an analyst to manage annual budgeting, quarterly forecasts, financial modeling, and management reporting. Advanced financial modeling skills required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Account Executive with 6 years experience in B2B SaaS sales. Exceeded annual quota by 130%, closed enterprise deals, and managed the full sales cycle from prospecting to negotiation.",
+    "job": "Enterprise Account Executive (B2B SaaS): Responsible for prospecting enterprise accounts, conducting product demos, managing pipeline in Salesforce, and closing complex software contracts.",
+    "score": 1.0
+  },
+  {
+    "resume": "Data Scientist with 4 years experience applying machine learning and statistical modeling to solve business problems. Proficient in Python, Scikit-Learn, PyTorch, Pandas, and SQL. Deployed predictive models in production.",
+    "job": "Senior Business Intelligence & Data Analyst: Responsible for writing complex SQL queries, building dashboard solutions in Tableau, and providing actionable business insights to stakeholders.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Account Executive with 6 years experience in B2B SaaS sales. Exceeded annual quota by 130%, closed enterprise deals, and managed the full sales cycle from prospecting to negotiation.",
+    "job": "Enterprise Account Executive (B2B SaaS): Responsible for prospecting enterprise accounts, conducting product demos, managing pipeline in Salesforce, and closing complex software contracts.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Financial Analyst with background in financial planning and analysis (FP&A), budget forecasting, cash flow modeling, and variance analysis using Excel and ERP systems (SAP, Oracle).",
+    "job": "Corporate Controller / Senior Accountant: Requires CPA certification, 5+ years experience in GAAP financial statements, balance sheet reconciliations, external audit preparation, and corporate tax.",
+    "score": 1.0
+  },
+  {
+    "resume": "Data Analyst skilled in SQL, Tableau, Power BI, Python, and dimensional data modeling. Experienced in building executive dashboards, KPI tracking, and conducting exploratory data analysis.",
+    "job": "Senior Business Intelligence & Data Analyst: Responsible for writing complex SQL queries, building dashboard solutions in Tableau, and providing actionable business insights to stakeholders.",
+    "score": 1.0
+  },
+  {
+    "resume": "Machine Learning Engineer experienced in fine-tuning Transformer models, LLM integration, HuggingFace, PyTorch, and Vector databases (Pinecone, ChromaDB). Track record in semantic search and NLP pipelines.",
+    "job": "AI/NLP Engineer: Seeking an engineer to develop and fine-tune natural language processing models and embedding pipelines. Strong background in PyTorch, Transformers, and semantic vector search required.",
+    "score": 1.0
+  },
+  {
+    "resume": "Full Stack Software Engineer with 5+ years of experience building scalable web applications. Proficient in React, Node.js, TypeScript, PostgreSQL, and AWS. Designed REST and GraphQL APIs, implemented microservices architecture, and optimized database queries.",
+    "job": "Enterprise Account Executive (B2B SaaS): Responsible for prospecting enterprise accounts, conducting product demos, managing pipeline in Salesforce, and closing complex software contracts.",
+    "score": 0.0
+  },
+  {
+    "resume": "Anusha Anu Prasad\nprasadanushaanu@gmail.com | 7507457695\nEDUCATION\nMadhav Institute of Technology & Science (MITS) - Gwalior, India\nBachelor of Technology (B.Tech) in Information Technology (2024 - 2028) Expected May 2028\n\n- Current SGPA: 8.09 / 10.0\nClass XII - Central Board of Secondary Education (CBSE) 2024\n\n- Aggregate Score: 91%\nClass X - Podar International School, Gwalior (CBSE) 2022\n\n- Aggregate Score: 96%\nTECHNICAL SKILLS\nLanguages Python, SQL, C++, JavaScript, HTML, CSS\nFrontend HTML, CSS, React.js, Tailwind CSS, Vite\nDatabases MySQL, PostgreSQL, MongoDB, Firebase\nBackend and Libraries Node.js, Express.js, celery, Redis Task Queues, NumPy, Pandas\nDeveloper Tools Git/GitHub, Figma, Postman\nDomains Backend Engineering, Full-Stack Web Development, REST API Design, ML(Basics)\nSoft Skills Public Speaking, Leadership, Networking & Relationship Building\nPROJECTS\nScholarship Discovery Platform (Bharosa) | Python, Machine Learning, Full-Stack | Live Demo \n\n- Built a full-stack platform for students to discover and filter 500+ government scholarships by eligibility, with\nML-based approval probability ranking - deployed live on Vercel.\n\n- Implemented application tracking dashboard and eligibility checker, reducing manual research time for\napplicants.\nBanking Transaction & Rule-Based Fraud Monitor | Python, Redis, Celery, PostgreSQL, REST API | Github \n\n- Designed secure, ACID-compliant backend transaction systems using Python, SQL, and OOP principles to\nensure strict data inte",
+    "job": "Senior Full-Stack Engineer (React / Python)\nSenior Full-Stack Engineer (React / Python)\r\nCompany: TechScale Solutions\r\n\r\nLocation: Remote (India)\r\n\r\nJob Type: Full-Time\r\n\r\nDepartment: Core Engineering\r\n\r\nSalary Range: $140,000 - $170,000 USD\r\n\r\nAbout the Role\r\nTechScale Solutions is looking for a Senior Full-Stack Engineer to lead the development of our next-generation cloud analytics platform. In this role, you will architect scalable backend microservices, design high-performance React frontends, and collaborate closely with our product and machine learning teams to ship robust features that serve millions of enterprise users.\r\n\r\nKey Responsibilities\r\nDesign, build, and maintain scalable full-stack web applications using React, TypeScript, Python, and FastAPI.\r\n\r\nOptimize database performance and manage data pipelines using PostgreSQL and Redis.\r\n\r\nIntegrate AI and NLP models into core product workflows to automate user data analysis.\r\n\r\nWrite clean, test-driven code (TDD) with high ",
+    "score": 0.49200000000000005
+  },
+  {
+    "resume": "Senior Financial Analyst with background in financial planning and analysis (FP&A), budget forecasting, cash flow modeling, and variance analysis using Excel and ERP systems (SAP, Oracle).",
+    "job": "Staff Accountant: Looking for an accountant to handle general ledger accounting, AP/AR operations, journal entries, and bank account reconciliations using QuickBooks.",
+    "score": 1.0
+  },
+  {
+    "resume": "Data Analyst skilled in SQL, Tableau, Power BI, Python, and dimensional data modeling. Experienced in building executive dashboards, KPI tracking, and conducting exploratory data analysis.",
+    "job": "Human Resources Generalist: Looking for an HR professional to oversee employee onboarding, HR policy adherence, benefits administration, and culture initiatives.",
+    "score": 0.0
+  },
+  {
+    "resume": "Senior Frontend Developer with expertise in React, Next.js, Vue, Tailwind CSS, and state management (Redux, Zustand). Passionate about web performance, accessibility, responsive UI, and unit testing with Jest.",
+    "job": "Frontend Engineer: Join our product team to build high-performance web interfaces. Requirements: Modern JavaScript/TypeScript, React, CSS architectures, responsive design, and component-driven development.",
+    "score": 1.0
+  },
+  {
+    "resume": "DevOps and Cloud Engineer with AWS and Kubernetes certifications. Expertise in Terraform, Docker, CI/CD, Prometheus monitoring, and infrastructure automation.",
+    "job": "Senior Software Engineer: We are looking for an experienced developer with strong skills in TypeScript, React, Node.js, and distributed systems. Responsible for designing clean architectures, mentoring engineers, and delivering robust SaaS products.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Account Executive with 6 years experience in B2B SaaS sales. Exceeded annual quota by 130%, closed enterprise deals, and managed the full sales cycle from prospecting to negotiation.",
+    "job": "Senior Business Intelligence & Data Analyst: Responsible for writing complex SQL queries, building dashboard solutions in Tableau, and providing actionable business insights to stakeholders.",
+    "score": 0.0
+  },
+  {
+    "resume": "Staff Accountant experienced in accounts payable/receivable (AP/AR), month-end closing, bank reconciliations, payroll processing, and QuickBooks.",
+    "job": "AI/NLP Engineer: Seeking an engineer to develop and fine-tune natural language processing models and embedding pipelines. Strong background in PyTorch, Transformers, and semantic vector search required.",
+    "score": 0.0
+  },
+  {
+    "resume": "Backend Python Engineer specializing in FastAPI, Django, Celery, and Redis. Strong experience in building high-throughput asynchronous services, containerization with Docker, and CI/CD pipelines via GitHub Actions.",
+    "job": "Python Backend Developer: Seeking a developer proficient in Python, FastAPI, relational databases (PostgreSQL), Redis caching, and Docker. Must have experience building secure REST APIs and background task processing.",
+    "score": 1.0
+  },
+  {
+    "resume": "Staff Accountant experienced in accounts payable/receivable (AP/AR), month-end closing, bank reconciliations, payroll processing, and QuickBooks.",
+    "job": "Financial Planning & Analysis (FP&A) Manager: Seeking an analyst to manage annual budgeting, quarterly forecasts, financial modeling, and management reporting. Advanced financial modeling skills required.",
+    "score": 1.0
+  },
+  {
+    "resume": "DevOps and Cloud Engineer with AWS and Kubernetes certifications. Expertise in Terraform, Docker, CI/CD, Prometheus monitoring, and infrastructure automation.",
+    "job": "Python Backend Developer: Seeking a developer proficient in Python, FastAPI, relational databases (PostgreSQL), Redis caching, and Docker. Must have experience building secure REST APIs and background task processing.",
+    "score": 1.0
+  },
+  {
+    "resume": "Data Analyst skilled in SQL, Tableau, Power BI, Python, and dimensional data modeling. Experienced in building executive dashboards, KPI tracking, and conducting exploratory data analysis.",
+    "job": "Data Scientist: Looking for a Data Scientist to build predictive ML models. Requirements: Python, Pandas, Scikit-Learn, SQL, experience with regression, classification, and statistical hypothesis testing.",
+    "score": 1.0
+  },
+  {
+    "resume": "Data Analyst skilled in SQL, Tableau, Power BI, Python, and dimensional data modeling. Experienced in building executive dashboards, KPI tracking, and conducting exploratory data analysis.",
+    "job": "Senior Business Intelligence & Data Analyst: Responsible for writing complex SQL queries, building dashboard solutions in Tableau, and providing actionable business insights to stakeholders.",
+    "score": 1.0
+  },
+  {
+    "resume": "Full Stack Software Engineer with 5+ years of experience building scalable web applications. Proficient in React, Node.js, TypeScript, PostgreSQL, and AWS. Designed REST and GraphQL APIs, implemented microservices architecture, and optimized database queries.",
+    "job": "Cloud DevOps Engineer: Seeking an engineer to manage our cloud infrastructure on AWS, automate deployments with Terraform, maintain Kubernetes clusters, and establish observability.",
+    "score": 1.0
+  },
+  {
+    "resume": "Data Analyst skilled in SQL, Tableau, Power BI, Python, and dimensional data modeling. Experienced in building executive dashboards, KPI tracking, and conducting exploratory data analysis.",
+    "job": "Data Scientist: Looking for a Data Scientist to build predictive ML models. Requirements: Python, Pandas, Scikit-Learn, SQL, experience with regression, classification, and statistical hypothesis testing.",
+    "score": 1.0
+  },
+  {
+    "resume": "Technical Recruiter with 4 years experience sourcing, interviewing, and hiring software engineering and product talent for hyper-growth tech startups. Experienced with ATS systems (Greenhouse, Lever).",
+    "job": "Human Resources Generalist: Looking for an HR professional to oversee employee onboarding, HR policy adherence, benefits administration, and culture initiatives.",
+    "score": 1.0
+  },
+  {
+    "resume": "Data Analyst skilled in SQL, Tableau, Power BI, Python, and dimensional data modeling. Experienced in building executive dashboards, KPI tracking, and conducting exploratory data analysis.",
+    "job": "Senior Business Intelligence & Data Analyst: Responsible for writing complex SQL queries, building dashboard solutions in Tableau, and providing actionable business insights to stakeholders.",
+    "score": 1.0
+  },
+  {
+    "resume": "Senior Frontend Developer with expertise in React, Next.js, Vue, Tailwind CSS, and state management (Redux, Zustand). Passionate about web performance, accessibility, responsive UI, and unit testing with Jest.",
+    "job": "Python Backend Developer: Seeking a developer proficient in Python, FastAPI, relational databases (PostgreSQL), Redis caching, and Docker. Must have experience building secure REST APIs and background task processing.",
+    "score": 1.0
+  },
+  {
+    "resume": "Certified Public Accountant (CPA) with 7 years of corporate accounting and auditing experience. Expert in GAAP compliance, general ledger reconciliation, financial reporting, and tax return preparation.",
+    "job": "Senior Business Intelligence & Data Analyst: Responsible for writing complex SQL queries, building dashboard solutions in Tableau, and providing actionable business insights to stakeholders.",
+    "score": 0.0
+  }
+]

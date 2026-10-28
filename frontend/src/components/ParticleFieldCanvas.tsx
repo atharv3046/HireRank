@@ -16,7 +16,7 @@ interface ParticleFieldCanvasProps {
 export default function ParticleFieldCanvas({
   reduced = false,
   className = '',
-  color = '#22d3ee',
+  color = '#5eead4',
   particleCount = 80,
   connectDistance = 0.18,
 }: ParticleFieldCanvasProps) {

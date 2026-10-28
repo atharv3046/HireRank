@@ -19,7 +19,7 @@ class EmbeddingService:
             import os
             from sentence_transformers import SentenceTransformer
             # Set EMBEDDING_MODEL=./hirerank-finetuned-v1 in .env to use fine-tuned model
-            model_name = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+            model_name = os.getenv("EMBEDDING_MODEL") or "all-MiniLM-L6-v2"
             logger.info(f"Loading embedding model: {model_name}")
             self._model = SentenceTransformer(model_name)
             logger.info("Model loaded successfully.")

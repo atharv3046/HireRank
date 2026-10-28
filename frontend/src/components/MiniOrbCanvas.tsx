@@ -6,7 +6,7 @@ interface MiniOrbCanvasProps {
   className?: string;
 }
 
-export default function MiniOrbCanvas({ color = '#22d3ee', reduced = false, className = '' }: MiniOrbCanvasProps) {
+export default function MiniOrbCanvas({ color = '#5eead4', reduced = false, className = '' }: MiniOrbCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {

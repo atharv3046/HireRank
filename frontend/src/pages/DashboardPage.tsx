@@ -22,7 +22,6 @@ import {
   modalContentVariants,
   useCountUp,
 } from '../utils/animations';
-import MiniOrbCanvas from '../components/MiniOrbCanvas';
 import { CreateJobModal } from '../components/CreateJobModal';
 
 /* ── Sparkline SVG Component ─────────────────────────────────────────── */
@@ -184,7 +183,7 @@ const HiringVelocityChart: React.FC<{
   if (activePoints.length === 0) {
     return (
       <div className="h-44 rounded-xl border border-white/5 bg-white/[0.01] flex flex-col items-center justify-center text-center p-6">
-        <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-2">
+        <div className="w-10 h-10 rounded-full bg-[var(--accent-dim)] border border-[var(--accent)]/30 flex items-center justify-center text-[var(--accent)] mb-2">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
           </svg>
@@ -207,19 +206,19 @@ const HiringVelocityChart: React.FC<{
           <div className="h-6 w-[1px] bg-white/10" />
           <div>
             <span className="text-white/40 text-[11px] block">Peak Velocity</span>
-            <span className="font-semibold text-cyan-400 text-sm">
+            <span className="font-semibold text-[var(--accent)] text-sm">
               {peakPoint.count} <span className="text-[11px] font-normal text-white/40">({peakPoint.label})</span>
             </span>
           </div>
         </div>
 
         {hasHourly && (
-          <div className="flex items-center bg-white/[0.04] border border-white/10 rounded-lg p-0.5 text-[11px]">
+          <div className="flex items-center bg-white/[0.04] border border-[var(--line)] rounded-lg p-0.5 text-[11px]">
             <button
               onClick={() => setViewMode('daily')}
               className={`px-2.5 py-1 rounded-md transition-colors ${
                 viewMode === 'daily'
-                  ? 'bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30'
+                  ? 'bg-[var(--accent-dim)] text-[var(--accent)] font-semibold border border-[var(--accent)]/30'
                   : 'text-white/50 hover:text-white'
               }`}
             >
@@ -229,7 +228,7 @@ const HiringVelocityChart: React.FC<{
               onClick={() => setViewMode('hourly')}
               className={`px-2.5 py-1 rounded-md transition-colors ${
                 viewMode === 'hourly'
-                  ? 'bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30'
+                  ? 'bg-[var(--accent-dim)] text-[var(--accent)] font-semibold border border-[var(--accent)]/30'
                   : 'text-white/50 hover:text-white'
               }`}
             >
@@ -248,9 +247,9 @@ const HiringVelocityChart: React.FC<{
         >
           <defs>
             <linearGradient id="velocityGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.32" />
-              <stop offset="60%" stopColor="#3b82f6" stopOpacity="0.10" />
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="#5eead4" stopOpacity="0.32" />
+              <stop offset="60%" stopColor="#5eead4" stopOpacity="0.10" />
+              <stop offset="100%" stopColor="#5eead4" stopOpacity="0.0" />
             </linearGradient>
           </defs>
 
@@ -303,7 +302,7 @@ const HiringVelocityChart: React.FC<{
             <path
               d={pathD}
               fill="none"
-              stroke="#06b6d4"
+              stroke="#5eead4"
               strokeWidth="5"
               strokeOpacity="0.15"
               strokeLinecap="round"
@@ -316,7 +315,7 @@ const HiringVelocityChart: React.FC<{
             <path
               d={pathD}
               fill="none"
-              stroke="#06b6d4"
+              stroke="#5eead4"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -346,7 +345,7 @@ const HiringVelocityChart: React.FC<{
                     cy={c.y}
                     r={9}
                     fill="rgba(6,182,212,0.2)"
-                    stroke="#06b6d4"
+                    stroke="#5eead4"
                     strokeWidth="1.5"
                   />
                 )}
@@ -356,7 +355,7 @@ const HiringVelocityChart: React.FC<{
                   cx={c.x}
                   cy={c.y}
                   r={isHovered ? 5.5 : hasActivity ? 4 : 2.5}
-                  fill={hasActivity ? '#06b6d4' : '#1e293b'}
+                  fill={hasActivity ? '#5eead4' : '#1e293b'}
                   stroke={hasActivity ? '#000000' : '#334155'}
                   strokeWidth={2}
                   className="transition-all duration-150"
@@ -371,18 +370,18 @@ const HiringVelocityChart: React.FC<{
         {/* Floating Tooltip */}
         {hoveredIdx !== null && coords[hoveredIdx] && (
           <div
-            className="absolute -top-3 px-3 py-2 bg-[#12121c]/95 border border-cyan-500/40 rounded-xl text-xs shadow-2xl backdrop-blur-md pointer-events-none transform -translate-x-1/2 -translate-y-full z-20 whitespace-nowrap"
+            className="absolute -top-3 px-3 py-2 bg-[#0d0f14]/95 border border-[var(--accent)]/30 rounded-xl text-xs shadow-2xl backdrop-blur-md pointer-events-none transform -translate-x-1/2 -translate-y-full z-20 whitespace-nowrap"
             style={{ left: `${(coords[hoveredIdx].x / width) * 100}%` }}
           >
-            <div className="flex items-center gap-1.5 font-bold text-cyan-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <div className="flex items-center gap-1.5 font-bold text-[var(--accent)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
               {coords[hoveredIdx].count} {coords[hoveredIdx].count === 1 ? 'candidate' : 'candidates'}
             </div>
             <div className="text-[11px] text-white/60 mt-0.5 font-medium">
               {coords[hoveredIdx].sub ? `${coords[hoveredIdx].label} • ${coords[hoveredIdx].sub}` : coords[hoveredIdx].label}
             </div>
             {totalInPeriod > 0 && coords[hoveredIdx].count > 0 && (
-              <div className="text-[10px] text-cyan-300/80 font-medium mt-1 pt-1 border-t border-white/10">
+              <div className="text-[10px] text-[var(--accent)]/80 font-medium mt-1 pt-1 border-t border-[var(--line)]">
                 {Math.round((coords[hoveredIdx].count / totalInPeriod) * 100)}% of intake in period
               </div>
             )}
@@ -398,7 +397,7 @@ const HiringVelocityChart: React.FC<{
             onMouseEnter={() => setHoveredIdx(i)}
             onMouseLeave={() => setHoveredIdx(null)}
             className={`cursor-pointer transition-colors text-center truncate ${
-              hoveredIdx === i ? 'text-cyan-400 font-semibold' : 'hover:text-white/70'
+              hoveredIdx === i ? 'text-[var(--accent)] font-semibold' : 'hover:text-white/70'
             }`}
             style={{ width: `${100 / coords.length}%` }}
           >
@@ -505,7 +504,7 @@ const PipelineHealthDonut: React.FC<{
 
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
           <span className="text-2xl font-black text-white">{animEfficiency}%</span>
-          <span className="text-[10px] uppercase tracking-wider font-semibold text-cyan-400">Efficiency</span>
+          <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--accent)]">Efficiency</span>
         </div>
       </div>
 
@@ -601,16 +600,10 @@ export default function DashboardPage() {
             className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 relative"
           >
             {/* Subtle 3D orb decoration */}
-            <MiniOrbCanvas
-              color="#22d3ee"
-              reduced={shouldReduce ?? false}
-              className="absolute -top-6 right-0 w-32 h-32 opacity-25 pointer-events-none hidden xl:block"
-            />
+            
             <div>
-              <div className="text-xs text-cyan-400 font-semibold uppercase tracking-wider mb-1">
-                RECRUITER WORKSPACE
-              </div>
-              <h1 className="text-2xl font-extrabold text-white">Overview Dashboard</h1>
+              <div className="mb-2"><span className="badge-mono text-[10px] text-[var(--accent)] border-[var(--accent)]/30">RECRUITER WORKSPACE</span></div>
+              <h1 className="font-serif-display text-3xl md:text-4xl font-normal text-[var(--text)] tracking-tight">Overview Dashboard</h1>
               <p className="text-sm text-white/40 mt-1">Screening pipeline performance, hiring velocity, and qualification health.</p>
             </div>
             <div className="flex items-center gap-3">
@@ -618,9 +611,9 @@ export default function DashboardPage() {
                 onClick={() => navigate('/screen')}
                 whileHover={shouldReduce ? undefined : { scale: 1.02 }}
                 whileTap={shouldReduce ? undefined : { scale: 0.98 }}
-                className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-all"
+                className="btn-ghost text-xs py-2 px-3.5 gap-2"
               >
-                <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 Instant Screen
@@ -629,7 +622,7 @@ export default function DashboardPage() {
                 onClick={() => setShowCreate(true)}
                 whileHover={shouldReduce ? undefined : { scale: 1.02 }}
                 whileTap={shouldReduce ? undefined : { scale: 0.98 }}
-                className="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-cyan-500/20"
+                className="btn-primary text-xs py-2 px-3.5 gap-2"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -648,8 +641,7 @@ export default function DashboardPage() {
             {/* Card 1: Resume Screening Funnel */}
             <motion.div
               variants={fadeInUpVariants}
-              className="rounded-2xl border border-white/[0.08] p-6 shadow-sm flex flex-col justify-between"
-              style={{ background: '#050505' }}
+              className="rounded-2xl border border-[var(--line)] p-6 shadow-sm flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-start justify-between">
@@ -661,7 +653,7 @@ export default function DashboardPage() {
                   </div>
                   <Sparkline
                     data={[2, 4, 3, 5, 4, totalProcessed || 1]}
-                    color="#06b6d4"
+                    color="#5eead4"
                     fillId="funnelGrad"
                   />
                 </div>
@@ -670,10 +662,10 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="mt-5 pt-4 border-t border-white/[0.05]">
+              <div className="mt-5 pt-4 border-t border-[var(--line)]">
                 <div className="flex items-center justify-between text-xs mb-1.5">
                   <span className="text-white/40 font-medium">Monthly Screening Quota</span>
-                  <span className="text-cyan-400 font-bold">{animatedQuotaUsed} / {quotaLimit}</span>
+                  <span className="text-[var(--accent)] font-bold">{animatedQuotaUsed} / {quotaLimit}</span>
                 </div>
                 <div className="w-full bg-white/[0.06] h-2 rounded-full overflow-hidden">
                   <motion.div
@@ -681,7 +673,7 @@ export default function DashboardPage() {
                     animate={{ width: `${quotaPct}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut' }}
                     className={`h-full rounded-full ${
-                      quotaPct > 85 ? 'bg-rose-500' : quotaPct > 60 ? 'bg-amber-500' : 'bg-gradient-to-r from-cyan-500 to-blue-500'
+                      quotaPct > 85 ? 'bg-rose-500' : quotaPct > 60 ? 'bg-amber-500' : 'bg-[var(--accent)]'
                     }`}
                   />
                 </div>
@@ -691,8 +683,7 @@ export default function DashboardPage() {
             {/* Card 2: Assessment Pipeline */}
             <motion.div
               variants={fadeInUpVariants}
-              className="rounded-2xl border border-white/[0.08] p-6 shadow-sm flex flex-col justify-between"
-              style={{ background: '#050505' }}
+              className="rounded-2xl border border-[var(--line)] p-6 shadow-sm flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-start justify-between">
@@ -713,7 +704,7 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="mt-5 pt-4 border-t border-white/[0.05]">
+              <div className="mt-5 pt-4 border-t border-[var(--line)]">
                 <div className="flex items-center justify-between text-xs mb-1.5">
                   <span className="text-white/40 font-medium">Qualified Benchmark Fit</span>
                   <span className="text-emerald-400 font-bold">
@@ -734,8 +725,7 @@ export default function DashboardPage() {
             {/* Card 3: Candidate Selection */}
             <motion.div
               variants={fadeInUpVariants}
-              className="rounded-2xl border border-white/[0.08] p-6 shadow-sm flex flex-col justify-between"
-              style={{ background: '#050505' }}
+              className="rounded-2xl border border-[var(--line)] p-6 shadow-sm flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-start justify-between">
@@ -756,7 +746,7 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="mt-5 pt-4 border-t border-white/[0.05]">
+              <div className="mt-5 pt-4 border-t border-[var(--line)]">
                 <div className="flex items-center justify-between text-xs mb-1.5">
                   <span className="text-white/40 font-medium">Interview Shortlist Yield</span>
                   <span className="text-purple-400 font-bold">
@@ -784,8 +774,7 @@ export default function DashboardPage() {
             {/* Left 2 Cols: Hiring Velocity Line Chart */}
             <motion.div
               variants={fadeInUpVariants}
-              className="lg:col-span-2 rounded-2xl border border-white/[0.08] p-6 shadow-sm flex flex-col justify-between"
-              style={{ background: '#050505' }}
+              className="lg:col-span-2 rounded-2xl border border-[var(--line)] p-6 shadow-sm flex flex-col justify-between"
             >
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -794,8 +783,8 @@ export default function DashboardPage() {
                     Real-time candidate intake volume derived from timestamps.
                   </p>
                 </div>
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--accent)] bg-[var(--accent-dim)] border border-[var(--accent)]/30 px-2.5 py-1 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
                   Real timestamps
                 </span>
               </div>
@@ -810,8 +799,7 @@ export default function DashboardPage() {
             {/* Right 1 Col: Pipeline Health Donut */}
             <motion.div
               variants={fadeInUpVariants}
-              className="rounded-2xl border border-white/[0.08] p-6 shadow-sm flex flex-col justify-between"
-              style={{ background: '#050505' }}
+              className="rounded-2xl border border-[var(--line)] p-6 shadow-sm flex flex-col justify-between"
             >
               <div className="mb-2">
                 <h2 className="text-base font-bold text-white">Pipeline Health</h2>
@@ -843,16 +831,16 @@ export default function DashboardPage() {
             {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="rounded-2xl border border-white/[0.08] p-5 animate-pulse" style={{ background: '#050505' }}>
+                  <div key={i} className="rounded-2xl border border-[var(--line)] p-5 animate-pulse">
                     <div className="h-4 bg-white/[0.08] rounded w-1/3 mb-3"></div>
                     <div className="h-3 bg-white/[0.04] rounded w-2/3"></div>
                   </div>
                 ))}
               </div>
             ) : jobs.length === 0 ? (
-              <div className="rounded-2xl border border-white/[0.08] p-16 text-center shadow-sm" style={{ background: '#050505' }}>
-                <div className="w-14 h-14 bg-cyan-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-cyan-500/20">
-                  <svg className="w-7 h-7 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="rounded-2xl border border-[var(--line)] p-16 text-center shadow-sm">
+                <div className="w-14 h-14 bg-[var(--accent-dim)] rounded-2xl flex items-center justify-center mx-auto mb-4 border border-[var(--accent)]/30">
+                  <svg className="w-7 h-7 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
@@ -865,7 +853,7 @@ export default function DashboardPage() {
                     onClick={() => setShowCreate(true)}
                     whileHover={shouldReduce ? undefined : { scale: 1.02 }}
                     whileTap={shouldReduce ? undefined : { scale: 0.98 }}
-                    className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-cyan-500/20"
+                    className="bg-[var(--accent)]  text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-none"
                   >
                     Create New Batch
                   </motion.button>
@@ -873,7 +861,7 @@ export default function DashboardPage() {
                     onClick={() => navigate('/screen')}
                     whileHover={shouldReduce ? undefined : { scale: 1.02 }}
                     whileTap={shouldReduce ? undefined : { scale: 0.98 }}
-                    className="border border-white/[0.08] hover:bg-white/[0.04] text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
+                    className="border border-[var(--line)] hover:bg-white/[0.04] text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
                   >
                     Instant Screen
                   </motion.button>
@@ -891,13 +879,12 @@ export default function DashboardPage() {
                     variants={fadeInUpVariants}
                     whileHover={shouldReduce ? undefined : { y: -2, transition: { duration: 0.2 } }}
                     onClick={() => navigate(`/jobs/${job.id}`)}
-                    className="rounded-2xl border border-white/[0.08] px-6 py-5 cursor-pointer hover:border-cyan-500/40 hover:bg-white/[0.02] transition-colors group shadow-sm"
-                    style={{ background: '#050505' }}
+                    className="rounded-2xl border border-[var(--line)] px-6 py-5 cursor-pointer hover:border-[var(--accent)]/30 hover:bg-white/[0.02] transition-colors group shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-1.5">
-                          <h3 className="font-bold text-white group-hover:text-cyan-400 transition-colors text-base">
+                          <h3 className="font-bold text-white group-hover:text-[var(--accent)] transition-colors text-base">
                             {job.title}
                           </h3>
                           <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${
@@ -910,8 +897,8 @@ export default function DashboardPage() {
                         </div>
                         <p className="text-sm text-white/40 line-clamp-1 mb-3">{job.description}</p>
                         <div className="flex flex-wrap items-center gap-4 text-xs text-white/30">
-                          <span className="flex items-center gap-1.5 font-semibold text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1 rounded-lg">
-                            <svg className="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <span className="flex items-center gap-1.5 font-semibold text-[var(--accent)] bg-[var(--accent-dim)] border border-[var(--accent)]/30 px-2.5 py-1 rounded-lg">
+                            <svg className="w-3.5 h-3.5 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                             {job.candidate_count || 0} candidates
@@ -937,7 +924,7 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 self-center text-white/40 group-hover:text-cyan-400 transition-colors">
+                      <div className="flex items-center gap-2 self-center text-white/40 group-hover:text-[var(--accent)] transition-colors">
                         <span className="text-xs font-semibold">View Shortlist</span>
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

@@ -31,7 +31,7 @@ const FileIcon = ({ ext }: { ext: string }) => {
     <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${
       isPdf
         ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-        : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+        : 'bg-[var(--accent-dim)] text-[var(--accent)] border-[var(--accent)]/30'
     }`}>
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -157,7 +157,7 @@ export default function UploadPage() {
           {/* ── Breadcrumb & Back button ──────────────────────────────────── */}
           <button
             onClick={() => navigate(`/jobs/${jobId}`)}
-            className="flex items-center gap-2 text-xs font-semibold text-white/40 hover:text-cyan-400 mb-6 transition-colors group"
+            className="flex items-center gap-2 text-xs font-semibold text-white/40 hover:text-[var(--accent)] mb-6 transition-colors group"
           >
             <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -167,13 +167,13 @@ export default function UploadPage() {
 
           {/* ── Header Banner with Target Job Context ───────────────────────── */}
           <div
-            className="rounded-2xl border border-white/[0.08] p-6 mb-6 relative overflow-hidden shadow-2xl"
+            className="rounded-2xl border border-[var(--line)] p-6 mb-6 relative overflow-hidden shadow-2xl"
             style={{ background: '#0d0d14' }}
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2.5 mb-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                  <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/30">
                     Screening Batch #{jobId}
                   </span>
                   <span className="text-xs text-white/40">· Job Description Linked</span>
@@ -188,12 +188,12 @@ export default function UploadPage() {
 
               {job && (
                 <div className="flex items-center gap-3 self-start sm:self-center">
-                  <div className="px-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-right">
+                  <div className="px-3.5 py-2 rounded-xl bg-white/[0.03] border border-[var(--line)] text-right">
                     <div className="text-[10px] text-white/40 uppercase font-bold tracking-wider">Experience</div>
                     <div className="text-sm font-extrabold text-white">{job.min_experience_years}+ yrs</div>
                   </div>
                   {job.education_requirement && (
-                    <div className="px-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-right">
+                    <div className="px-3.5 py-2 rounded-xl bg-white/[0.03] border border-[var(--line)] text-right">
                       <div className="text-[10px] text-white/40 uppercase font-bold tracking-wider">Education</div>
                       <div className="text-sm font-extrabold text-white capitalize">{job.education_requirement}</div>
                     </div>
@@ -204,10 +204,10 @@ export default function UploadPage() {
 
             {/* Target Criteria Preview */}
             {job?.required_skills && job.required_skills.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center gap-2 flex-wrap text-xs">
+              <div className="mt-4 pt-4 border-t border-[var(--line)] flex items-center gap-2 flex-wrap text-xs">
                 <span className="font-semibold text-white/50">Required Skills Target:</span>
                 {job.required_skills.map(s => (
-                  <span key={s} className="bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 px-2.5 py-0.5 rounded-md font-medium text-xs">
+                  <span key={s} className="bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/30 px-2.5 py-0.5 rounded-md font-medium text-xs">
                     {s}
                   </span>
                 ))}
@@ -219,8 +219,8 @@ export default function UploadPage() {
           <div
             className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-300 mb-6 relative overflow-hidden ${
               isDragging
-                ? 'border-cyan-400 bg-cyan-500/[0.08] scale-[1.01] shadow-2xl shadow-cyan-500/10'
-                : 'border-white/[0.1] bg-white/[0.02] hover:border-cyan-400/40 hover:bg-white/[0.04]'
+                ? 'border-[var(--accent)] bg-[var(--accent-dim)] scale-[1.01] shadow-2xl shadow-none'
+                : 'border-white/[0.1] bg-white/[0.02] hover:border-[var(--accent)]/40 hover:bg-white/[0.04]'
             }`}
             onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
@@ -241,8 +241,8 @@ export default function UploadPage() {
 
             <div className={`w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center transition-all duration-300 border ${
               isDragging
-                ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 scale-110 shadow-lg shadow-cyan-500/20'
-                : 'bg-white/[0.04] border-white/[0.08] text-white/40 group-hover:text-cyan-400'
+                ? 'bg-[var(--accent-dim)] border-[var(--accent)] text-[var(--accent)] scale-110 shadow-none'
+                : 'bg-white/[0.04] border-[var(--line)] text-white/40 group-hover:text-[var(--accent)]'
             }`}>
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -250,14 +250,14 @@ export default function UploadPage() {
             </div>
 
             <p className="text-white font-bold text-base mb-1">
-              Drop resumes here or <span className="text-cyan-400 underline underline-offset-2">browse files</span>
+              Drop resumes here or <span className="text-[var(--accent)] underline underline-offset-2">browse files</span>
             </p>
             <p className="text-xs text-white/40 max-w-sm mx-auto mb-3">
               Upload multiple PDF or DOCX candidate resumes (up to 10MB each).
             </p>
             <div className="flex items-center justify-center gap-2 text-[11px] text-white/30">
-              <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.06]">.PDF</span>
-              <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.06]">.DOCX</span>
+              <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-[var(--line)]">.PDF</span>
+              <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-[var(--line)]">.DOCX</span>
               <span>· Auto parsed & scored</span>
             </div>
           </div>
@@ -265,15 +265,15 @@ export default function UploadPage() {
           {/* ── Live Processing Queue ─────────────────────────────────────── */}
           {queue.length > 0 && (
             <div
-              className="rounded-2xl border border-white/[0.08] overflow-hidden shadow-2xl mb-8"
+              className="rounded-2xl border border-[var(--line)] overflow-hidden shadow-2xl mb-8"
               style={{ background: '#0d0d14' }}
             >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] bg-white/[0.02]">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--line)] bg-white/[0.02]">
                 <div className="flex items-center gap-2.5">
                   <h2 className="font-bold text-white text-sm">Processing Queue</h2>
                   {inProgressCount > 0 && (
-                    <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                    <span className="text-[10px] font-bold text-[var(--accent)] bg-[var(--accent-dim)] border border-[var(--accent)]/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-ping" />
                       {inProgressCount} Processing
                     </span>
                   )}
@@ -333,7 +333,7 @@ export default function UploadPage() {
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-1.5 text-xs">
                               {inProgress && (
-                                <div className="w-3 h-3 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                                <div className="w-3 h-3 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin flex-shrink-0" />
                               )}
                               <span className={`text-xs ${
                                 isDone ? 'text-emerald-400 font-medium' : isErr ? 'text-rose-400' : 'text-white/40'
@@ -345,7 +345,7 @@ export default function UploadPage() {
                             {!isDone && !isErr && (
                               <div className="flex-1 h-1.5 bg-white/[0.05] rounded-full overflow-hidden">
                                 <div
-                                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-300"
+                                  className="h-full bg-[var(--accent)] text-[#04110f] font-semibold-full transition-all duration-300"
                                   style={{ width: `${qf.progress}%` }}
                                 />
                               </div>
@@ -365,7 +365,7 @@ export default function UploadPage() {
               </div>
 
               {/* Action Bar */}
-              <div className="flex items-center justify-between px-6 py-4 border-t border-white/[0.06] bg-white/[0.02]">
+              <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--line)] bg-white/[0.02]">
                 <div className="text-xs text-white/40">
                   {doneCount} of {queue.length} resumes successfully scored
                   {allFinished && <span className="ml-2 text-emerald-400 font-semibold">· All done!</span>}
@@ -374,7 +374,7 @@ export default function UploadPage() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => navigate(`/jobs/${jobId}`)}
-                    className="text-xs font-semibold text-white/60 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] px-4 py-2 rounded-xl transition-colors"
+                    className="text-xs font-semibold text-white/60 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--line)] px-4 py-2 rounded-xl transition-colors"
                   >
                     Back to Job
                   </button>
@@ -383,7 +383,7 @@ export default function UploadPage() {
                     onClick={() => navigate(`/jobs/${jobId}`)}
                     className={`text-xs font-semibold px-5 py-2 rounded-xl transition-all flex items-center gap-2 ${
                       doneCount > 0
-                        ? 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-lg shadow-cyan-500/20'
+                        ? 'bg-[var(--accent)] text-[#04110f] font-semibold shadow-none'
                         : 'bg-white/[0.05] text-white/30 cursor-not-allowed'
                     }`}
                     disabled={doneCount === 0}

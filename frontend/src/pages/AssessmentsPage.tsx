@@ -66,7 +66,7 @@ const DEFAULT_WEIGHTS: SkillWeight[] = [
     durationMin: 0,
     questionCount: 0,
     isPinned: false,
-    color: '#3b82f6',
+    color: 'var(--accent)',
     description: 'Data structures, computational complexity, problem solving',
   },
   {
@@ -77,7 +77,7 @@ const DEFAULT_WEIGHTS: SkillWeight[] = [
     durationMin: 0,
     questionCount: 0,
     isPinned: false,
-    color: '#06b6d4',
+    color: 'var(--accent)',
     description: 'Scalability, microservices, caching, database partitioning',
   },
   {
@@ -640,7 +640,7 @@ export default function AssessmentsPage() {
 
   /* ── Reusable Live Blueprint Component (Image 1, 2, 4) ────────────────── */
   const renderLiveBlueprintCard = () => (
-    <div className="bg-[#080808] border border-white/[0.08] rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
+    <div className="bg-[#080808] border border-[var(--line)] rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
       <div>
         {/* Card Header */}
         <div className="flex items-start justify-between mb-1">
@@ -699,7 +699,7 @@ export default function AssessmentsPage() {
             return (
               <div
                 key={cat.id}
-                className="rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/10 transition-colors overflow-hidden"
+                className="rounded-xl bg-white/[0.02] border border-[var(--line)] hover:border-white/10 transition-colors overflow-hidden"
               >
                 <div
                   onClick={() => setExpandedCategory(isExpanded ? null : cat.id)}
@@ -771,13 +771,13 @@ export default function AssessmentsPage() {
       </div>
 
       {/* Card Footer */}
-      <div className="pt-4 border-t border-white/[0.06] flex items-center justify-between">
+      <div className="pt-4 border-t border-[var(--line)] flex items-center justify-between">
         <span className="text-xs text-white/50">
           Candidate Time: <strong className="text-white">~{totalDuration} mins</strong>
         </span>
         <div
           onClick={() => setPassBar((prev) => (prev >= 80 ? 65 : prev + 5))}
-          className="px-3 py-1 rounded-lg bg-white/[0.04] border border-white/10 hover:border-cyan-500/40 text-xs font-bold text-cyan-400 cursor-pointer transition-colors"
+          className="px-3 py-1 rounded-lg bg-white/[0.04] border border-white/10 hover:border-[var(--accent)]/30 text-xs font-bold text-[var(--accent)] cursor-pointer transition-colors"
           title="Click to toggle target pass bar"
         >
           Pass Bar: {passBar}%
@@ -793,16 +793,16 @@ export default function AssessmentsPage() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen overflow-y-auto">
         {/* Top Header Bar (Matching Image 2 & 4) */}
-        <header className="h-16 flex items-center justify-between px-8 border-b border-white/[0.06] bg-[#0d0d14]/80 backdrop-blur-sm sticky top-0 z-20">
+        <header className="h-16 flex items-center justify-between px-8 border-b border-[var(--line)] bg-[#0d0f14]/80 backdrop-blur-sm sticky top-0 z-20">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs font-mono text-white/70">
-              <span className="w-2 h-2 rounded-full bg-cyan-400" />
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/[0.04] border border-[var(--line)] text-xs font-mono text-white/70">
+              <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
               {user?.company_name || 'mits'}
             </div>
             {step === 4 ? (
               <button
                 onClick={() => setStep(1)}
-                className="text-xs text-cyan-400 hover:text-cyan-300 font-medium ml-2 flex items-center gap-1"
+                className="text-xs text-[var(--accent)] hover:text-[var(--accent)] font-medium ml-2 flex items-center gap-1"
               >
                 ← Back to Assessment Planner
               </button>
@@ -829,7 +829,7 @@ export default function AssessmentsPage() {
                 {user?.role || 'Admin'}
               </div>
             </div>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-green-500/20">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-green-500/20">
               {((user as any)?.name || user?.email || 'A').charAt(0).toUpperCase()}
             </div>
           </div>
@@ -967,7 +967,7 @@ export default function AssessmentsPage() {
                 variants={tabContentVariants}
                 className="space-y-6 max-w-4xl mx-auto"
               >
-                <div className="bg-[#080808] border border-white/[0.08] rounded-2xl p-7 shadow-2xl">
+                <div className="bg-[#080808] border border-[var(--line)] rounded-2xl p-7 shadow-2xl">
                   {/* Step Header */}
                   <div className="flex items-start justify-between mb-6">
                     <div className="flex items-start gap-4">
@@ -1021,7 +1021,7 @@ export default function AssessmentsPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center justify-between pt-4 border-t border-white/[0.06]">
+                  <div className="flex items-center justify-between pt-4 border-t border-[var(--line)]">
                     <span className="text-xs text-white/40">
                       Step 1 of 3: AI extracts role requirements, seniority bar, and question mix.
                     </span>
@@ -1029,7 +1029,7 @@ export default function AssessmentsPage() {
                     <button
                       onClick={handleExtractBlueprint}
                       disabled={isExtracting || jobDescription.trim().length < 20}
-                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-indigo-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-[var(--accent)] text-[#04110f] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       {isExtracting ? (
                         <>
@@ -1061,7 +1061,7 @@ export default function AssessmentsPage() {
                 className="grid grid-cols-1 lg:grid-cols-12 gap-6"
               >
                 {/* Left Column: Tune Your Assessment Blueprint (7 cols) */}
-                <div className="lg:col-span-7 bg-[#080808] border border-white/[0.08] rounded-2xl p-7 shadow-2xl flex flex-col justify-between">
+                <div className="lg:col-span-7 bg-[#080808] border border-[var(--line)] rounded-2xl p-7 shadow-2xl flex flex-col justify-between">
                   <div>
                     {/* Header */}
                     <div className="flex items-start gap-4 mb-6">
@@ -1091,7 +1091,7 @@ export default function AssessmentsPage() {
                               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
                                 isActive
                                   ? 'bg-purple-600/30 text-purple-200 border border-purple-500/40 shadow-sm shadow-purple-500/20'
-                                  : 'bg-white/[0.03] text-white/50 border border-white/[0.08] hover:bg-white/[0.07] hover:text-white/80'
+                                  : 'bg-white/[0.03] text-white/50 border border-[var(--line)] hover:bg-white/[0.07] hover:text-white/80'
                               }`}
                             >
                               {isActive && <Check className="w-3 h-3 text-purple-300 stroke-[2.5]" />}
@@ -1127,7 +1127,7 @@ export default function AssessmentsPage() {
                         {skillWeights.map((sw) => (
                           <div
                             key={sw.id}
-                            className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-white/10 transition-colors flex items-center gap-3.5"
+                            className="p-3 rounded-xl bg-white/[0.02] border border-[var(--line)] hover:border-white/10 transition-colors flex items-center gap-3.5"
                           >
                             {/* Lock Toggle Button */}
                             <button
@@ -1174,7 +1174,7 @@ export default function AssessmentsPage() {
                             </span>
 
                             {/* Percentage Number */}
-                            <span className="w-12 text-right text-xs font-bold text-cyan-400 font-mono flex-shrink-0">
+                            <span className="w-12 text-right text-xs font-bold text-[var(--accent)] font-mono flex-shrink-0">
                               {sw.weight}%
                             </span>
                           </div>
@@ -1184,7 +1184,7 @@ export default function AssessmentsPage() {
                   </div>
 
                   {/* Bottom Actions */}
-                  <div className="flex items-center justify-between pt-5 border-t border-white/[0.06] mt-4">
+                  <div className="flex items-center justify-between pt-5 border-t border-[var(--line)] mt-4">
                     <button
                       type="button"
                       onClick={() => setStep(1)}
@@ -1199,7 +1199,7 @@ export default function AssessmentsPage() {
                         setMaxStepReached((prev) => Math.max(prev, 3));
                         setStep(3);
                       }}
-                      className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-indigo-500/25 transition-all"
+                      className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-[var(--accent)] text-[#04110f] font-semibold transition-all"
                     >
                       Continue to Final Review...
                     </button>
@@ -1243,7 +1243,7 @@ export default function AssessmentsPage() {
                     {/* 2x3 Summary Parameter Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                       {/* 1. Assessment Title */}
-                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-[var(--line)]">
                         <span className="text-[11px] font-medium text-white/40 block mb-1">
                           Assessment Title
                         </span>
@@ -1253,7 +1253,7 @@ export default function AssessmentsPage() {
                       </div>
 
                       {/* 2. Target Role */}
-                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-[var(--line)]">
                         <span className="text-[11px] font-medium text-white/40 block mb-1">
                           Target Role
                         </span>
@@ -1263,7 +1263,7 @@ export default function AssessmentsPage() {
                       </div>
 
                       {/* 3. Primary Tech Stack */}
-                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-[var(--line)]">
                         <span className="text-[11px] font-medium text-white/40 block mb-1">
                           Primary Tech Stack
                         </span>
@@ -1275,7 +1275,7 @@ export default function AssessmentsPage() {
                       </div>
 
                       {/* 4. Seniority Bar */}
-                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-[var(--line)]">
                         <span className="text-[11px] font-medium text-white/40 block mb-1">
                           Seniority Bar
                         </span>
@@ -1285,7 +1285,7 @@ export default function AssessmentsPage() {
                       </div>
 
                       {/* 5. Screen Duration */}
-                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-[var(--line)]">
                         <span className="text-[11px] font-medium text-white/40 block mb-1">
                           Screen Duration
                         </span>
@@ -1295,7 +1295,7 @@ export default function AssessmentsPage() {
                       </div>
 
                       {/* 6. Hiring Profile */}
-                      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                      <div className="p-4 rounded-xl bg-white/[0.02] border border-[var(--line)]">
                         <span className="text-[11px] font-medium text-white/40 block mb-1">
                           Hiring Profile
                         </span>
@@ -1306,7 +1306,7 @@ export default function AssessmentsPage() {
                     </div>
 
                     {/* Launch Checks & Calibration Card */}
-                    <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2">
+                    <div className="p-4 rounded-xl bg-white/[0.02] border border-[var(--line)] space-y-2">
                       <h4 className="text-xs font-bold text-indigo-400 mb-2.5">
                         Launch Checks & Calibration
                       </h4>
@@ -1330,7 +1330,7 @@ export default function AssessmentsPage() {
                 </div>
 
                 {/* Bottom Action Bar (Matching Image 3) */}
-                <div className="flex items-center justify-between pt-6 border-t border-white/[0.06]">
+                <div className="flex items-center justify-between pt-6 border-t border-[var(--line)]">
                   <button
                     type="button"
                     onClick={() => setStep(2)}
@@ -1343,7 +1343,7 @@ export default function AssessmentsPage() {
                     {isLaunching ? (
                       <button
                         disabled
-                        className="flex items-center gap-2.5 px-7 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600/60 shadow-lg cursor-not-allowed"
+                        className="flex items-center gap-2.5 px-7 py-2.5 rounded-xl text-sm font-semibold text-white bg-[var(--accent)]/50 text-[#04110f] cursor-not-allowed"
                       >
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         Creating Assessment...
@@ -1351,7 +1351,7 @@ export default function AssessmentsPage() {
                     ) : (
                       <button
                         onClick={handleLaunchAssessment}
-                        className="flex items-center gap-2 px-7 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-indigo-500/25 transition-all"
+                        className="flex items-center gap-2 px-7 py-2.5 rounded-xl text-sm font-semibold text-white bg-[var(--accent)] text-[#04110f] font-semibold transition-all"
                       >
                         Generate Questions & Launch
                         <ArrowRight className="w-4 h-4" />
@@ -1383,7 +1383,7 @@ export default function AssessmentsPage() {
                   </div>
                   <button
                     onClick={() => setStep(1)}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 shadow-md shadow-indigo-500/20"
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white btn-primary text-xs py-2 px-3.5"
                   >
                     + Create New Assessment
                   </button>
@@ -1395,7 +1395,7 @@ export default function AssessmentsPage() {
                     Loading assessments...
                   </div>
                 ) : pastAssessments.length === 0 ? (
-                  <div className="p-12 text-center rounded-2xl bg-[#080808] border border-white/[0.08]">
+                  <div className="p-12 text-center rounded-2xl bg-[#080808] border border-[var(--line)]">
                     <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white/30 mx-auto mb-3">
                       <Clock className="w-6 h-6" />
                     </div>
@@ -1415,7 +1415,7 @@ export default function AssessmentsPage() {
                     {pastAssessments.map((a) => (
                       <div
                         key={a.id}
-                        className="p-5 rounded-2xl bg-[#080808] border border-white/[0.08] hover:border-indigo-500/30 transition-all flex flex-col justify-between"
+                        className="p-5 rounded-2xl bg-[#080808] border border-[var(--line)] hover:border-indigo-500/30 transition-all flex flex-col justify-between"
                       >
                         <div>
                           <div className="flex items-start justify-between mb-2">
@@ -1446,7 +1446,7 @@ export default function AssessmentsPage() {
                           </div>
                         </div>
 
-                        <div className="pt-3 border-t border-white/[0.05] flex items-center justify-between">
+                        <div className="pt-3 border-t border-[var(--line)] flex items-center justify-between">
                           <button
                             onClick={() => {
                               setRoleTitle(a.title);
@@ -1479,7 +1479,7 @@ export default function AssessmentsPage() {
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {showInviteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-2xl bg-[#050505] border border-indigo-500/30 rounded-2xl p-6 shadow-2xl relative text-left">
+          <div className="w-full max-w-2xl bg-[#0d0f14] border border-indigo-500/30 rounded-2xl p-6 shadow-2xl relative text-left">
             {/* Modal Header */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -1505,7 +1505,7 @@ export default function AssessmentsPage() {
             </div>
 
             {/* Stepper Navigation inside Modal */}
-            <div className="flex items-center gap-2.5 p-1.5 bg-white/[0.02] border border-white/[0.06] rounded-xl mb-5 text-xs">
+            <div className="flex items-center gap-2.5 p-1.5 bg-white/[0.02] border border-[var(--line)] rounded-xl mb-5 text-xs">
               <button
                 type="button"
                 onClick={() => setInviteModalStep(1)}
@@ -1583,7 +1583,7 @@ export default function AssessmentsPage() {
                           className={`p-3 rounded-xl border transition-colors cursor-pointer flex items-center justify-between ${
                             isSelected
                               ? 'bg-indigo-600/10 border-indigo-500/40'
-                              : 'bg-white/[0.02] border-white/[0.05] hover:border-white/10'
+                              : 'bg-white/[0.02] border-[var(--line)] hover:border-white/10'
                           }`}
                         >
                           <div className="flex items-center gap-3">
@@ -1604,7 +1604,7 @@ export default function AssessmentsPage() {
                           </div>
 
                           {c.overall_score != null && (
-                            <span className="text-xs font-bold font-mono text-cyan-400">
+                            <span className="text-xs font-bold font-mono text-[var(--accent)]">
                               {c.overall_score}% match
                             </span>
                           )}
@@ -1646,7 +1646,7 @@ export default function AssessmentsPage() {
                             className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all text-center truncate ${
                               isSelected
                                 ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500 shadow-sm shadow-indigo-500/20 font-bold'
-                                : 'bg-white/[0.02] text-white/50 border-white/[0.08] hover:bg-white/[0.05] hover:text-white/80'
+                                : 'bg-white/[0.02] text-white/50 border-[var(--line)] hover:bg-white/[0.05] hover:text-white/80'
                             }`}
                           >
                             {preset}
@@ -1721,7 +1721,7 @@ export default function AssessmentsPage() {
                   type="button"
                   onClick={handleSendInvitations}
                   disabled={isSendingInvites}
-                  className="w-full py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-xl shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3 rounded-xl text-sm font-bold text-white btn-primary text-xs py-2.5 px-4 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isSendingInvites ? (
                     <>

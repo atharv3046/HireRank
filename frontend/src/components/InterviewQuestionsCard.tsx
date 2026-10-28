@@ -88,17 +88,17 @@ export const InterviewQuestionsCard: React.FC<InterviewQuestionsCardProps> = ({
       return 'bg-purple-500/15 text-purple-300 border-purple-500/30';
     }
     if (lower.includes('evidence probe') || lower.includes('claim')) {
-      return 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30';
+      return 'bg-[var(--accent-dim)] text-[var(--accent)] border-[var(--accent)]/30';
     }
     return 'bg-white/[0.08] text-white/70 border-white/[0.12]';
   };
 
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.015] p-5 backdrop-blur-sm">
+    <div className="rounded-2xl border border-[var(--line)] bg-white/[0.015] p-5 backdrop-blur-sm">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.06]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--line)]">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-lg shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-[var(--line)] text-[var(--accent)] flex items-center justify-center text-lg shadow-sm">
             🎯
           </div>
           <div>
@@ -112,7 +112,7 @@ export const InterviewQuestionsCard: React.FC<InterviewQuestionsCardProps> = ({
                     data.source === 'chatgpt'
                       ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                       : data.source === 'cached'
-                      ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                      ? 'bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/30'
                       : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                   }`}
                 >
@@ -153,7 +153,7 @@ export const InterviewQuestionsCard: React.FC<InterviewQuestionsCardProps> = ({
             disabled={regenerating || loading || isAdversarial}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
               isAdversarial
-                ? 'opacity-40 cursor-not-allowed bg-white/[0.02] text-white/40 border border-white/[0.06]'
+                ? 'opacity-40 cursor-not-allowed bg-white/[0.02] text-white/40 border border-[var(--line)]'
                 : 'bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40'
             }`}
             title={isAdversarial ? 'Regeneration disabled for flagged resumes' : 'Refresh questions using ChatGPT (rate limit: 20/hr)'}
@@ -226,7 +226,7 @@ export const InterviewQuestionsCard: React.FC<InterviewQuestionsCardProps> = ({
           {data.questions.map((q, idx) => (
             <div
               key={idx}
-              className="group p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.035] border border-white/[0.06] transition-all space-y-2.5 relative"
+              className="group p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.035] border border-[var(--line)] transition-all space-y-2.5 relative"
             >
               {/* Question Header & Tag */}
               <div className="flex items-center justify-between gap-3">
@@ -245,7 +245,7 @@ export const InterviewQuestionsCard: React.FC<InterviewQuestionsCardProps> = ({
 
                 <button
                   onClick={() => handleCopySingle(q, idx)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-white/40 hover:text-white px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.08]"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-white/40 hover:text-white px-2 py-0.5 rounded bg-white/[0.04] border border-[var(--line)]"
                   title="Copy question to clipboard"
                 >
                   {copiedIndex === idx ? '✓ Copied' : 'Copy'}

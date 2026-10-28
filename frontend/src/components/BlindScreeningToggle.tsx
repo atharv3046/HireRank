@@ -18,14 +18,14 @@ export const BlindScreeningToggle: React.FC<BlindScreeningToggleProps> = ({
       title="DEI & NYC LL144 Mode: Masks candidate names, contact details, institution prestige, and graduation years until advanced to Interview"
       className={`group relative inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
         enabled
-          ? 'bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 border-cyan-500/40 text-cyan-300 shadow-sm shadow-cyan-500/20'
-          : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white/80 border-white/[0.08]'
+          ? 'bg-[var(--accent-dim)] border border-[var(--accent)]/30 text-[var(--accent)]'
+          : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/50 hover:text-white/80 border-[var(--line)]'
       } ${className}`}
     >
       {/* Icon */}
       <span className="flex items-center justify-center">
         {enabled ? (
-          <svg className="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-3.5 h-3.5 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
         ) : (
@@ -39,7 +39,7 @@ export const BlindScreeningToggle: React.FC<BlindScreeningToggleProps> = ({
       {/* Label */}
       <span>
         Blind Screening:{' '}
-        <span className={enabled ? 'font-bold text-cyan-200' : 'text-white/40'}>
+        <span className={enabled ? 'font-bold text-[var(--accent)]' : 'text-white/40'}>
           {enabled ? 'ON' : 'OFF'}
         </span>
       </span>
@@ -47,7 +47,7 @@ export const BlindScreeningToggle: React.FC<BlindScreeningToggleProps> = ({
       {/* Switch pill */}
       <span
         className={`w-7 h-4 rounded-full flex items-center p-0.5 transition-colors ${
-          enabled ? 'bg-cyan-500' : 'bg-white/10'
+          enabled ? 'bg-[var(--accent)]' : 'bg-white/10'
         }`}
       >
         <span

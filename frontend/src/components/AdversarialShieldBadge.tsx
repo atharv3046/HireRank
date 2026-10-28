@@ -85,7 +85,7 @@ export const AdversarialShieldBadge: React.FC<AdversarialShieldBadgeProps> = ({
               exit={{ opacity: 0, scale: 0.95, y: 4 }}
               className="absolute left-0 mt-2 z-50 w-80 sm:w-96 p-3.5 rounded-xl bg-slate-900 border border-rose-500/30 shadow-2xl space-y-2 text-xs"
             >
-              <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+              <div className="flex items-center justify-between pb-2 border-b border-[var(--line)]">
                 <div className="flex items-center gap-1.5 text-rose-300 font-bold">
                   <ShieldAlert className="w-4 h-4 text-rose-400" />
                   Adversarial Attempt Detected
@@ -121,7 +121,7 @@ export const AdversarialShieldBadge: React.FC<AdversarialShieldBadgeProps> = ({
                 </div>
               )}
 
-              <div className="pt-1 text-[10px] text-amber-300/80 flex items-center gap-1 border-t border-white/[0.06]">
+              <div className="pt-1 text-[10px] text-amber-300/80 flex items-center gap-1 border-t border-[var(--line)]">
                 <Lock className="w-3 h-3 text-amber-400 shrink-0" />
                 Quarantined for recruiter review. Generative interview prep locked.
               </div>
@@ -141,7 +141,7 @@ export const AdversarialShieldBadge: React.FC<AdversarialShieldBadgeProps> = ({
           <span className="font-semibold">Adversarial Shield: Integrity Verified</span>
           <span className="text-[11px] text-emerald-400/60">• Clean of prompt injection & hidden text</span>
         </div>
-        <span className="text-[10px] text-white/40 font-mono bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.06]">
+        <span className="text-[10px] text-white/40 font-mono bg-white/[0.04] px-2 py-0.5 rounded border border-[var(--line)]">
           Status: Clean
         </span>
       </div>
@@ -224,8 +224,8 @@ export const AdversarialShieldBadge: React.FC<AdversarialShieldBadgeProps> = ({
       </div>
 
       {/* Recruiter Protection Summary */}
-      <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] text-[11px] text-white/70 flex items-start gap-2">
-        <Info className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+      <div className="p-2.5 rounded-lg bg-white/[0.02] border border-[var(--line)] text-[11px] text-white/70 flex items-start gap-2">
+        <Info className="w-4 h-4 text-[var(--accent)] shrink-0 mt-0.5" />
         <div>
           <span className="font-bold text-white/90">HireRank Shield Action: </span>
           Scores have been quarantined and marked as <em>Needs Review</em>. Downstream generative interview question synthesis (OpenAI API) is locked for this profile to prevent prompt escape.

@@ -24,7 +24,7 @@ interface HeadToHeadComparisonProps {
 }
 
 const CANDIDATE_COLORS = [
-  { stroke: '#06b6d4', fill: 'rgba(6, 182, 212, 0.25)', bg: 'bg-cyan-500/10', text: 'text-cyan-400', border: 'border-cyan-500/30', hex: '#06b6d4' },
+  { stroke: 'var(--accent)', fill: 'rgba(6, 182, 212, 0.25)', bg: 'bg-[var(--accent-dim)]', text: 'text-[var(--accent)]', border: 'border-[var(--accent)]/30', hex: 'var(--accent)' },
   { stroke: '#10b981', fill: 'rgba(16, 185, 129, 0.25)', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/30', hex: '#10b981' },
   { stroke: '#f59e0b', fill: 'rgba(245, 158, 11, 0.25)', bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/30', hex: '#f59e0b' },
 ];
@@ -83,12 +83,12 @@ export const HeadToHeadComparison: React.FC<HeadToHeadComparisonProps> = ({
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
         transition={{ duration: 0.2 }}
-        className="w-full max-w-6xl max-h-[96vh] rounded-2xl border border-white/[0.1] bg-[#0d0d16] flex flex-col shadow-2xl shadow-cyan-950/30 overflow-hidden"
+        className="w-full max-w-6xl max-h-[96vh] rounded-2xl border border-white/[0.1] bg-[#0d0f14] flex flex-col shadow-2xl shadow-none overflow-hidden"
       >
         {/* Header Bar */}
-        <div className="px-5 py-3.5 border-b border-white/[0.08] flex items-center justify-between shrink-0 bg-white/[0.02]">
+        <div className="px-5 py-3.5 border-b border-[var(--line)] flex items-center justify-between shrink-0 bg-white/[0.02]">
           <div className="flex items-center gap-3">
-            <span className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-base">
+            <span className="p-1.5 rounded-lg bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/30 text-base">
               ⚔️
             </span>
             <div>
@@ -96,7 +96,7 @@ export const HeadToHeadComparison: React.FC<HeadToHeadComparisonProps> = ({
                 <h2 className="text-base font-black text-white tracking-tight">
                   Head-to-Head Finalist Matrix
                 </h2>
-                <span className="text-[11px] font-semibold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
+                <span className="text-[11px] font-semibold text-[var(--accent)] bg-[var(--accent-dim)] px-2 py-0.5 rounded-full border border-[var(--accent)]/30">
                   Feature 6: Selection
                 </span>
                 {blindScreening && (
@@ -133,7 +133,7 @@ export const HeadToHeadComparison: React.FC<HeadToHeadComparisonProps> = ({
         <div className="p-4 sm:p-5 flex-1 overflow-y-auto space-y-4">
           {loading ? (
             <div className="py-24 text-center">
-              <div className="w-10 h-10 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <div className="w-10 h-10 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
               <p className="text-xs text-white/40">Calculating radar matrix and skill differentials…</p>
             </div>
           ) : error ? (
@@ -183,7 +183,7 @@ export const HeadToHeadComparison: React.FC<HeadToHeadComparisonProps> = ({
                       </div>
 
                       {/* Career Pattern Chip */}
-                      <div className="mt-2.5 pt-2 border-t border-white/[0.08] flex items-center justify-between text-[11px]">
+                      <div className="mt-2.5 pt-2 border-t border-[var(--line)] flex items-center justify-between text-[11px]">
                         <span className="text-white/40">{c.experience_years} yrs exp</span>
                         <CareerPatternChip
                           summary={c.career_pattern_summary}
@@ -198,7 +198,7 @@ export const HeadToHeadComparison: React.FC<HeadToHeadComparisonProps> = ({
               {/* Row 2: 2-Column Split: Radar Chart (Left) + Templated Deltas & Skill Overlap (Right) */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 {/* Left: 5-Factor Radar Chart & Numerical Bars (5 cols) */}
-                <div className="lg:col-span-5 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 flex flex-col justify-between">
+                <div className="lg:col-span-5 rounded-xl border border-[var(--line)] bg-white/[0.02] p-4 flex flex-col justify-between">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-white/60">
                       5-Component Fit Radar
@@ -225,7 +225,7 @@ export const HeadToHeadComparison: React.FC<HeadToHeadComparisonProps> = ({
                   </div>
 
                   {/* Side-by-side component scores */}
-                  <div className="space-y-2 mt-2 pt-2 border-t border-white/[0.06] text-xs">
+                  <div className="space-y-2 mt-2 pt-2 border-t border-[var(--line)] text-xs">
                     {data.radar_axes.map((axis) => (
                       <div key={axis.key} className="flex items-center justify-between text-[11px]">
                         <span className="text-white/50 w-28 truncate">{axis.label}</span>
@@ -248,9 +248,9 @@ export const HeadToHeadComparison: React.FC<HeadToHeadComparisonProps> = ({
                 {/* Right: Score Gap Sentences & 3-Column Skill Breakdown (7 cols) */}
                 <div className="lg:col-span-7 flex flex-col gap-3">
                   {/* Templated Non-Generative Gap Sentences (Prompt Specification) */}
-                  <div className="rounded-xl border border-cyan-500/25 bg-gradient-to-r from-cyan-950/30 to-blue-950/20 p-3.5">
+                  <div className="rounded-xl border border-[var(--accent)]/30 bg-[var(--accent-dim)] p-3.5">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">
+                      <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
                         Score Differentials (Meeting Talking Points)
                       </span>
                     </div>
@@ -261,7 +261,7 @@ export const HeadToHeadComparison: React.FC<HeadToHeadComparisonProps> = ({
                           key={idx}
                           className="flex items-center gap-2 text-xs text-white/90 bg-white/[0.03] px-2.5 py-1.5 rounded-lg border border-white/[0.04]"
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${d.delta > 0 ? 'bg-cyan-400' : 'bg-slate-500'}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full ${d.delta > 0 ? 'bg-[var(--accent)]' : 'bg-slate-500'}`} />
                           <span className="font-medium">{d.sentence}</span>
                         </div>
                       ))}
@@ -269,7 +269,7 @@ export const HeadToHeadComparison: React.FC<HeadToHeadComparisonProps> = ({
                   </div>
 
                   {/* 3-Column Skill Overlap Matrix */}
-                  <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3.5 flex-1 flex flex-col">
+                  <div className="rounded-xl border border-[var(--line)] bg-white/[0.02] p-3.5 flex-1 flex flex-col">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-bold uppercase tracking-wider text-white/60">
                         Skill Overlap Breakdown
@@ -282,10 +282,10 @@ export const HeadToHeadComparison: React.FC<HeadToHeadComparisonProps> = ({
                     {/* Columns grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 flex-1 text-xs">
                       {/* Column 1: Common Skills */}
-                      <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex flex-col">
-                        <div className="flex items-center justify-between text-[11px] font-bold text-cyan-300 pb-1.5 border-b border-white/[0.06] mb-2">
+                      <div className="p-2.5 rounded-lg bg-white/[0.02] border border-[var(--line)] flex flex-col">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-[var(--accent)] pb-1.5 border-b border-[var(--line)] mb-2">
                           <span>Common to Both</span>
-                          <span className="px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px]">
+                          <span className="px-1.5 py-0.2 rounded bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/30 text-[10px]">
                             {data.skill_overlap.common_skills.length}
                           </span>
                         </div>
@@ -294,7 +294,7 @@ export const HeadToHeadComparison: React.FC<HeadToHeadComparisonProps> = ({
                             data.skill_overlap.common_skills.map((s) => (
                               <span
                                 key={s}
-                                className="px-2 py-0.5 rounded text-[11px] font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/20"
+                                className="px-2 py-0.5 rounded text-[11px] font-medium bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/30"
                               >
                                 ✓ {s}
                               </span>
@@ -307,8 +307,8 @@ export const HeadToHeadComparison: React.FC<HeadToHeadComparisonProps> = ({
 
                       {/* Column 2: Only Candidate A */}
                       {data.candidates[0] && (
-                        <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex flex-col">
-                          <div className="flex items-center justify-between text-[11px] font-bold text-emerald-300 pb-1.5 border-b border-white/[0.06] mb-2">
+                        <div className="p-2.5 rounded-lg bg-white/[0.02] border border-[var(--line)] flex flex-col">
+                          <div className="flex items-center justify-between text-[11px] font-bold text-emerald-300 pb-1.5 border-b border-[var(--line)] mb-2">
                             <span className="truncate">Only {data.candidates[0].name.split(' ')[0]}</span>
                             <span className="px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">
                               {(data.skill_overlap.unique_skills[String(data.candidates[0].id)] || []).length}
@@ -333,8 +333,8 @@ export const HeadToHeadComparison: React.FC<HeadToHeadComparisonProps> = ({
 
                       {/* Column 3: Only Candidate B */}
                       {data.candidates[1] && (
-                        <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex flex-col">
-                          <div className="flex items-center justify-between text-[11px] font-bold text-amber-300 pb-1.5 border-b border-white/[0.06] mb-2">
+                        <div className="p-2.5 rounded-lg bg-white/[0.02] border border-[var(--line)] flex flex-col">
+                          <div className="flex items-center justify-between text-[11px] font-bold text-amber-300 pb-1.5 border-b border-[var(--line)] mb-2">
                             <span className="truncate">Only {data.candidates[1].name.split(' ')[0]}</span>
                             <span className="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px]">
                               {(data.skill_overlap.unique_skills[String(data.candidates[1].id)] || []).length}
@@ -360,7 +360,7 @@ export const HeadToHeadComparison: React.FC<HeadToHeadComparisonProps> = ({
 
                     {/* If 3 candidates, render Candidate C row/box */}
                     {data.candidates[2] && (
-                      <div className="mt-2 p-2 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                      <div className="mt-2 p-2 rounded-lg bg-white/[0.02] border border-[var(--line)]">
                         <div className="flex items-center justify-between text-[11px] font-bold text-purple-300 mb-1">
                           <span>Only {data.candidates[2].name}</span>
                           <span className="text-[10px] text-white/40">

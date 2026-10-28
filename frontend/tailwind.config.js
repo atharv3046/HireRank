@@ -4,6 +4,12 @@ export default {
   theme: {
     extend: {
       colors: {
+        bg: '#08090c',
+        surface: '#0d0f14',
+        text: '#f2f3f5',
+        muted: '#a1a6b0',
+        accent: '#5eead4',
+        line: 'rgba(255, 255, 255, 0.08)',
         primary: {
           50: '#eef2ff',
           100: '#e0e7ff',
@@ -12,6 +18,11 @@ export default {
           700: '#4338ca',
           900: '#312e81'
         }
+      },
+      fontFamily: {
+        serif: ['"Instrument Serif"', 'serif'],
+        sans: ['Inter', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       keyframes: {
         'slide-in': {

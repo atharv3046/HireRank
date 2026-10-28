@@ -105,7 +105,7 @@ export const RejectionModal: React.FC<RejectionModalProps> = ({
         {/* Header */}
         <div className="flex items-start justify-between gap-4 pb-4 border-b border-white/[0.08]">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-rose-500/20 to-amber-500/20 border border-rose-500/30 flex items-center justify-center text-xl shadow-sm">
+            <div className="w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-400 flex items-center justify-center text-xl shadow-sm">
               ✉️
             </div>
             <div>
@@ -279,7 +279,7 @@ export const RejectionModal: React.FC<RejectionModalProps> = ({
                   type="button"
                   onClick={handleSend}
                   disabled={sending || !body.trim()}
-                  className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-500 to-amber-600 hover:from-rose-400 hover:to-amber-500 text-white shadow-md shadow-rose-500/20 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-bold bg-rose-500/20 border border-rose-500/30 text-rose-300 hover:bg-rose-500/30 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {sending ? (
                     <>

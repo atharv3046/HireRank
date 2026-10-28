@@ -104,17 +104,16 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onCreat
         initial={shouldReduce ? false : 'hidden'}
         animate="visible"
         exit="exit"
-        className="rounded-2xl border border-white/[0.08] w-full max-w-lg shadow-2xl shadow-black/80 overflow-hidden my-8"
-        style={{ background: '#0d0d14' }}
+        className="card-surface w-full max-w-lg shadow-2xl overflow-hidden my-8"
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--line)]">
           <div>
-            <h2 className="text-lg font-bold text-white">Create New Job Posting</h2>
-            <p className="text-xs text-white/40 mt-0.5">Define role specifications and candidate scoring weights</p>
+            <h2 className="font-serif-display text-2xl font-normal text-[var(--text)]">Create Job Posting</h2>
+            <p className="text-xs text-[var(--muted)] mt-0.5">Define role specifications and candidate scoring weights</p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-white/[0.04] text-white/40 hover:text-white hover:bg-white/[0.08] flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-lg bg-white/[0.03] text-[var(--muted)] hover:text-white hover:bg-white/[0.08] flex items-center justify-center transition-colors"
           >
             ✕
           </button>
@@ -128,7 +127,7 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onCreat
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-semibold text-[var(--muted)] font-mono mb-1.5 uppercase tracking-wider">
               Job Title *
             </label>
             <input
@@ -136,12 +135,12 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onCreat
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               placeholder="e.g. Senior Full-Stack Engineer"
-              className="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+              className="w-full px-3.5 py-2.5 bg-white/[0.03] border border-[var(--line)] rounded-xl text-sm text-white placeholder-[#7d838f] focus:outline-none focus:ring-2 focus:border-[var(--accent)] transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-semibold text-[var(--muted)] font-mono mb-1.5 uppercase tracking-wider">
               Description *
             </label>
             <textarea
@@ -150,26 +149,26 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onCreat
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               placeholder="Paste full job description with responsibilities and requirements…"
-              className="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all resize-none"
+              className="w-full px-3.5 py-2.5 bg-white/[0.03] border border-[var(--line)] rounded-xl text-sm text-white placeholder-[#7d838f] focus:outline-none focus:ring-2 focus:border-[var(--accent)] transition-all resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-semibold text-[var(--muted)] font-mono mb-1.5 uppercase tracking-wider">
               Required Must-Have Skills
             </label>
             <input
               value={form.required_skills}
               onChange={(e) => setForm((f) => ({ ...f, required_skills: e.target.value }))}
               placeholder="Python, React, TypeScript, Docker"
-              className="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+              className="w-full px-3.5 py-2.5 bg-white/[0.03] border border-[var(--line)] rounded-xl text-sm text-white placeholder-[#7d838f] focus:outline-none focus:ring-2 focus:border-[var(--accent)] transition-all"
             />
-            <p className="text-[11px] text-white/30 mt-1">Comma-separated (missing any required skill caps candidate match at 59.9%)</p>
+            <p className="text-[11px] text-[var(--muted)] mt-1">Comma-separated (missing any required skill caps candidate match at 59.9%)</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-[var(--muted)] font-mono mb-1.5 uppercase tracking-wider">
                 Min. Experience (yrs)
               </label>
               <input
@@ -178,17 +177,17 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onCreat
                 max={30}
                 value={form.min_experience_years}
                 onChange={(e) => setForm((f) => ({ ...f, min_experience_years: +e.target.value }))}
-                className="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+                className="w-full px-3.5 py-2.5 bg-white/[0.03] border border-[var(--line)] rounded-xl text-sm text-white placeholder-[#7d838f] focus:outline-none focus:ring-2 focus:border-[var(--accent)] transition-all"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-[var(--muted)] font-mono mb-1.5 uppercase tracking-wider">
                 Education Requirement
               </label>
               <select
                 value={form.education_requirement}
                 onChange={(e) => setForm((f) => ({ ...f, education_requirement: e.target.value }))}
-                className="w-full px-3.5 py-2.5 bg-[#14141f] border border-white/[0.08] rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+                className="w-full px-3.5 py-2.5 bg-[#0d0f14] border border-[var(--line)] rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:border-[var(--accent)] transition-all"
               >
                 <option value="high_school">High School</option>
                 <option value="associate">Associate</option>
@@ -200,24 +199,24 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onCreat
           </div>
 
           {/* Feature 5: Weight Customizer Accordion */}
-          <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">
+          <div className="rounded-xl border border-[var(--line)] bg-white/[0.02] overflow-hidden">
             <button
               type="button"
               onClick={() => setShowWeights((prev) => !prev)}
               className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors"
             >
               <div className="flex items-center gap-2">
-                <span className="text-cyan-400">⚖️</span>
+                <span className="text-[var(--accent)]">⚖️</span>
                 <span className="text-xs font-bold text-white">
                   Customize Scoring Factor Weights (Optional)
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-cyan-400 font-mono">
+                <span className="text-[11px] text-[var(--accent)] font-mono">
                   {showWeights ? 'Hide Sliders' : 'Configure Weights'}
                 </span>
                 <svg
-                  className={`w-4 h-4 text-white/40 transition-transform ${showWeights ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 text-[var(--muted)] transition-transform ${showWeights ? 'rotate-180' : ''}`}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -233,11 +232,11 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onCreat
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="px-4 pb-4 pt-1 border-t border-white/[0.06] space-y-3"
+                  className="px-4 pb-4 pt-1 border-t border-[var(--line)] space-y-3"
                 >
-                  <div className="flex items-center justify-between text-[11px] text-white/50">
+                  <div className="flex items-center justify-between text-[11px] text-[var(--muted)] font-mono">
                     <span>Quick presets:</span>
-                    <span className="font-mono text-cyan-400 font-semibold">Total: {totalPoints}%</span>
+                    <span className="font-mono text-[var(--accent)] font-semibold">Total: {totalPoints}%</span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-1.5">
@@ -246,10 +245,10 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onCreat
                         key={p.name}
                         type="button"
                         onClick={() => setWeights(p.weights)}
-                        className="text-left px-2.5 py-1.5 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.06] text-[11px] text-white/80"
+                        className="text-left px-2.5 py-1.5 rounded-lg border border-[var(--line)] bg-white/[0.02] hover:bg-white/[0.06] text-[11px] text-white/80"
                       >
                         <div className="font-semibold">{p.name}</div>
-                        <div className="text-[10px] text-white/40">{p.tag}</div>
+                        <div className="text-[10px] text-[var(--muted)]">{p.tag}</div>
                       </button>
                     ))}
                   </div>
@@ -260,7 +259,7 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onCreat
                       label="Semantic Context"
                       value={weights.semantic}
                       onChange={(v) => setWeights((prev) => ({ ...prev, semantic: v }))}
-                      color="accent-cyan-400"
+                      color="accent-[var(--accent)]"
                     />
                     <MiniSlider
                       label="Technical Skills"
@@ -292,11 +291,11 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onCreat
             </AnimatePresence>
           </div>
 
-          <div className="flex items-center gap-3 pt-3 border-t border-white/[0.06]">
+          <div className="flex items-center gap-3 pt-3 border-t border-[var(--line)]">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-white/[0.08] text-white/60 rounded-xl text-sm font-medium hover:bg-white/[0.04] hover:text-white transition-colors"
+              className="flex-1 px-4 py-2.5 border border-[var(--line)] text-white/60 rounded-xl text-sm font-medium hover:bg-white/[0.03] hover:text-white transition-colors"
             >
               Cancel
             </button>
@@ -305,7 +304,7 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ onClose, onCreat
               disabled={loading}
               whileHover={shouldReduce ? undefined : { scale: 1.01 }}
               whileTap={shouldReduce ? undefined : { scale: 0.98 }}
-              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-60"
+              className="flex-1 px-4 py-2.5 btn-primary text-xs py-2.5 px-4"
             >
               {loading ? 'Creating…' : 'Create Job'}
             </motion.button>

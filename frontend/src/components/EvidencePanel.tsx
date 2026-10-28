@@ -121,13 +121,13 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
   return (
     <div className={`space-y-3 ${className}`}>
       {/* Evidence Toolbar Header */}
-      <div className="flex items-center justify-between pb-1 border-b border-white/[0.06]">
+      <div className="flex items-center justify-between pb-1 border-b border-[var(--line)]">
         <div className="flex items-center gap-2">
-          <FileSearch className="w-4 h-4 text-cyan-400" />
+          <FileSearch className="w-4 h-4 text-[var(--accent)]" />
           <span className="text-xs font-bold text-white/90 tracking-wide uppercase">
             Traceable Evidence Panel
           </span>
-          <span className="text-[10px] text-white/40 bg-white/[0.04] px-2 py-0.5 rounded-full border border-white/[0.06]">
+          <span className="text-[10px] text-white/40 bg-white/[0.04] px-2 py-0.5 rounded-full border border-[var(--line)]">
             Explainability & Verification
           </span>
         </div>
@@ -141,7 +141,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
               setSelectedSkill(null);
             }
           }}
-          className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors px-2 py-1 rounded bg-cyan-500/10 hover:bg-cyan-500/15 border border-cyan-500/20"
+          className="text-[11px] font-semibold text-[var(--accent)] hover:text-[var(--accent)] flex items-center gap-1 transition-colors px-2 py-1 rounded bg-[var(--accent-dim)] hover:bg-[var(--accent-dim)] border border-[var(--accent)]/30"
         >
           {isOpenAll ? (
             <>
@@ -169,13 +169,13 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
             onClick={() => setSelectedFactor(selectedFactor === 'semantic' ? null : 'semantic')}
             className={`p-2.5 rounded-lg text-left transition-all border ${
               selectedFactor === 'semantic' || isOpenAll
-                ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-200 shadow-sm shadow-cyan-500/10'
-                : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] text-white/70'
+                ? 'bg-[var(--accent-dim)] border-[var(--accent)]/30 text-[var(--accent)] shadow-none'
+                : 'bg-white/[0.02] border-[var(--line)] hover:bg-white/[0.05] text-white/70'
             }`}
           >
             <div className="flex items-center justify-between text-[11px] font-bold">
               <span className="flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-cyan-400" /> Semantic
+                <Sparkles className="w-3 h-3 text-[var(--accent)]" /> Semantic
               </span>
               <span className="text-[10px] opacity-60">
                 {componentsMap.semantic?.score != null ? `${Math.round(componentsMap.semantic.score)}%` : ''}
@@ -193,7 +193,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
             className={`p-2.5 rounded-lg text-left transition-all border ${
               selectedFactor === 'skills' || isOpenAll
                 ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-200 shadow-sm shadow-emerald-500/10'
-                : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] text-white/70'
+                : 'bg-white/[0.02] border-[var(--line)] hover:bg-white/[0.05] text-white/70'
             }`}
           >
             <div className="flex items-center justify-between text-[11px] font-bold">
@@ -215,13 +215,13 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
             onClick={() => setSelectedFactor(selectedFactor === 'experience' ? null : 'experience')}
             className={`p-2.5 rounded-lg text-left transition-all border ${
               selectedFactor === 'experience' || isOpenAll
-                ? 'bg-blue-500/15 border-blue-500/40 text-blue-200 shadow-sm shadow-blue-500/10'
-                : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] text-white/70'
+                ? 'bg-[var(--accent-dim)] border border-[var(--accent)]/30 text-[var(--accent)]'
+                : 'bg-white/[0.02] border-[var(--line)] hover:bg-white/[0.05] text-white/70'
             }`}
           >
             <div className="flex items-center justify-between text-[11px] font-bold">
               <span className="flex items-center gap-1">
-                <Briefcase className="w-3 h-3 text-blue-400" /> Experience
+                <Briefcase className="w-3 h-3 text-[var(--accent)]" /> Experience
               </span>
               <span className="text-[10px] opacity-60">
                 {componentsMap.experience?.score != null ? `${Math.round(componentsMap.experience.score)}%` : ''}
@@ -239,7 +239,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
             className={`p-2.5 rounded-lg text-left transition-all border ${
               selectedFactor === 'title' || isOpenAll
                 ? 'bg-amber-500/15 border-amber-500/40 text-amber-200 shadow-sm shadow-amber-500/10'
-                : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] text-white/70'
+                : 'bg-white/[0.02] border-[var(--line)] hover:bg-white/[0.05] text-white/70'
             }`}
           >
             <div className="flex items-center justify-between text-[11px] font-bold">
@@ -262,7 +262,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
             className={`p-2.5 rounded-lg text-left transition-all border ${
               selectedFactor === 'education' || isOpenAll
                 ? 'bg-purple-500/15 border-purple-500/40 text-purple-200 shadow-sm shadow-purple-500/10'
-                : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] text-white/70'
+                : 'bg-white/[0.02] border-[var(--line)] hover:bg-white/[0.05] text-white/70'
             }`}
           >
             <div className="flex items-center justify-between text-[11px] font-bold">
@@ -298,9 +298,9 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
                 if (!comp) return null;
 
                 const factorColors: Record<string, { border: string; text: string; label: string }> = {
-                  semantic: { border: 'border-cyan-500/40', text: 'text-cyan-400', label: 'Semantic Alignment Evidence' },
+                  semantic: { border: 'border-[var(--accent)]/30', text: 'text-[var(--accent)]', label: 'Semantic Alignment Evidence' },
                   skills: { border: 'border-emerald-500/40', text: 'text-emerald-400', label: 'Skill Coverage Evidence' },
-                  experience: { border: 'border-blue-500/40', text: 'text-blue-400', label: 'Experience History Evidence' },
+                  experience: { border: 'border-[var(--accent)]/30', text: 'text-[var(--accent)]', label: 'Experience History Evidence' },
                   title: { border: 'border-amber-500/40', text: 'text-amber-400', label: 'Title Relevance Evidence' },
                   education: { border: 'border-purple-500/40', text: 'text-purple-400', label: 'Education Verification Evidence' }
                 };
@@ -321,7 +321,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
                       <p className="text-xs text-white/70 mb-2 leading-relaxed">{comp.summary}</p>
                     )}
                     {comp.excerpt && (
-                      <div className="p-2 rounded bg-white/[0.03] border border-white/[0.05] flex items-start gap-2 text-xs font-mono text-white/80">
+                      <div className="p-2 rounded bg-white/[0.03] border border-[var(--line)] flex items-start gap-2 text-xs font-mono text-white/80">
                         <Quote className="w-3.5 h-3.5 text-white/30 shrink-0 mt-0.5" />
                         <span className="italic leading-normal select-all">"{comp.excerpt}"</span>
                       </div>

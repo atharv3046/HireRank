@@ -1,25 +1,27 @@
 /**
  * Screen 3 — Live Processing State
  * ==================================
- * Polls GET /api/guest/session/:sessionId/status every 1.5 s.
- * Reflects REAL backend stage — does NOT use a fake timer.
- * Navigates to /results/:sessionId once status === "done".
- *
- * Fully styled in HireRank dark theme (#0a0a0f, #0d0d14, cyan/blue accent).
+ * Restyled to HireRank Editorial Core theme:
+ *  - Instrument Serif title
+ *  - Unified Navbar minimal header
+ *  - Single-accent progress bar (--accent: #5eead4)
+ *  - Flat card surfaces with 1px var(--line) borders
+ *  - Clean status icons with zero glow effects
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { Check, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
   useReducedMotion,
   fadeInUpVariants,
   staggerContainerVariants,
   useCountUp,
-  pulseGlowVariants,
 } from '../utils/animations';
+import Navbar from '../components/Navbar';
 
 interface SessionStatus {
   session_id: string;
@@ -31,61 +33,43 @@ interface SessionStatus {
 }
 
 const STAGES = [
-  { key: 'parsing',    label: 'Parsing resume files',          desc: 'Extracting text from PDF and DOCX files' },
-  { key: 'extracting', label: 'Extracting skills & experience', desc: 'Running NLP to identify skills, dates, education' },
-  { key: 'scoring',    label: 'Computing match scores',         desc: 'Semantic similarity + skill coverage + experience fit' },
-  { key: 'ranking',    label: 'Ranking candidates',             desc: 'Ordering by score and assigning tier badges' },
+  { key: 'parsing', label: 'Parsing resume files', desc: 'Extracting text and structure from PDF and DOCX documents' },
+  { key: 'extracting', label: 'Extracting skills & experience', desc: 'Running NLP to identify technical skills and tenure' },
+  { key: 'scoring', label: 'Computing match scores', desc: 'Comparing dense semantic embeddings and requirements' },
+  { key: 'ranking', label: 'Ranking candidates', desc: 'Normalizing match scores and building ranked tiers' },
 ];
 
-const stageIndex = (stage: string) =>
-  STAGES.findIndex(s => s.key === stage);
+const stageIndex = (stage: string) => STAGES.findIndex((s) => s.key === stage);
 
 type StageStatus = 'done' | 'active' | 'pending';
 
 function stageStatusFor(currentStage: string, stageKey: string, overallDone: boolean): StageStatus {
   if (overallDone) return 'done';
   const current = stageIndex(currentStage);
-  const idx     = stageIndex(stageKey);
+  const idx = stageIndex(stageKey);
   if (idx < current) return 'done';
   if (idx === current) return 'active';
   return 'pending';
 }
 
-const StageIcon = ({ status, shouldReduce }: { status: StageStatus; shouldReduce: boolean }) => {
+const StageIcon = ({ status }: { status: StageStatus }) => {
   if (status === 'done') {
     return (
-      <motion.div
-        initial={shouldReduce ? false : { scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
-        className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 shadow-sm shadow-emerald-500/20"
-      >
-        <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-        </svg>
-      </motion.div>
+      <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center flex-shrink-0 text-emerald-400">
+        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+      </div>
     );
   }
   if (status === 'active') {
     return (
-      <div className="relative flex items-center justify-center">
-        {!shouldReduce && (
-          <motion.div
-            variants={pulseGlowVariants}
-            initial="initial"
-            animate="animate"
-            className="absolute inset-0 rounded-xl bg-cyan-400/20 blur-sm pointer-events-none"
-          />
-        )}
-        <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center flex-shrink-0 relative z-10">
-          <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-        </div>
+      <div className="w-7 h-7 rounded-lg bg-[var(--accent-dim)] border border-[var(--accent)]/30 flex items-center justify-center flex-shrink-0 text-[var(--accent)]">
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
       </div>
     );
   }
   return (
-    <div className="w-8 h-8 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
-      <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+    <div className="w-7 h-7 rounded-lg bg-white/[0.03] border border-[var(--line)] flex items-center justify-center flex-shrink-0 text-[var(--muted)]/40">
+      <span className="w-1.5 h-1.5 rounded-full bg-current" />
     </div>
   );
 };
@@ -94,59 +78,71 @@ export default function ProcessingPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const shouldReduce = useReducedMotion();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   const [status, setStatus] = useState<SessionStatus | null>(null);
-  const [error, setError]   = useState<string | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollCountRef = useRef(0);
+  const MAX_POLLS = 120; // 3 minutes max
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId) {
+      navigate('/screen');
+      return;
+    }
 
     const poll = async () => {
+      pollCountRef.current += 1;
+      if (pollCountRef.current > MAX_POLLS) {
+        clearInterval(pollIntervalRef.current!);
+        setError('Processing is taking longer than expected. Please check back shortly.');
+        return;
+      }
+
       try {
-        const res = await axios.get(`/api/guest/session/${sessionId}/status`);
-        const data: SessionStatus = res.data;
+        const res = await axios.get<SessionStatus>(`/api/guest/session/${sessionId}/status`);
+        const data = res.data;
         setStatus(data);
 
-        if (data.status === 'done' || data.status === 'completed') {
-          clearInterval(intervalRef.current!);
-          setTimeout(() => navigate(`/results/${sessionId}`), 800);
+        if (data.status === 'done') {
+          clearInterval(pollIntervalRef.current!);
+          setTimeout(() => {
+            navigate(`/results/${sessionId}`);
+          }, 800);
+        } else if (data.status === 'error') {
+          clearInterval(pollIntervalRef.current!);
+          setError('An error occurred during resume processing. Please try again.');
         }
-
-        if (data.status === 'error') {
-          clearInterval(intervalRef.current!);
-          setError('Processing failed. Please try again.');
-        }
-      } catch (e: any) {
-        if (e.response?.status === 404) {
-          clearInterval(intervalRef.current!);
-          localStorage.removeItem('guest_session_id');
-          setError('Session not found. It may have expired.');
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          clearInterval(pollIntervalRef.current!);
+          setError('Session not found or has expired.');
         }
       }
     };
 
     poll();
-    intervalRef.current = setInterval(poll, 1500);
-    return () => clearInterval(intervalRef.current!);
+    pollIntervalRef.current = setInterval(poll, 1500);
+
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
   }, [sessionId, navigate]);
 
-  const allDone = status?.status === 'done' || status?.status === 'completed';
+  const allDone = status?.status === 'done';
 
   const computeProgressPct = (s: SessionStatus | null): number => {
-    if (!s) return 0;
-    if (s.status === 'done' || s.status === 'completed') return 100;
-
+    if (!s) return 8;
     const total = s.total || 1;
-    const scoredRatio = Math.min(1, Math.max(0, s.done / total));
+    const scoredRatio = (s.done || 0) / total;
 
-    // Minimum baseline floor per stage so the percentage matches active stage
     const stageFloors: Record<string, number> = {
-      parsing: 12,
+      parsing: 10,
       extracting: 35,
       scoring: 60,
-      ranking: 95,
+      ranking: 90,
       done: 100,
     };
     const floor = stageFloors[s.stage] ?? 8;
@@ -173,175 +169,140 @@ export default function ProcessingPage() {
 
   const currentPct = allDone ? 100 : computeProgressPct(status);
   const animatedPct = useCountUp(currentPct, 0.6);
-  const isReduced = Boolean(shouldReduce);
 
   return (
-    <div className="min-h-screen font-sans flex flex-col antialiased text-white" style={{ background: 'transparent' }}>
+    <div className="min-h-screen font-sans flex flex-col bg-transparent text-[var(--text)] antialiased">
+      <Navbar minimal />
 
-      {/* ── Header ───────────────────────────────────────────────────────── */}
-      <header className="border-b border-white/[0.06] px-8 py-4 flex items-center justify-between">
-        <button onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')} className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <span className="font-bold text-white text-lg group-hover:text-cyan-400 transition-colors">
-            Hire<span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Rank</span>
-          </span>
-        </button>
-        {isAuthenticated ? (
-          <div className="flex items-center gap-2 text-xs font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>Workspace Pipeline</span>
-          </div>
-        ) : (
-          <span className="text-xs font-mono text-white/30">Guest Session</span>
-        )}
-      </header>
-
-      {/* ── Content ──────────────────────────────────────────────────────── */}
       <div className="flex-1 flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-lg">
-
-          {/* Error state */}
+          {/* Error State */}
           {error && (
             <motion.div
               variants={fadeInUpVariants}
-              initial={shouldReduce ? false : "hidden"}
+              initial={shouldReduce ? false : 'hidden'}
               animate="visible"
-              className="rounded-2xl border border-red-500/20 bg-red-950/20 p-8 text-center space-y-4"
+              className="card-surface p-8 text-center space-y-4 border-rose-500/25 bg-rose-500/5"
             >
-              <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto text-red-400">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
+              <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto text-rose-400">
+                <AlertCircle className="w-6 h-6 stroke-[1.8]" />
               </div>
-              <p className="text-sm font-semibold text-white/80">{error}</p>
+              <p className="text-sm font-medium text-[var(--text)]">{error}</p>
               <button
                 onClick={() => navigate('/screen')}
-                className="text-xs bg-white/[0.06] hover:bg-white/[0.1] text-white px-4 py-2 rounded-xl transition-colors font-medium"
+                className="btn-ghost text-xs py-2 px-4"
               >
-                ← Start over
+                ← Return to screening
               </button>
             </motion.div>
           )}
 
-          {/* Processing card */}
+          {/* Processing Card */}
           {!error && (
             <motion.div
               variants={fadeInUpVariants}
-              initial={shouldReduce ? false : "hidden"}
+              initial={shouldReduce ? false : 'hidden'}
               animate="visible"
-              className="rounded-2xl border border-white/[0.08] p-8 shadow-2xl relative overflow-hidden"
-              style={{ background: '#0d0d14' }}
+              className="card-surface p-8"
             >
-              {/* Subtle gradient glow behind card */}
-              <div className="absolute -top-20 -left-20 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="relative">
-                {/* ── Title ───────────────────────────────────────────────── */}
-                <div className="text-center mb-8">
-                  <motion.div
-                    className={`w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center border ${
-                      allDone
-                        ? 'bg-emerald-500/15 border-emerald-500/30 shadow-lg shadow-emerald-500/20'
-                        : 'bg-cyan-500/15 border-cyan-500/30 shadow-lg shadow-cyan-500/10'
-                    }`}
-                    animate={allDone ? { scale: [1, 1.1, 1] } : undefined}
-                    transition={{ duration: 0.4 }}
-                  >
-                    {allDone ? (
-                      <svg className="w-7 h-7 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      <div className="w-6 h-6 border-[2.5px] border-cyan-400 border-t-transparent rounded-full animate-spin" />
-                    )}
-                  </motion.div>
-                  <h2 className="text-xl font-extrabold text-white mb-1.5 tracking-tight">
-                    {allDone ? 'All done!' : 'Processing your resumes…'}
-                  </h2>
-                  <p className="text-xs text-white/40">
-                    {allDone
-                      ? 'Redirecting to your results…'
-                      : status
-                        ? status.stage === 'scoring' || status.done > 0
-                          ? `${status.done} of ${status.total} candidates scored`
-                          : status.stage === 'extracting'
-                            ? `Extracting skills & experience (${status.total} resumes)`
-                            : `Parsing ${status.total} resume files…`
-                        : 'Starting pipeline…'
-                    }
-                  </p>
-                </div>
-
-                {/* ── Progress bar ─────────────────────────────────────────── */}
-                <div className="mb-8">
-                  <div className="flex justify-between text-xs text-white/40 mb-2 font-medium">
-                    <span>Overall progress</span>
-                    <span className="text-cyan-400 font-semibold">{animatedPct}%</span>
-                  </div>
-                  <div className="h-2 bg-white/[0.05] rounded-full overflow-hidden">
-                    <motion.div
-                      className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full shadow-sm shadow-cyan-500/50"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${currentPct}%` }}
-                      transition={{ duration: shouldReduce ? 0 : 0.6, ease: [0.16, 1, 0.3, 1] }}
-                    />
-                  </div>
-                </div>
-
-                {/* ── Stage checklist ──────────────────────────────────────── */}
-                <motion.div
-                  variants={staggerContainerVariants}
-                  initial={shouldReduce ? false : "hidden"}
-                  animate="visible"
-                  className="space-y-3.5"
+              <div className="text-center mb-8">
+                <div
+                  className={`w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center border ${
+                    allDone
+                      ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                      : 'bg-[var(--accent-dim)] border-[var(--accent)]/30 text-[var(--accent)]'
+                  }`}
                 >
-                  {STAGES.map(stage => {
-                    const ss = stageStatusFor(status?.stage ?? 'parsing', stage.key, allDone);
-                    return (
-                      <motion.div
-                        variants={fadeInUpVariants}
-                        key={stage.key}
-                        className={`flex items-start gap-4 p-3 rounded-xl border transition-all ${
-                          ss === 'active'
-                            ? 'bg-cyan-500/[0.05] border-cyan-500/30 shadow-sm shadow-cyan-500/10'
-                            : ss === 'done'
-                              ? 'bg-white/[0.01] border-white/[0.05]'
-                              : 'border-transparent'
-                        }`}
-                      >
-                        <StageIcon status={ss} shouldReduce={isReduced} />
-                        <div className="flex-1 pt-0.5 min-w-0">
-                          <p className={`text-sm font-semibold ${
-                            ss === 'done'    ? 'text-emerald-400' :
-                            ss === 'active'  ? 'text-cyan-300' :
-                            'text-white/30'
-                          }`}>
-                            {stage.label}
-                          </p>
-                          <p className="text-xs text-white/30 mt-0.5 leading-relaxed">{stage.desc}</p>
-                        </div>
-                        {ss === 'active' && (
-                          <span className="text-[10px] font-semibold tracking-wider text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full flex-shrink-0 pt-0.5 animate-pulse">
-                            RUNNING
-                          </span>
-                        )}
-                      </motion.div>
-                    );
-                  })}
-                </motion.div>
-
-                {/* ── Session note ─────────────────────────────────────────── */}
-                <div className="mt-8 p-3.5 bg-white/[0.02] rounded-xl border border-white/[0.05]">
-                  <p className="text-[11px] text-white/30 text-center leading-relaxed">
-                    🔒 Results are kept in-memory for this session.
-                    Create a free workspace to unlock full names and export to CSV.
-                  </p>
+                  {allDone ? (
+                    <Check className="w-6 h-6 stroke-[2.5]" />
+                  ) : (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  )}
                 </div>
+                <h2 className="font-serif-display text-2xl md:text-3xl text-[var(--text)] font-normal tracking-tight mb-1.5">
+                  {allDone ? 'Screening Complete' : 'Analyzing Candidates…'}
+                </h2>
+                <p className="text-xs text-[var(--muted)] font-mono">
+                  {allDone
+                    ? 'Redirecting to ranked shortlist…'
+                    : status
+                    ? status.stage === 'scoring' || status.done > 0
+                      ? `${status.done} of ${status.total} candidates scored`
+                      : status.stage === 'extracting'
+                      ? `Extracting skills & experience (${status.total} resumes)`
+                      : `Parsing ${status.total} resume files…`
+                    : 'Initializing pipeline…'}
+                </p>
+              </div>
+
+              {/* Progress bar */}
+              <div className="mb-8">
+                <div className="flex justify-between text-xs text-[var(--muted)] mb-2 font-mono">
+                  <span>Pipeline progress</span>
+                  <span className="text-[var(--accent)] tabular-nums">{animatedPct}%</span>
+                </div>
+                <div className="h-1.5 bg-white/[0.05] border border-[var(--line)] rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-[var(--accent)] rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${currentPct}%` }}
+                    transition={{ duration: shouldReduce ? 0 : 0.6, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                </div>
+              </div>
+
+              {/* Stages checklist */}
+              <motion.div
+                variants={staggerContainerVariants}
+                initial={shouldReduce ? false : 'hidden'}
+                animate="visible"
+                className="space-y-3"
+              >
+                {STAGES.map((stage) => {
+                  const ss = stageStatusFor(status?.stage ?? 'parsing', stage.key, allDone);
+                  return (
+                    <div
+                      key={stage.key}
+                      className={`flex items-start gap-3.5 p-3 rounded-lg border transition-all ${
+                        ss === 'active'
+                          ? 'bg-[var(--accent-dim)]/50 border-[var(--accent)]/30'
+                          : ss === 'done'
+                          ? 'bg-white/[0.01] border-[var(--line)]'
+                          : 'border-transparent opacity-40'
+                      }`}
+                    >
+                      <StageIcon status={ss} />
+                      <div className="flex-1 pt-0.5 min-w-0">
+                        <p
+                          className={`text-sm font-medium ${
+                            ss === 'done'
+                              ? 'text-emerald-400'
+                              : ss === 'active'
+                              ? 'text-[var(--accent)]'
+                              : 'text-[var(--muted)]'
+                          }`}
+                        >
+                          {stage.label}
+                        </p>
+                        <p className="text-xs text-[var(--muted)] mt-0.5 leading-relaxed">
+                          {stage.desc}
+                        </p>
+                      </div>
+                      {ss === 'active' && (
+                        <span className="badge-mono text-[9px] text-[var(--accent)] border-[var(--accent)]/30">
+                          RUNNING
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </motion.div>
+
+              {/* Session note */}
+              <div className="mt-8 p-3 rounded-lg bg-white/[0.02] border border-[var(--line)]">
+                <p className="text-[11px] text-[var(--muted)] text-center leading-relaxed">
+                  Results are stored for this session. Save to a workspace to access permanent history and export full reports.
+                </p>
               </div>
             </motion.div>
           )}

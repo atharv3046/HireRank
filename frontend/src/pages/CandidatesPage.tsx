@@ -214,8 +214,8 @@ export default function CandidatesPage() {
             className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
           >
             <div>
-              <div className="text-xs text-cyan-400 font-semibold uppercase tracking-wider mb-1">ALL BATCHES</div>
-              <h1 className="text-2xl font-extrabold text-white">All Candidates</h1>
+              <div className="text-xs text-[var(--accent)] font-semibold uppercase tracking-wider mb-1">ALL BATCHES</div>
+              <h1 className="font-serif-display text-3xl font-normal text-[var(--text)] tracking-tight">All Candidates</h1>
               <p className="text-sm text-white/40 mt-1">Cross-batch candidate database across all evaluated job postings.</p>
             </div>
             <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
@@ -241,7 +241,7 @@ export default function CandidatesPage() {
           {/* Filters and Search */}
           <motion.div
             variants={fadeInUpVariants}
-            className="rounded-2xl border border-white/[0.08] p-4 shadow-sm mb-6 flex flex-col md:flex-row items-center gap-4"
+            className="rounded-2xl border border-[var(--line)] p-4 shadow-sm mb-6 flex flex-col md:flex-row items-center gap-4"
             style={{ background: '#0d0d14' }}
           >
             <div className="relative w-full md:w-80">
@@ -254,11 +254,11 @@ export default function CandidatesPage() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search candidate, email, title, skill…"
-                className="w-full pl-9 pr-4 py-2 text-sm bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                className="w-full pl-9 pr-4 py-2 text-sm bg-white/[0.04] border border-[var(--line)] rounded-xl text-white placeholder-[#7d838f] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
               />
             </div>
 
-            <div className="flex items-center gap-1.5 p-1 bg-white/[0.04] rounded-xl text-xs font-semibold border border-white/[0.06]">
+            <div className="flex items-center gap-1.5 p-1 bg-white/[0.04] rounded-xl text-xs font-semibold border border-[var(--line)]">
               {(['all', 'Strong', 'Potential', 'Low', 'Needs Review'] as const).map(tier => (
                 <button
                   key={tier}
@@ -279,7 +279,7 @@ export default function CandidatesPage() {
               <select
                 value={sortBy}
                 onChange={e => setSortBy(e.target.value as any)}
-                className="bg-[#14141f] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                className="bg-[#14141f] border border-[var(--line)] rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30"
               >
                 <option value="score_desc">Highest Match Score</option>
                 <option value="score_asc">Lowest Match Score</option>
@@ -292,7 +292,7 @@ export default function CandidatesPage() {
                   onClick={() => setShowComparisonModal(true)}
                   whileHover={shouldReduce ? undefined : { scale: 1.02 }}
                   whileTap={shouldReduce ? undefined : { scale: 0.98 }}
-                  className="ml-2 flex items-center gap-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 px-3 py-1.5 rounded-xl font-bold transition-colors text-xs"
+                  className="ml-2 flex items-center gap-1.5 bg-[var(--accent-dim)] hover:bg-[var(--accent-dim)] border border-[var(--accent)]/30 text-[var(--accent)] px-3 py-1.5 rounded-xl font-bold transition-colors text-xs"
                 >
                   <span>⚔️</span>
                   <span>Compare ({selectedIds.size})</span>
@@ -304,9 +304,9 @@ export default function CandidatesPage() {
                 disabled={exporting || candidates.length === 0}
                 whileHover={shouldReduce ? undefined : { scale: 1.02 }}
                 whileTap={shouldReduce ? undefined : { scale: 0.98 }}
-                className="ml-2 flex items-center gap-1.5 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white px-3 py-1.5 rounded-xl font-semibold transition-colors disabled:opacity-50"
+                className="ml-2 flex items-center gap-1.5 bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--line)] text-white px-3 py-1.5 rounded-xl font-semibold transition-colors disabled:opacity-50"
               >
-                <svg className="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-3.5 h-3.5 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 {exporting ? 'Exporting…' : selectedIds.size > 0 ? `Export (${selectedIds.size})` : 'Export All'}
@@ -331,18 +331,18 @@ export default function CandidatesPage() {
 
           {/* Table */}
           {loading ? (
-            <div className="rounded-2xl border border-white/[0.08] p-16 text-center shadow-sm" style={{ background: '#0d0d14' }}>
-              <div className="w-10 h-10 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <div className="rounded-2xl border border-[var(--line)] p-16 text-center shadow-sm" style={{ background: '#0d0d14' }}>
+              <div className="w-10 h-10 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
               <p className="text-sm text-white/40">Loading candidate database…</p>
             </div>
           ) : candidates.length === 0 ? (
             <motion.div
               variants={fadeInUpVariants}
-              className="rounded-2xl border border-white/[0.08] p-16 text-center shadow-sm"
+              className="rounded-2xl border border-[var(--line)] p-16 text-center shadow-sm"
               style={{ background: '#0d0d14' }}
             >
-              <div className="w-14 h-14 bg-cyan-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-cyan-500/20">
-                <svg className="w-7 h-7 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-14 h-14 bg-[var(--accent-dim)] rounded-2xl flex items-center justify-center mx-auto mb-4 border border-[var(--accent)]/30">
+                <svg className="w-7 h-7 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
@@ -352,7 +352,7 @@ export default function CandidatesPage() {
                 onClick={() => navigate('/screen')}
                 whileHover={shouldReduce ? undefined : { scale: 1.02 }}
                 whileTap={shouldReduce ? undefined : { scale: 0.98 }}
-                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-cyan-500/20"
+                className="bg-[var(--accent)] text-[#04110f] font-semibold text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-none"
               >
                 Screen Resumes Now
               </motion.button>
@@ -361,18 +361,18 @@ export default function CandidatesPage() {
             <motion.div
               variants={fadeInUpVariants}
               viewport={{ once: true }}
-              className="rounded-2xl border border-white/[0.08] overflow-hidden shadow-sm"
+              className="rounded-2xl border border-[var(--line)] overflow-hidden shadow-sm"
               style={{ background: '#0d0d14' }}
             >
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-white/[0.06] bg-white/[0.02] text-[11px] font-bold text-white/40 uppercase tracking-wider">
+                  <tr className="border-b border-[var(--line)] bg-white/[0.02] text-[11px] font-bold text-white/40 uppercase tracking-wider">
                     <th className="py-4 pl-6 pr-2 w-10">
                       <input
                         type="checkbox"
                         checked={selectedIds.size === candidates.length && candidates.length > 0}
                         onChange={selectAll}
-                        className="rounded bg-white/[0.04] border-white/[0.2] text-cyan-500 focus:ring-cyan-500/50 accent-cyan-500"
+                        className="rounded bg-white/[0.04] border-white/[0.2] text-[var(--accent)] focus:ring-[var(--accent)]/30 accent-[var(--accent)]"
                       />
                     </th>
                     <th className="py-4 px-4">Candidate & Contact</th>
@@ -394,7 +394,7 @@ export default function CandidatesPage() {
                         key={`${c.job_posting_id}-${c.id}`}
                         whileHover={shouldReduce ? undefined : { backgroundColor: 'rgba(6, 182, 212, 0.04)' }}
                         className={`cursor-pointer transition-colors group ${
-                          isSelected ? 'bg-cyan-500/10' : ''
+                          isSelected ? 'bg-[var(--accent-dim)]' : ''
                         }`}
                       >
                         {/* Selection Checkbox */}
@@ -403,18 +403,18 @@ export default function CandidatesPage() {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleSelect(c.id)}
-                            className="rounded bg-white/[0.04] border-white/[0.2] text-cyan-500 focus:ring-cyan-500/50 accent-cyan-500"
+                            className="rounded bg-white/[0.04] border-white/[0.2] text-[var(--accent)] focus:ring-[var(--accent)]/30 accent-[var(--accent)]"
                           />
                         </td>
 
                         {/* Candidate info */}
                         <td className="py-4 px-4" onClick={() => navigate(`/jobs/${c.job_posting_id}`)}>
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-black flex-shrink-0 shadow-md shadow-cyan-500/20">
+                            <div className="w-10 h-10 rounded-xl bg-[var(--accent-dim)] border border-[var(--accent)]/30 text-[var(--accent)] flex items-center justify-center text-white text-xs font-black flex-shrink-0 shadow-none">
                               {c.name ? c.name.slice(0, 2).toUpperCase() : 'CD'}
                             </div>
                             <div>
-                              <div className="font-bold text-white group-hover:text-cyan-400 transition-colors flex items-center gap-1.5">
+                              <div className="font-bold text-white group-hover:text-[var(--accent)] transition-colors flex items-center gap-1.5">
                                 <span>{c.name || `Candidate #${c.id}`}</span>
                                 {c.detected_title && (
                                   <span className="text-[11px] text-white/40 font-normal">
@@ -439,7 +439,7 @@ export default function CandidatesPage() {
 
                         {/* Batch Job Title */}
                         <td className="py-4 px-4" onClick={() => navigate(`/jobs/${c.job_posting_id}`)}>
-                          <span className="text-xs bg-white/[0.04] text-white/70 border border-white/[0.06] px-2.5 py-1 rounded-lg font-medium group-hover:border-cyan-500/30 transition-colors">
+                          <span className="text-xs bg-white/[0.04] text-white/70 border border-[var(--line)] px-2.5 py-1 rounded-lg font-medium group-hover:border-[var(--accent)]/30 transition-colors">
                             {c.job_title || `Job #${c.job_posting_id}`}
                           </span>
                         </td>
@@ -482,7 +482,7 @@ export default function CandidatesPage() {
                         <td className="py-4 pr-6 pl-4 text-center" onClick={() => navigate(`/jobs/${c.job_posting_id}`)}>
                           <div className="flex flex-wrap gap-1 justify-center">
                             {(c.matched_skills && c.matched_skills.length > 0 ? c.matched_skills : c.extracted_skills || []).slice(0, 3).map(s => (
-                              <span key={s} className="text-[10px] bg-white/[0.04] text-white/70 border border-white/[0.06] px-1.5 py-0.5 rounded font-medium">
+                              <span key={s} className="text-[10px] bg-white/[0.04] text-white/70 border border-[var(--line)] px-1.5 py-0.5 rounded font-medium">
                                 {s}
                               </span>
                             ))}
@@ -498,7 +498,7 @@ export default function CandidatesPage() {
                             <button
                               onClick={() => handleOpenInviteModal(c)}
                               title="Invite candidate"
-                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-400 transition-colors"
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-[var(--accent-dim)] hover:bg-[var(--accent-dim)] border border-[var(--accent)]/30 text-[var(--accent)] transition-colors"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -512,7 +512,7 @@ export default function CandidatesPage() {
                               className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
                                 c.pipeline_status === 'No Hire'
                                   ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                                  : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/60 hover:text-white border-white/[0.08]'
+                                  : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/60 hover:text-white border-[var(--line)]'
                               }`}
                             >
                               <span>✉️</span>
@@ -525,7 +525,7 @@ export default function CandidatesPage() {
                   })}
                 </tbody>
               </table>
-              <div className="px-6 py-3 border-t border-white/[0.06] text-xs text-white/40 flex items-center justify-between">
+              <div className="px-6 py-3 border-t border-[var(--line)] text-xs text-white/40 flex items-center justify-between">
                 <span>Showing {candidates.length} candidate(s)</span>
                 <span>Click any row to open full batch shortlist</span>
               </div>
@@ -554,7 +554,7 @@ export default function CandidatesPage() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
+                  <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">
                     CANDIDATE INVITATION
                   </span>
                   <h3 className="text-lg font-extrabold text-white">Invite to Assessment & Interview</h3>
@@ -569,14 +569,14 @@ export default function CandidatesPage() {
 
               {inviteSuccess ? (
                 <div className="space-y-4 py-2">
-                  <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
+                  <div className="p-4 rounded-xl bg-[var(--accent-dim)] border border-[var(--accent)]/30 text-[var(--accent)] text-xs flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[var(--accent-dim)] text-[var(--accent)] flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
                       ✓
                     </div>
                     <div>
                       <div className="font-bold text-white text-sm">Invitation Sent!</div>
                       <p className="text-white/60 text-xs mt-1">
-                        <strong className="text-white">{inviteName || inviteEmail}</strong> has been marked as <span className="text-cyan-400 font-bold">Invited</span> in the pipeline.
+                        <strong className="text-white">{inviteName || inviteEmail}</strong> has been marked as <span className="text-[var(--accent)] font-bold">Invited</span> in the pipeline.
                       </p>
                     </div>
                   </div>
@@ -606,7 +606,7 @@ export default function CandidatesPage() {
                       value={inviteName}
                       onChange={e => setInviteName(e.target.value)}
                       placeholder="e.g. Sarah Connor"
-                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-[#7d838f] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30"
                     />
                   </div>
 
@@ -620,7 +620,7 @@ export default function CandidatesPage() {
                       value={inviteEmail}
                       onChange={e => setInviteEmail(e.target.value)}
                       placeholder="candidate@company.com"
-                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-[#7d838f] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30"
                     />
                   </div>
 
@@ -631,7 +631,7 @@ export default function CandidatesPage() {
                     <select
                       value={inviteRole}
                       onChange={e => setInviteRole(e.target.value)}
-                      className="w-full px-3.5 py-2 text-xs bg-[#14141f] border border-white/[0.1] rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50 cursor-pointer"
+                      className="w-full px-3.5 py-2 text-xs bg-[#14141f] border border-white/[0.1] rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 cursor-pointer"
                     >
                       <option value="Screening">Screening</option>
                       <option value="Technical Assessment">Technical Assessment</option>
@@ -651,7 +651,7 @@ export default function CandidatesPage() {
                     <button
                       type="submit"
                       disabled={sendingInvite}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 disabled:opacity-50 text-white shadow-lg shadow-cyan-500/20 transition-all"
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[var(--accent)] text-[#04110f] font-semibold disabled:opacity-45 shadow-none transition-all"
                     >
                       {sendingInvite && (
                         <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -673,10 +673,10 @@ export default function CandidatesPage() {
             initial={{ opacity: 0, y: 24, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.95 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#0d0d16]/95 backdrop-blur-md border border-cyan-500/40 shadow-2xl shadow-cyan-950/80 px-5 py-3 rounded-2xl flex items-center gap-4"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[#0d0f14]/95 backdrop-blur-md border border-[var(--accent)]/30 shadow-2xl shadow-none px-5 py-3 rounded-2xl flex items-center gap-4"
           >
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[var(--accent)] animate-pulse" />
               <span className="text-xs font-bold text-white">
                 {selectedIds.size} Finalists Selected
               </span>
@@ -686,7 +686,7 @@ export default function CandidatesPage() {
 
             <button
               onClick={() => setShowComparisonModal(true)}
-              className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-lg shadow-cyan-500/25 transition-all"
+              className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl bg-[var(--accent)] text-[#04110f] font-semibold shadow-none transition-all"
             >
               <span>⚔️</span>
               <span>Compare Selected ({selectedIds.size})</span>

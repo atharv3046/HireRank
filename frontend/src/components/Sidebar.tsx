@@ -3,116 +3,102 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useReducedMotion } from '../utils/animations';
+import {
+  LayoutDashboard,
+  FileCheck2,
+  ClipboardList,
+  Users,
+  Briefcase,
+  Settings,
+  HelpCircle,
+  LogOut,
+  Plus
+} from 'lucide-react';
 
 const navItems = [
   {
     to: '/dashboard',
     label: 'Dashboard',
-    icon: (
-      <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-      </svg>
-    ),
+    icon: <LayoutDashboard className="w-4 h-4" strokeWidth={1.8} />,
   },
   {
     to: '/resume-screenings',
     label: 'Resume Screenings',
-    icon: (
-      <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-      </svg>
-    ),
+    icon: <FileCheck2 className="w-4 h-4" strokeWidth={1.8} />,
   },
   {
     to: '/assessments',
     label: 'Assessments',
-    icon: (
-      <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-      </svg>
-    ),
+    icon: <ClipboardList className="w-4 h-4" strokeWidth={1.8} />,
   },
   {
     to: '/candidate-pipeline',
     label: 'Candidate Pipeline',
-    icon: (
-      <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    ),
+    icon: <Users className="w-4 h-4" strokeWidth={1.8} />,
   },
   {
     to: '/jobs',
     label: 'Job Postings',
-    icon: (
-      <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
+    icon: <Briefcase className="w-4 h-4" strokeWidth={1.8} />,
   },
   {
     to: '/settings',
     label: 'Team Settings',
-    icon: (
-      <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    ),
+    icon: <Settings className="w-4 h-4" strokeWidth={1.8} />,
   },
 ];
 
 const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
   const shouldReduce = useReducedMotion();
 
   return (
-    <div
-      className="w-60 flex-shrink-0 flex flex-col h-screen sticky top-0 border-r border-white/[0.06] backdrop-blur-md"
-      style={{ background: 'rgba(0,0,0,0.75)' }}
+    <aside
+      className="w-60 flex-shrink-0 flex flex-col h-screen sticky top-0 border-r border-[var(--line)] bg-[#08090c] z-30"
     >
-      {/* Logo */}
-      <div className="px-5 py-5 border-b border-white/[0.05]">
+      {/* Brand Header */}
+      <div className="px-5 py-5 border-b border-[var(--line)]">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+          <div className="w-7 h-7 rounded-lg bg-[var(--accent-dim)] border border-[var(--accent)]/30 flex items-center justify-center text-[var(--accent)] font-bold text-xs">
+            HR
           </div>
           <div>
-            <div className="font-bold text-white leading-none">
-              Hire<span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Rank</span>
+            <div className="font-bold text-[var(--text)] leading-none text-base">
+              Hire<span className="text-[var(--accent)]">Rank</span>
             </div>
-            <div className="text-[10px] text-white/25 mt-0.5">{user?.email?.split('@')[1] || 'Workspace'}</div>
+            <div className="text-[11px] text-[var(--muted)] mt-1 truncate max-w-[140px]">
+              {user?.email?.split('@')[1] || 'Recruiter Workspace'}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Post New Job */}
+      {/* Primary Action Button */}
       <div className="px-4 pt-4 pb-2">
         <button
           onClick={() => navigate('/screen')}
-          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white text-sm font-semibold py-2.5 px-4 rounded-xl transition-all shadow-lg shadow-cyan-500/15"
+          className="btn-primary w-full text-xs py-2.5 px-3 rounded-[10px] justify-center"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+          <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
           Screen Resumes
         </button>
       </div>
 
       {/* Nav items */}
-      <nav className="flex-1 px-3 py-3 space-y-0.5">
-        <div className="text-[9px] font-bold text-white/20 uppercase tracking-widest px-3 mb-2">Navigation</div>
+      <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
+        <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--muted)] px-3 mb-2">
+          Workspace
+        </div>
         {navItems.map((item) => (
           <NavLink
             key={item.label}
             to={item.to}
             className={({ isActive }) =>
-              `relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                isActive ? 'text-cyan-300 font-semibold' : 'text-white/40 hover:text-white/70 hover:bg-white/[0.03]'
+              `relative flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-sm font-medium transition-colors ${
+                isActive
+                  ? 'text-[var(--accent)] font-semibold'
+                  : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-white/[0.03]'
               }`
             }
           >
@@ -120,12 +106,12 @@ const Sidebar: React.FC = () => {
               <>
                 {isActive && (
                   <motion.div
-                    layoutId={shouldReduce ? undefined : "active-nav"}
-                    className="absolute inset-0 rounded-xl bg-cyan-500/10 border border-cyan-500/20"
+                    layoutId={shouldReduce ? undefined : 'active-nav-indicator'}
+                    className="absolute inset-0 rounded-[10px] bg-[var(--accent-dim)] border border-[var(--accent)]/30"
                     transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                   />
                 )}
-                <span className={`relative z-10 transition-colors ${isActive ? 'text-cyan-400' : 'text-white/30'}`}>
+                <span className={`relative z-10 transition-colors ${isActive ? 'text-[var(--accent)]' : 'text-[var(--muted)]'}`}>
                   {item.icon}
                 </span>
                 <span className="relative z-10">{item.label}</span>
@@ -135,45 +121,37 @@ const Sidebar: React.FC = () => {
         ))}
       </nav>
 
-
-
-      {/* Support & Help */}
+      {/* Help Link */}
       <div className="px-3 mb-1">
         <a
           href="mailto:support@hirerank.ai"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-white/40 hover:bg-white/[0.04] hover:text-white/70 transition-colors"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-xs text-[var(--muted)] hover:bg-white/[0.04] hover:text-[var(--text)] transition-colors"
         >
-          <svg className="w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+          <HelpCircle className="w-4 h-4 text-[var(--muted)]" strokeWidth={1.8} />
           Support & Help
         </a>
       </div>
 
-      {/* Bottom */}
-      <div className="px-3 pb-4 space-y-0.5 border-t border-white/[0.05] pt-3">
+      {/* Footer / Account / Logout */}
+      <div className="px-3 pb-4 space-y-1 border-t border-[var(--line)] pt-3">
         <a
           href="https://github.com/atharv3046/HireRank"
           target="_blank"
           rel="noreferrer"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/25 hover:bg-white/[0.04] hover:text-white/50 transition-colors"
+          className="flex items-center gap-3 px-3 py-2 rounded-[10px] text-xs text-[var(--muted)] hover:bg-white/[0.04] hover:text-[var(--text)] transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-          </svg>
-          GitHub
+          <svg className="w-4 h-4 fill-current text-[var(--muted)]" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub Repository
         </a>
         <button
           onClick={logout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/25 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-[10px] text-xs text-[var(--muted)] hover:bg-red-500/10 hover:text-red-400 transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
+          <LogOut className="w-4 h-4" strokeWidth={1.8} />
           Log Out
         </button>
       </div>
-    </div>
+    </aside>
   );
 };
 

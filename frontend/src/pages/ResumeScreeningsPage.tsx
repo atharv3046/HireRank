@@ -285,19 +285,19 @@ export default function ResumeScreeningsPage() {
 
         {/* ── LEFT PANEL: BATCHES LIST (CARD VIEW) ── */}
         <div
-          className="w-80 lg:w-96 flex-shrink-0 flex flex-col border-r border-white/[0.08]"
+          className="w-80 lg:w-96 flex-shrink-0 flex flex-col border-r border-[var(--line)]"
           style={{ background: '#050505' }}
         >
           {/* Batches Header */}
-          <div className="p-5 border-b border-white/[0.08]">
+          <div className="p-5 border-b border-[var(--line)]">
             <div className="flex items-center justify-between gap-2 mb-3">
               <div>
-                <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">Pipelines</span>
+                <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">Pipelines</span>
                 <h2 className="text-lg font-extrabold text-white">Screening Batches</h2>
               </div>
               <button
                 onClick={() => navigate('/screen')}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/25 rounded-xl transition-all shadow-sm"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-[var(--accent-dim)] hover:bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/30 rounded-xl transition-all shadow-sm"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -318,7 +318,7 @@ export default function ResumeScreeningsPage() {
                 value={batchSearch}
                 onChange={e => setBatchSearch(e.target.value)}
                 placeholder="Search batches or skills..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-white/[0.04] border border-[var(--line)] rounded-xl text-white placeholder-[#7d838f] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30"
               />
             </div>
           </div>
@@ -327,12 +327,12 @@ export default function ResumeScreeningsPage() {
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {loadingBatches ? (
               <div className="py-12 text-center text-white/30 text-xs flex flex-col items-center gap-2">
-                <div className="w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
                 Loading batches...
               </div>
             ) : filteredBatches.length === 0 ? (
               <div className="py-12 text-center text-white/30 text-xs px-4">
-                No screening batches found. Click <span className="text-cyan-400 font-semibold cursor-pointer" onClick={() => navigate('/screen')}>+ New Batch</span> to screen resumes.
+                No screening batches found. Click <span className="text-[var(--accent)] font-semibold cursor-pointer" onClick={() => navigate('/screen')}>+ New Batch</span> to screen resumes.
               </div>
             ) : (
               filteredBatches.map(batch => {
@@ -343,13 +343,13 @@ export default function ResumeScreeningsPage() {
                     onClick={() => setSelectedBatchId(batch.id)}
                     className={`p-3.5 rounded-xl cursor-pointer transition-all border text-left relative ${
                       isSelected
-                        ? 'bg-cyan-500/10 border-cyan-500/40 shadow-md shadow-cyan-500/10'
-                        : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1]'
+                        ? 'bg-[var(--accent-dim)] border-[var(--accent)]/30 shadow-none'
+                        : 'bg-white/[0.02] border-[var(--line)] hover:bg-white/[0.04] hover:border-white/[0.1]'
                     }`}
                   >
                     {/* Active indicator pill */}
                     {isSelected && (
-                      <div className="absolute left-0 top-3 bottom-3 w-1 bg-cyan-400 rounded-r" />
+                      <div className="absolute left-0 top-3 bottom-3 w-1 bg-[var(--accent)] rounded-r" />
                     )}
 
                     <div className="flex items-start justify-between gap-2">
@@ -363,7 +363,7 @@ export default function ResumeScreeningsPage() {
                           })}
                         </p>
                       </div>
-                      <span className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/70">
+                      <span className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/[0.06] border border-[var(--line)] text-white/70">
                         {batch.candidate_count} {batch.candidate_count === 1 ? 'candidate' : 'candidates'}
                       </span>
                     </div>
@@ -374,7 +374,7 @@ export default function ResumeScreeningsPage() {
                         {batch.required_skills.slice(0, 3).map((skill: string) => (
                           <span
                             key={skill}
-                            className="text-[10px] bg-white/[0.04] text-white/60 px-1.5 py-0.5 rounded border border-white/[0.05]"
+                            className="text-[10px] bg-white/[0.04] text-white/60 px-1.5 py-0.5 rounded border border-[var(--line)]"
                           >
                             {skill}
                           </span>
@@ -398,7 +398,7 @@ export default function ResumeScreeningsPage() {
           {selectedBatchId === null ? (
             <div className="flex-1 flex items-center justify-center text-center p-8">
               <div className="max-w-md">
-                <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 rounded-2xl bg-[var(--accent-dim)] border border-[var(--accent)]/30 text-[var(--accent)] flex items-center justify-center mx-auto mb-4">
                   <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
@@ -409,7 +409,7 @@ export default function ResumeScreeningsPage() {
                 </p>
                 <button
                   onClick={() => navigate('/screen')}
-                  className="px-5 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-lg shadow-cyan-500/20"
+                  className="px-5 py-2.5 rounded-xl font-bold text-sm bg-[var(--accent)] text-[#04110f] font-semibold shadow-none"
                 >
                   Start New Resume Screening
                 </button>
@@ -418,7 +418,7 @@ export default function ResumeScreeningsPage() {
           ) : loadingBatchDetail ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <div className="w-10 h-10 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <div className="w-10 h-10 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                 <p className="text-sm text-white/40">Loading batch details & candidates...</p>
               </div>
             </div>
@@ -432,11 +432,11 @@ export default function ResumeScreeningsPage() {
               {/* Batch Header Bar */}
               <motion.div
                 variants={fadeInUpVariants}
-                className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]"
+                className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[var(--line)]"
               >
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">
+                    <span className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
                       Screening Batch #{selectedBatch?.id}
                     </span>
                     <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
@@ -446,7 +446,7 @@ export default function ResumeScreeningsPage() {
                         : ''}
                     </span>
                   </div>
-                  <h1 className="text-2xl font-extrabold text-white">{selectedBatch?.title}</h1>
+                  <h1 className="font-serif-display text-3xl font-normal text-[var(--text)] tracking-tight">{selectedBatch?.title}</h1>
                   {selectedBatch?.description && (
                     <p className="text-xs text-white/40 mt-1 line-clamp-1 max-w-xl">
                       {selectedBatch.description}
@@ -461,7 +461,7 @@ export default function ResumeScreeningsPage() {
                     onClick={() => navigate(`/jobs/${selectedBatch?.id}/upload`)}
                     className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white/[0.05] hover:bg-white/[0.08] text-white border border-white/[0.1] rounded-xl transition-all"
                   >
-                    <svg className="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-3.5 h-3.5 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
                     Upload Resumes
@@ -487,7 +487,7 @@ export default function ResumeScreeningsPage() {
                   <button
                     onClick={handleRerank}
                     disabled={reranking || candidates.length === 0}
-                    className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 disabled:opacity-40 text-white rounded-xl transition-all shadow-md shadow-cyan-500/15"
+                    className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-[var(--accent)] text-[#04110f] font-semibold disabled:opacity-40 text-white rounded-xl transition-all shadow-none"
                   >
                     <svg
                       className={`w-3.5 h-3.5 ${reranking ? 'animate-spin' : ''}`}
@@ -508,7 +508,7 @@ export default function ResumeScreeningsPage() {
                 className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3"
               >
                 {/* Total Screened */}
-                <div className="p-3.5 rounded-xl border border-white/[0.08]" style={{ background: '#050505' }}>
+                <div className="p-3.5 rounded-xl border border-[var(--line)]" style={{ background: '#050505' }}>
                   <div className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Screened</div>
                   <div className="text-xl font-extrabold text-white mt-1">{candidates.length}</div>
                   <div className="text-[10px] text-white/30 mt-0.5">Total processed</div>
@@ -555,19 +555,19 @@ export default function ResumeScreeningsPage() {
                 </div>
 
                 {/* Batch Avg Score */}
-                <div className="p-3.5 rounded-xl border border-cyan-500/20 bg-cyan-500/5">
-                  <div className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider">Avg Score</div>
-                  <div className="text-xl font-extrabold text-cyan-300 mt-1">
+                <div className="p-3.5 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent-dim)]">
+                  <div className="text-[11px] font-semibold text-[var(--accent)] uppercase tracking-wider">Avg Score</div>
+                  <div className="text-xl font-extrabold text-[var(--accent)] mt-1">
                     {avgScore !== null ? `${avgScore}%` : '—'}
                   </div>
-                  <div className="text-[10px] text-cyan-400/50 mt-0.5">Batch composite</div>
+                  <div className="text-[10px] text-[var(--accent)]/50 mt-0.5">Batch composite</div>
                 </div>
               </motion.div>
 
               {/* ── SEARCH & TIER FILTER TABS ── */}
               <motion.div
                 variants={fadeInUpVariants}
-                className="p-4 rounded-2xl border border-white/[0.08] flex flex-col md:flex-row items-center justify-between gap-4"
+                className="p-4 rounded-2xl border border-[var(--line)] flex flex-col md:flex-row items-center justify-between gap-4"
                 style={{ background: '#050505' }}
               >
                 {/* Search candidate input */}
@@ -582,12 +582,12 @@ export default function ResumeScreeningsPage() {
                     value={candidateSearch}
                     onChange={e => setCandidateSearch(e.target.value)}
                     placeholder="Search candidate, skill, title..."
-                    className="w-full pl-9 pr-4 py-2 text-xs bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                    className="w-full pl-9 pr-4 py-2 text-xs bg-white/[0.04] border border-[var(--line)] rounded-xl text-white placeholder-[#7d838f] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30"
                   />
                 </div>
 
                 {/* Tier Filter Tabs */}
-                <div className="flex items-center gap-1 p-1 bg-white/[0.04] rounded-xl text-xs font-semibold border border-white/[0.06] overflow-x-auto max-w-full">
+                <div className="flex items-center gap-1 p-1 bg-white/[0.04] rounded-xl text-xs font-semibold border border-[var(--line)] overflow-x-auto max-w-full">
                   {(['all', 'Strong', 'Potential', 'Low', 'Needs Review'] as const).map(tier => {
                     const isActive = tierFilter === tier;
                     return (
@@ -596,7 +596,7 @@ export default function ResumeScreeningsPage() {
                         onClick={() => setTierFilter(tier)}
                         className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-all ${
                           isActive
-                            ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
+                            ? 'bg-[var(--accent-dim)] text-[var(--accent)] font-bold border border-[var(--accent)]/30'
                             : 'text-white/40 hover:text-white border border-transparent'
                         }`}
                       >
@@ -612,7 +612,7 @@ export default function ResumeScreeningsPage() {
                   <select
                     value={sortBy}
                     onChange={e => setSortBy(e.target.value as any)}
-                    className="bg-[#0a0a0a] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                    className="bg-[#0a0a0a] border border-[var(--line)] rounded-xl px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30"
                   >
                     <option value="score_desc">Highest Score</option>
                     <option value="score_asc">Lowest Score</option>
@@ -634,10 +634,10 @@ export default function ResumeScreeningsPage() {
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
-                  className="p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-950/40 flex items-center justify-between text-xs backdrop-blur shadow-lg shadow-cyan-500/10"
+                  className="p-3.5 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent-dim)] flex items-center justify-between text-xs backdrop-blur shadow-none"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-cyan-300">
+                    <span className="font-bold text-[var(--accent)]">
                       {selectedCandidateIds.size} of {filteredCandidates.length} candidate(s) selected
                     </span>
                     <button
@@ -657,7 +657,7 @@ export default function ResumeScreeningsPage() {
                     </button>
                     <button
                       onClick={() => setShowInviteModal(true)}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-md shadow-cyan-500/20 transition-all"
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[var(--accent)] text-[#04110f] font-semibold shadow-none transition-all"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -671,13 +671,13 @@ export default function ResumeScreeningsPage() {
               {/* ── CANDIDATE TABLE WITH SCORE BARS & VERDICTS ── */}
               <motion.div
                 variants={fadeInUpVariants}
-                className="rounded-2xl border border-white/[0.08] overflow-hidden shadow-sm"
+                className="rounded-2xl border border-[var(--line)] overflow-hidden shadow-sm"
                 style={{ background: '#050505' }}
               >
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-white/[0.06] bg-white/[0.02] text-[11px] font-bold text-white/40 uppercase tracking-wider">
+                      <tr className="border-b border-[var(--line)] bg-white/[0.02] text-[11px] font-bold text-white/40 uppercase tracking-wider">
                         <th className="py-4 pl-6 pr-2 w-10">
                           <input
                             type="checkbox"
@@ -686,7 +686,7 @@ export default function ResumeScreeningsPage() {
                               filteredCandidates.length > 0
                             }
                             onChange={toggleSelectAll}
-                            className="rounded bg-white/[0.04] border-white/[0.2] text-cyan-500 focus:ring-cyan-500/50 accent-cyan-500 cursor-pointer"
+                            className="rounded bg-white/[0.04] border-white/[0.2] text-[var(--accent)] focus:ring-[var(--accent)]/30 accent-[var(--accent)] cursor-pointer"
                           />
                         </th>
                         <th className="py-4 px-4">Candidate & Contact</th>
@@ -729,7 +729,7 @@ export default function ResumeScreeningsPage() {
                                 initial="hidden"
                                 animate="visible"
                                 className={`transition-colors hover:bg-white/[0.02] ${
-                                  isSelected ? 'bg-cyan-500/10' : ''
+                                  isSelected ? 'bg-[var(--accent-dim)]' : ''
                                 }`}
                               >
                                 {/* Checkbox */}
@@ -738,7 +738,7 @@ export default function ResumeScreeningsPage() {
                                     type="checkbox"
                                     checked={isSelected}
                                     onChange={() => toggleSelectCandidate(c.id)}
-                                    className="rounded bg-white/[0.04] border-white/[0.2] text-cyan-500 focus:ring-cyan-500/50 accent-cyan-500 cursor-pointer"
+                                    className="rounded bg-white/[0.04] border-white/[0.2] text-[var(--accent)] focus:ring-[var(--accent)]/30 accent-[var(--accent)] cursor-pointer"
                                   />
                                 </td>
 
@@ -748,8 +748,8 @@ export default function ResumeScreeningsPage() {
                                     <div
                                       className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-extrabold flex-shrink-0 ${
                                         isMasked
-                                          ? 'bg-gradient-to-br from-indigo-500/20 to-purple-600/20 border border-indigo-500/30 text-indigo-300'
-                                          : 'bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 text-cyan-300'
+                                          ? 'bg-[var(--accent-dim)] border border-[var(--accent)]/30 text-[var(--accent)]'
+                                          : 'bg-[var(--accent-dim)] border border-[var(--accent)]/30 text-[var(--accent)] border border-[var(--accent)]/30 text-[var(--accent)]'
                                       }`}
                                     >
                                       {isMasked ? `#${rowIdx + 1}` : (c.name ? c.name.slice(0, 2).toUpperCase() : 'CD')}
@@ -789,7 +789,7 @@ export default function ResumeScreeningsPage() {
                                       </div>
                                       <div className="text-xs text-white/40 flex items-center gap-2 mt-0.5">
                                         {c.detected_title && (
-                                          <span className="text-cyan-300/80 font-medium">
+                                          <span className="text-[var(--accent)]/80 font-medium">
                                             {c.detected_title}
                                           </span>
                                         )}
@@ -871,7 +871,7 @@ export default function ResumeScreeningsPage() {
                                 <td className="py-4 pr-6 pl-4 text-right">
                                   <button
                                     onClick={() => toggleExpand(c.id)}
-                                    className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
+                                    className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent)] hover:text-[var(--accent)] transition-colors"
                                   >
                                     {isExpanded ? 'Hide' : 'Explain'}
                                     <svg
@@ -890,7 +890,7 @@ export default function ResumeScreeningsPage() {
 
                               {/* ── EXPANDABLE SCORE BREAKDOWN ROW ── */}
                               {isExpanded && (
-                                <tr className="bg-white/[0.015] border-b border-white/[0.06]">
+                                <tr className="bg-white/[0.015] border-b border-[var(--line)]">
                                   <td colSpan={6} className="p-0">
                                     <motion.div
                                       variants={accordionVariants}
@@ -938,31 +938,31 @@ export default function ResumeScreeningsPage() {
                                               5-Factor Score Decomposition
                                             </div>
                                             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                                              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                              <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--line)]">
                                                 <div className="text-[11px] text-white/40">Semantic Fit (35%)</div>
                                                 <div className="text-base font-black text-white mt-0.5">
                                                   {c.semantic_score != null ? `${Math.round(c.semantic_score)}%` : '—'}
                                                 </div>
                                               </div>
-                                              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                              <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--line)]">
                                                 <div className="text-[11px] text-white/40">Skill Coverage (30%)</div>
                                                 <div className="text-base font-black text-white mt-0.5">
                                                   {c.skills_score != null ? `${Math.round(c.skills_score)}%` : '—'}
                                                 </div>
                                               </div>
-                                              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                              <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--line)]">
                                                 <div className="text-[11px] text-white/40">Experience (20%)</div>
                                                 <div className="text-base font-black text-white mt-0.5">
                                                   {c.experience_score != null ? `${Math.round(c.experience_score)}%` : '—'}
                                                 </div>
                                               </div>
-                                              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                              <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--line)]">
                                                 <div className="text-[11px] text-white/40">Title Match (10%)</div>
                                                 <div className="text-base font-black text-white mt-0.5">
                                                   {c.title_score != null ? `${Math.round(c.title_score)}%` : '—'}
                                                 </div>
                                               </div>
-                                              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                              <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--line)]">
                                                 <div className="text-[11px] text-white/40">Education (5%)</div>
                                                 <div className="text-base font-black text-white mt-0.5">
                                                   {c.education_score != null ? `${Math.round(c.education_score)}%` : '—'}
@@ -974,7 +974,7 @@ export default function ResumeScreeningsPage() {
                                           {/* Skills Matched vs Missing */}
                                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {/* Matched Required Skills */}
-                                            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                            <div className="p-4 rounded-xl bg-white/[0.03] border border-[var(--line)]">
                                               <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 mb-2.5">
                                                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                                                 Matched Required Skills ({c.matched_skills?.length || 0})
@@ -996,7 +996,7 @@ export default function ResumeScreeningsPage() {
                                             </div>
 
                                             {/* Missing Required Skills */}
-                                            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                            <div className="p-4 rounded-xl bg-white/[0.03] border border-[var(--line)]">
                                               <div className="flex items-center gap-1.5 text-xs font-bold text-rose-400 mb-2.5">
                                                 <span className="w-2 h-2 rounded-full bg-rose-500" />
                                                 Missing Skills Gap ({c.missing_skills?.length || 0})
@@ -1022,14 +1022,14 @@ export default function ResumeScreeningsPage() {
 
                                           {/* Candidate Summary / Notes */}
                                           {c.summary && (
-                                            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.05] text-xs text-white/70">
+                                            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-[var(--line)] text-xs text-white/70">
                                               <span className="font-bold text-white/90">Automated Summary: </span>
                                               {c.summary}
                                             </div>
                                           )}
 
                                           {/* Traceable Evidence Panel */}
-                                          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                                          <div className="p-4 rounded-xl bg-white/[0.02] border border-[var(--line)]">
                                             <EvidencePanel
                                               evidenceSpans={c.explanation_json?.evidence_spans}
                                               candidateName={displayName}
@@ -1077,7 +1077,7 @@ export default function ResumeScreeningsPage() {
               {/* Modal Header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">Outreach</span>
+                  <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">Outreach</span>
                   <h3 className="text-lg font-extrabold text-white">
                     Bulk Invite Candidates ({selectedCandidateIds.size})
                   </h3>
@@ -1105,13 +1105,13 @@ export default function ResumeScreeningsPage() {
                     <label className="block text-[11px] font-bold text-white/40 uppercase tracking-wider mb-1.5">
                       Recipients
                     </label>
-                    <div className="max-h-24 overflow-y-auto p-2 rounded-xl bg-white/[0.03] border border-white/[0.06] flex flex-wrap gap-1.5">
+                    <div className="max-h-24 overflow-y-auto p-2 rounded-xl bg-white/[0.03] border border-[var(--line)] flex flex-wrap gap-1.5">
                       {candidates
                         .filter(c => selectedCandidateIds.has(c.id))
                         .map(c => (
                           <span
                             key={c.id}
-                            className="text-xs font-medium px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20"
+                            className="text-xs font-medium px-2 py-0.5 rounded bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/30"
                           >
                             {c.name || `Candidate #${c.id}`}
                           </span>
@@ -1136,8 +1136,8 @@ export default function ResumeScreeningsPage() {
                           onClick={() => setInviteStage(stage.id as any)}
                           className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
                             inviteStage === stage.id
-                              ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
-                              : 'bg-white/[0.03] text-white/50 border-white/[0.06] hover:bg-white/[0.05]'
+                              ? 'bg-[var(--accent-dim)] text-[var(--accent)] border-[var(--accent)]/30'
+                              : 'bg-white/[0.03] text-white/50 border-[var(--line)] hover:bg-white/[0.05]'
                           }`}
                         >
                           {stage.label}
@@ -1155,7 +1155,7 @@ export default function ResumeScreeningsPage() {
                       rows={3}
                       value={inviteMessage}
                       onChange={e => setInviteMessage(e.target.value)}
-                      className="w-full p-3 text-xs bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 resize-none"
+                      className="w-full p-3 text-xs bg-white/[0.04] border border-[var(--line)] rounded-xl text-white placeholder-[#7d838f] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 resize-none"
                     />
                   </div>
 
@@ -1172,7 +1172,7 @@ export default function ResumeScreeningsPage() {
                       type="button"
                       disabled={sendingInvites}
                       onClick={handleSendBulkInvites}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 disabled:opacity-50 text-white shadow-lg shadow-cyan-500/20 transition-all"
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[var(--accent)] text-[#04110f] font-semibold disabled:opacity-45 shadow-none transition-all"
                     >
                       {sendingInvites && (
                         <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />

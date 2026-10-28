@@ -3,10 +3,8 @@ import { Link } from "react-router-dom";
 function LegalPage({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="min-h-screen text-white">
-      <nav className="border-b border-white/[0.06] px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="text-xl font-black bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-          HireRank
-        </Link>
+      <nav className="border-b border-[var(--line)] px-6 py-4 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-lg bg-[var(--accent-dim)] border border-[var(--accent)]/30 flex items-center justify-center text-[var(--accent)] font-bold text-xs">HR</div><span className="font-bold text-lg tracking-tight text-[var(--text)] font-sans">Hire<span className="text-[var(--accent)]">Rank</span></span></Link>
         <Link to="/" className="text-sm text-white/50 hover:text-white transition-colors">? Back to Home</Link>
       </nav>
       <div className="max-w-3xl mx-auto px-6 py-16">
@@ -16,7 +14,7 @@ function LegalPage({ title, children }: { title: string; children: React.ReactNo
           {children}
         </div>
       </div>
-      <footer className="border-t border-white/[0.06] px-6 py-6 text-center text-white/30 text-xs">
+      <footer className="border-t border-[var(--line)] px-6 py-6 text-center text-white/30 text-xs">
         © {new Date().getFullYear()} HireRank. All rights reserved.
       </footer>
     </div>
@@ -52,7 +50,7 @@ export function PrivacyPolicyPage() {
       </section>
       <section>
         <h2 className="text-lg font-bold text-white mb-2">7. Contact</h2>
-        <p>For privacy-related inquiries, email us at <a href="mailto:privacy@hirerank.app" className="text-cyan-400 hover:underline">privacy@hirerank.app</a>.</p>
+        <p>For privacy-related inquiries, email us at <a href="mailto:privacy@hirerank.app" className="text-[var(--accent)] hover:underline">privacy@hirerank.app</a>.</p>
       </section>
     </LegalPage>
   );
@@ -91,7 +89,7 @@ export function TermsOfServicePage() {
       </section>
       <section>
         <h2 className="text-lg font-bold text-white mb-2">8. Contact</h2>
-        <p>For legal inquiries: <a href="mailto:legal@hirerank.app" className="text-cyan-400 hover:underline">legal@hirerank.app</a></p>
+        <p>For legal inquiries: <a href="mailto:legal@hirerank.app" className="text-[var(--accent)] hover:underline">legal@hirerank.app</a></p>
       </section>
     </LegalPage>
   );

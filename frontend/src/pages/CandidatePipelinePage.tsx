@@ -17,11 +17,11 @@ import {
 type PipelineStatusFilter = 'all' | 'Invited' | 'Hire' | 'No Hire';
 
 const AVATAR_COLORS = [
-  'from-cyan-500/20 to-blue-600/20 text-cyan-300 border-cyan-500/30',
-  'from-purple-500/20 to-indigo-600/20 text-purple-300 border-purple-500/30',
-  'from-emerald-500/20 to-teal-600/20 text-emerald-300 border-emerald-500/30',
-  'from-rose-500/20 to-pink-600/20 text-rose-300 border-rose-500/30',
-  'from-amber-500/20 to-orange-600/20 text-amber-300 border-amber-500/30',
+  'bg-[var(--accent-dim)] text-[var(--accent)] border-[var(--accent)]/30',
+  'bg-white/[0.04] text-[var(--muted)] border-[var(--line)]',
+  'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  'bg-rose-500/10 text-rose-400 border-rose-500/30',
+  'bg-amber-500/10 text-amber-300 border-amber-500/30',
 ];
 
 export default function CandidatePipelinePage() {
@@ -194,9 +194,9 @@ export default function CandidatePipelinePage() {
 
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* Top Header Bar */}
-        <div className="px-8 py-4 border-b border-white/[0.06] flex items-center justify-between">
+        <div className="px-8 py-4 border-b border-[var(--line)] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs font-semibold text-white/80">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-[var(--line)] text-xs font-semibold text-white/80">
               <svg className="w-3.5 h-3.5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
@@ -228,7 +228,7 @@ export default function CandidatePipelinePage() {
         >
           {/* Header Title */}
           <motion.div variants={fadeInUpVariants}>
-            <h1 className="text-2xl font-extrabold text-white">Candidate Pipeline</h1>
+            <h1 className="font-serif-display text-3xl font-normal text-[var(--text)] tracking-tight">Candidate Pipeline</h1>
             <p className="text-xs text-white/40 mt-1">
               Global view of all applicants across every active assessment.
             </p>
@@ -247,7 +247,7 @@ export default function CandidatePipelinePage() {
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   statusFilter === 'all'
                     ? 'bg-white text-black shadow-md'
-                    : 'bg-white/[0.04] text-white/60 hover:text-white border border-white/[0.06]'
+                    : 'bg-white/[0.04] text-white/60 hover:text-white border border-[var(--line)]'
                 }`}
               >
                 All Candidates
@@ -258,8 +258,8 @@ export default function CandidatePipelinePage() {
                 onClick={() => setStatusFilter('Invited')}
                 className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                   statusFilter === 'Invited'
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                    : 'bg-white/[0.04] text-white/50 hover:text-white border border-white/[0.06]'
+                    ? 'bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/30'
+                    : 'bg-white/[0.04] text-white/50 hover:text-white border border-[var(--line)]'
                 }`}
               >
                 Invited
@@ -297,7 +297,7 @@ export default function CandidatePipelinePage() {
                 onChange={e =>
                   setSelectedJobId(e.target.value === 'all' ? 'all' : Number(e.target.value))
                 }
-                className="bg-[#14141f] border border-white/[0.08] hover:border-white/[0.15] text-white text-xs font-semibold rounded-xl px-4 py-2.5 pr-8 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 cursor-pointer appearance-none shadow-sm"
+                className="bg-[#14141f] border border-[var(--line)] hover:border-white/[0.15] text-white text-xs font-semibold rounded-xl px-4 py-2.5 pr-8 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 cursor-pointer appearance-none shadow-sm"
               >
                 <option value="all">All Assessments</option>
                 {jobs.map(j => (
@@ -317,7 +317,7 @@ export default function CandidatePipelinePage() {
           {/* Search candidates by email & Invite Candidate button */}
           <motion.div
             variants={fadeInUpVariants}
-            className="rounded-2xl border border-white/[0.08] p-1.5 flex items-center justify-between gap-3 shadow-sm"
+            className="rounded-2xl border border-[var(--line)] p-1.5 flex items-center justify-between gap-3 shadow-sm"
             style={{ background: '#0d0d14' }}
           >
             <div className="relative flex-1">
@@ -336,7 +336,7 @@ export default function CandidatePipelinePage() {
             </div>
             <button
               onClick={() => handleOpenInviteModal()}
-              className="flex items-center gap-1.5 px-3.5 py-2 mr-1 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white shadow-md shadow-cyan-500/20 transition-all flex-shrink-0"
+              className="flex items-center gap-1.5 px-3.5 py-2 mr-1 rounded-xl text-xs font-bold bg-[var(--accent)] text-[#04110f] font-semibold shadow-none transition-all flex-shrink-0"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -348,13 +348,13 @@ export default function CandidatePipelinePage() {
           {/* Candidates Pipeline Table */}
           <motion.div
             variants={fadeInUpVariants}
-            className="rounded-2xl border border-white/[0.08] overflow-hidden shadow-sm"
+            className="rounded-2xl border border-[var(--line)] overflow-hidden shadow-sm"
             style={{ background: '#0d0d14' }}
           >
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-white/[0.06] bg-white/[0.01] text-[11px] font-bold text-white/40 uppercase tracking-wider">
+                  <tr className="border-b border-[var(--line)] bg-white/[0.01] text-[11px] font-bold text-white/40 uppercase tracking-wider">
                     <th className="py-4 px-6">CANDIDATE</th>
                     <th className="py-4 px-4">APPLIED TO</th>
                     <th className="py-4 px-4 w-40">SCORE</th>
@@ -377,7 +377,7 @@ export default function CandidatePipelinePage() {
                   {loading ? (
                     <tr>
                       <td colSpan={7} className="py-20 text-center text-white/30">
-                        <div className="w-7 h-7 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                        <div className="w-7 h-7 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                         Loading candidate pipeline...
                       </td>
                     </tr>
@@ -386,7 +386,7 @@ export default function CandidatePipelinePage() {
                     <tr>
                       <td colSpan={7} className="py-24 text-center">
                         <div className="max-w-md mx-auto space-y-3">
-                          <div className="w-16 h-16 rounded-full bg-white/[0.02] border border-white/[0.05] flex items-center justify-center mx-auto text-white/20">
+                          <div className="w-16 h-16 rounded-full bg-white/[0.02] border border-[var(--line)] flex items-center justify-center mx-auto text-white/20">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
@@ -447,7 +447,7 @@ export default function CandidatePipelinePage() {
                           <td className="py-4 px-6">
                             <div className="flex items-center gap-3">
                               <div
-                                className={`w-9 h-9 rounded-full bg-gradient-to-br border flex items-center justify-center text-xs font-extrabold flex-shrink-0 ${colorStyle}`}
+                                className={`w-9 h-9 rounded-full border flex items-center justify-center text-xs font-mono font-medium flex-shrink-0 ${colorStyle}`}
                               >
                                 {initials}
                               </div>
@@ -529,12 +529,12 @@ export default function CandidatePipelinePage() {
                           <td className="py-4 px-4 text-center">
                             <div className="inline-flex items-center gap-1.5">
                               {isUpdating ? (
-                                <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                                <div className="w-4 h-4 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
                               ) : (
                                 <select
                                   value={pipelineStatus}
                                   onChange={e => handleUpdateStatus(c.id, e.target.value)}
-                                  className="bg-white/[0.04] border border-white/[0.1] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-cyan-500 cursor-pointer transition-colors"
+                                  className="bg-white/[0.04] border border-white/[0.1] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-[var(--accent)] cursor-pointer transition-colors"
                                 >
                                   <option value="Screened">Screened</option>
                                   <option value="Invited">Invited</option>
@@ -556,7 +556,7 @@ export default function CandidatePipelinePage() {
                               <button
                                 onClick={() => handleOpenInviteModal(c)}
                                 title="Invite Candidate"
-                                className="p-1.5 rounded-lg text-white/40 hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors"
+                                className="p-1.5 rounded-lg text-white/40 hover:text-[var(--accent)] hover:bg-[var(--accent-dim)] transition-colors"
                               >
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -610,7 +610,7 @@ export default function CandidatePipelinePage() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
+                  <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">
                     WORKSPACE COLLABORATION
                   </span>
                   <h3 className="text-lg font-extrabold text-white">Invite Candidate</h3>
@@ -625,14 +625,14 @@ export default function CandidatePipelinePage() {
 
               {inviteSuccess ? (
                 <div className="space-y-4 py-2">
-                  <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
+                  <div className="p-4 rounded-xl bg-[var(--accent-dim)] border border-[var(--accent)]/30 text-[var(--accent)] text-xs flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[var(--accent-dim)] text-[var(--accent)] flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
                       ✓
                     </div>
                     <div>
                       <div className="font-bold text-white text-sm">Invitation Sent!</div>
                       <p className="text-white/60 text-xs mt-1">
-                        Invitation has been recorded for <strong className="text-white">{inviteName || inviteEmail}</strong> and their status updated to <span className="text-cyan-400 font-bold">Invited</span>.
+                        Invitation has been recorded for <strong className="text-white">{inviteName || inviteEmail}</strong> and their status updated to <span className="text-[var(--accent)] font-bold">Invited</span>.
                       </p>
                     </div>
                   </div>
@@ -662,7 +662,7 @@ export default function CandidatePipelinePage() {
                       value={inviteName}
                       onChange={e => setInviteName(e.target.value)}
                       placeholder="e.g. Sarah Connor"
-                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-[#7d838f] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30"
                     />
                   </div>
 
@@ -676,7 +676,7 @@ export default function CandidatePipelinePage() {
                       value={inviteEmail}
                       onChange={e => setInviteEmail(e.target.value)}
                       placeholder="colleague@company.com"
-                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                      className="w-full px-3.5 py-2 text-xs bg-white/[0.04] border border-white/[0.1] rounded-xl text-white placeholder-[#7d838f] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30"
                     />
                   </div>
 
@@ -687,7 +687,7 @@ export default function CandidatePipelinePage() {
                     <select
                       value={inviteRole}
                       onChange={e => setInviteRole(e.target.value)}
-                      className="w-full px-3.5 py-2 text-xs bg-[#14141f] border border-white/[0.1] rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50 cursor-pointer"
+                      className="w-full px-3.5 py-2 text-xs bg-[#14141f] border border-white/[0.1] rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 cursor-pointer"
                     >
                       <option value="Recruiter (Can screen & invite candidates)">
                         Recruiter (Can screen & invite candidates)
@@ -712,7 +712,7 @@ export default function CandidatePipelinePage() {
                     <button
                       type="submit"
                       disabled={sendingInvite}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 disabled:opacity-50 text-white shadow-lg shadow-cyan-500/20 transition-all"
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[var(--accent)] text-[#04110f] font-semibold disabled:opacity-45 shadow-none transition-all"
                     >
                       {sendingInvite && (
                         <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
