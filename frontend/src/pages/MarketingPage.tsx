@@ -662,6 +662,28 @@ function DemoSection() {
   const navigate = useNavigate();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.3 });
+  const [activeTab, setActiveTab] = useState<'preview' | 'video'>('preview');
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  const [videoMuted, setVideoMuted] = useState(false);
+
+  const togglePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      v.play();
+      setVideoPlaying(true);
+    } else {
+      v.pause();
+      setVideoPlaying(false);
+    }
+  };
+  const toggleMute = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setVideoMuted(v.muted);
+  };
 
   const MOCK = [
     { name: 'Sarah Chen', score: 94, label: 'Strong' },
@@ -674,7 +696,7 @@ function DemoSection() {
   return (
     <section id="demo" className="py-24 px-6 md:px-12 border-t border-[var(--line)]">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-16">
+        <div className="text-center mb-10">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent)] mb-3">
             Interactive Preview
           </p>
@@ -686,62 +708,141 @@ function DemoSection() {
           </p>
         </div>
 
-        <div ref={ref} className="mb-10">
-          <SpotlightCard className="overflow-hidden">
-            {/* Header bar */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--line)] bg-white/[0.01]">
-              <div className="flex items-center gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-[var(--accent)]" />
-                <span className="text-xs text-[var(--muted)] font-medium uppercase tracking-wider">
-                  Senior Backend Engineer Screening
-                </span>
-              </div>
-              <span className="text-xs text-[var(--accent)] font-mono bg-[var(--accent-dim)] px-2.5 py-0.5 rounded-md border border-[var(--accent)]/20">
-                5 Resumes Ranked
-              </span>
-            </div>
+        {/* Tab switcher */}
+        <div className="flex justify-center mb-8">
+          <div className="flex gap-1 bg-white/[0.03] border border-[var(--line)] rounded-xl p-1">
+            {([
+              { key: 'preview', label: '⚡ Live Preview' },
+              { key: 'video',   label: '▶ Watch Demo' },
+            ] as const).map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`relative px-5 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
+                  activeTab === tab.key
+                    ? 'text-[var(--text)] bg-[var(--accent-dim)] border border-[var(--accent)]/30'
+                    : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
-            {/* Candidate list */}
-            <div className="p-6 space-y-3.5">
-              {MOCK.map((c, i) => (
-                <div
-                  key={c.name}
-                  className="flex items-center gap-4 p-2.5 rounded-lg hover:bg-white/[0.02] transition-colors"
-                >
-                  <div className="w-7 h-7 rounded-md bg-white/[0.04] border border-[var(--line)] flex items-center justify-center flex-shrink-0 text-xs font-semibold text-[var(--muted)]">
-                    {i + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-medium text-[var(--text)]">{c.name}</span>
-                      <span className="text-sm font-semibold tabular-nums text-[var(--text)]">
-                        {c.score}%
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full rounded-full bg-[var(--accent)]"
-                        initial={{ width: 0 }}
-                        animate={inView ? { width: `${c.score}%` } : { width: 0 }}
-                        transition={{ duration: 0.8, delay: 0.2 + i * 0.1, ease: 'easeOut' }}
-                      />
-                    </div>
-                  </div>
-                  <span
-                    className={`text-[11px] font-medium rounded px-2 py-0.5 border ${
-                      c.label === 'Strong'
-                        ? 'bg-[var(--accent-dim)] text-[var(--accent)] border-[var(--accent)]/20'
-                        : c.label === 'Potential'
-                        ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
-                        : 'bg-rose-500/10 text-rose-300 border-rose-500/20'
-                    }`}
-                  >
-                    {c.label}
+        <div ref={ref} className="mb-10">
+          {activeTab === 'preview' ? (
+            <SpotlightCard className="overflow-hidden">
+              {/* Header bar */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--line)] bg-white/[0.01]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2 h-2 rounded-full bg-[var(--accent)]" />
+                  <span className="text-xs text-[var(--muted)] font-medium uppercase tracking-wider">
+                    Senior Backend Engineer Screening
                   </span>
                 </div>
-              ))}
+                <span className="text-xs text-[var(--accent)] font-mono bg-[var(--accent-dim)] px-2.5 py-0.5 rounded-md border border-[var(--accent)]/20">
+                  5 Resumes Ranked
+                </span>
+              </div>
+
+              {/* Candidate list */}
+              <div className="p-6 space-y-3.5">
+                {MOCK.map((c, i) => (
+                  <div
+                    key={c.name}
+                    className="flex items-center gap-4 p-2.5 rounded-lg hover:bg-white/[0.02] transition-colors"
+                  >
+                    <div className="w-7 h-7 rounded-md bg-white/[0.04] border border-[var(--line)] flex items-center justify-center flex-shrink-0 text-xs font-semibold text-[var(--muted)]">
+                      {i + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-sm font-medium text-[var(--text)]">{c.name}</span>
+                        <span className="text-sm font-semibold tabular-nums text-[var(--text)]">
+                          {c.score}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full bg-[var(--accent)]"
+                          initial={{ width: 0 }}
+                          animate={inView ? { width: `${c.score}%` } : { width: 0 }}
+                          transition={{ duration: 0.8, delay: 0.2 + i * 0.1, ease: 'easeOut' }}
+                        />
+                      </div>
+                    </div>
+                    <span
+                      className={`text-[11px] font-medium rounded px-2 py-0.5 border ${
+                        c.label === 'Strong'
+                          ? 'bg-[var(--accent-dim)] text-[var(--accent)] border-[var(--accent)]/20'
+                          : c.label === 'Potential'
+                          ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                          : 'bg-rose-500/10 text-rose-300 border-rose-500/20'
+                      }`}
+                    >
+                      {c.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </SpotlightCard>
+          ) : (
+            <div className="relative rounded-2xl overflow-hidden border border-[var(--line)] bg-black shadow-2xl group/video">
+              <video
+                ref={videoRef}
+                src="/demo.mp4"
+                className="w-full aspect-video object-cover"
+                loop
+                playsInline
+                preload="metadata"
+                onPlay={() => setVideoPlaying(true)}
+                onPause={() => setVideoPlaying(false)}
+              />
+
+              {!videoPlaying && (
+                <div
+                  className="absolute inset-0 z-20 flex flex-col items-center justify-center cursor-pointer bg-black/50 backdrop-blur-sm"
+                  onClick={togglePlay}
+                >
+                  <div className="w-20 h-20 rounded-full bg-white/10 border border-white/20 backdrop-blur flex items-center justify-center hover:scale-110 hover:bg-[var(--accent-dim)] hover:border-[var(--accent)]/40 transition-all duration-200">
+                    <svg className="w-8 h-8 text-white ml-1" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </div>
+                  <p className="mt-4 text-sm text-[var(--muted)] font-medium">Watch the 60-second platform walkthrough</p>
+                </div>
+              )}
+
+              <div className="absolute bottom-0 inset-x-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover/video:opacity-100 transition-opacity duration-200">
+                <button
+                  onClick={togglePlay}
+                  className="flex items-center gap-2 text-white/80 hover:text-white text-sm font-medium transition-colors"
+                >
+                  {videoPlaying ? (
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+                  ) : (
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                  )}
+                  {videoPlaying ? 'Pause' : 'Play'}
+                </button>
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] text-[var(--accent)] font-mono bg-[var(--accent-dim)] border border-[var(--accent)]/20 px-2 py-0.5 rounded-full">Platform Demo • 60s</span>
+                  <button
+                    onClick={toggleMute}
+                    className="text-white/60 hover:text-white transition-colors"
+                    title={videoMuted ? 'Unmute' : 'Mute'}
+                  >
+                    {videoMuted ? (
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12A4.5 4.5 0 0014 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" /></svg>
+                    ) : (
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z" /></svg>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
-          </SpotlightCard>
+          )}
         </div>
 
         <div className="text-center">

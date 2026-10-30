@@ -125,7 +125,6 @@ export default function CandidatesPage() {
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateWithScore | null>(null);
   const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('Recruiter (Can screen & invite candidates)');
   const [sendingInvite, setSendingInvite] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState(false);
@@ -140,7 +139,6 @@ export default function CandidatesPage() {
       setInviteName('');
       setInviteEmail('');
     }
-    setInviteRole('Recruiter (Can screen & invite candidates)');
     setInviteError(null);
     setInviteSuccess(false);
     setShowInviteModal(true);
@@ -153,7 +151,8 @@ export default function CandidatesPage() {
     setInviteError(null);
     try {
       if (selectedCandidate) {
-        await api.bulkInviteCandidates([selectedCandidate.id], `Invited as ${inviteRole}`);
+        const result = await api.bulkInviteCandidates([selectedCandidate.id]);
+        if (!result.success || result.emails_sent < result.invited_count) throw new Error(result.message);
         setCandidates(prev =>
           prev.map(c => (c.id === selectedCandidate.id ? { ...c, pipeline_status: 'Invited' } : c))
         );
@@ -162,16 +161,17 @@ export default function CandidatesPage() {
           c => (c.email || '').toLowerCase() === inviteEmail.trim().toLowerCase()
         );
         if (match) {
-          await api.bulkInviteCandidates([match.id], `Invited as ${inviteRole}`);
+          const result = await api.bulkInviteCandidates([match.id]);
+          if (!result.success || result.emails_sent < result.invited_count) throw new Error(result.message);
           setCandidates(prev =>
             prev.map(c => (c.id === match.id ? { ...c, pipeline_status: 'Invited' } : c))
           );
-        }
+        } else throw new Error('This email is not attached to a screened candidate. Select a candidate from the list first.');
       }
       setInviteSuccess(true);
     } catch (err: any) {
       console.error('Candidate invite failed', err);
-      setInviteError(err.response?.data?.detail || 'Failed to send invitation');
+      setInviteError(err.response?.data?.detail || err.message || 'Failed to send invitation');
     } finally {
       setSendingInvite(false);
     }
@@ -624,20 +624,8 @@ export default function CandidatesPage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-bold text-white/50 uppercase tracking-wider mb-1.5">
-                      Assessment Stage
-                    </label>
-                    <select
-                      value={inviteRole}
-                      onChange={e => setInviteRole(e.target.value)}
-                      className="w-full px-3.5 py-2 text-xs bg-[#14141f] border border-white/[0.1] rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 cursor-pointer"
-                    >
-                      <option value="Screening">Screening</option>
-                      <option value="Technical Assessment">Technical Assessment</option>
-                      <option value="Interview">Interview</option>
-                      <option value="Recruiter (Can screen & invite candidates)">Full Pipeline Access</option>
-                    </select>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-white/60">
+                    The secure link opens the written interview. After submitting, the candidate can book a live interview time.
                   </div>
 
                   <div className="flex items-center justify-end gap-2.5 pt-3">

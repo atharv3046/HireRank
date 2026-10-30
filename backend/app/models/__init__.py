@@ -5,3 +5,4 @@ from app.models.match_score import MatchScore
 from app.models.guest_session import GuestSession
 from app.models.team_member import TeamMember
 from app.models.assessment import Assessment
+from app.models.interview import InterviewInvitation, InterviewSlot

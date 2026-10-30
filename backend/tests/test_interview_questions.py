@@ -126,18 +126,17 @@ def test_malformed_api_response_falls_back_gracefully():
     cand = MockCandidate(id=101, is_adversarial=False)
     ms = MockMatchScore()
 
-    # Mock Claude returning garbage / non-JSON text
-    mock_msg = MagicMock()
-    mock_block = MagicMock()
-    mock_block.type = "text"
-    mock_block.text = "I am Claude and I cannot answer in JSON right now."
-    mock_msg.content = [mock_block]
+    # Mock LLM returning garbage / non-JSON text
+    mock_choice = MagicMock()
+    mock_choice.message.content = "I cannot answer in JSON right now."
+    mock_resp = MagicMock()
+    mock_resp.choices = [mock_choice]
 
-    with patch("app.core.config.settings.ANTHROPIC_API_KEY", "test-key-mock"):
-        with patch("anthropic.Anthropic") as mock_anthropic:
+    with patch("app.core.config.settings.OPENAI_API_KEY", "test-key-mock"):
+        with patch("openai.OpenAI") as mock_openai:
             mock_client = MagicMock()
-            mock_anthropic.return_value = mock_client
-            mock_client.messages.create.return_value = mock_msg
+            mock_openai.return_value = mock_client
+            mock_client.chat.completions.create.return_value = mock_resp
 
             result = generate_candidate_interview_questions(
                 candidate=cand,

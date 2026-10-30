@@ -153,7 +153,7 @@ Hiring Team at {{company_name}}`,
 
 Based on your impressive match results in our initial resume screening for the {{role}} position at {{company_name}}, we'd love to invite you to take the next step.
 
-Please complete your technical evaluation on MockExperts via this link:
+Please complete your interview on HireRank using your secure candidate link:
 {{assessment_link}}`,
 
   'Formal / Corporate': `Dear {{candidate_name}},
@@ -256,6 +256,19 @@ export default function AssessmentsPage() {
   const [selectedCandidateIds, setSelectedCandidateIds] = useState<Set<number>>(new Set());
   const [isSendingInvites, setIsSendingInvites] = useState<boolean>(false);
   const [inviteSuccessMsg, setInviteSuccessMsg] = useState<string | null>(null);
+  const [inviteManualLinks, setInviteManualLinks] = useState<Array<{ email: string; url: string }>>([]);
+  const [editingCandidateEmailId, setEditingCandidateEmailId] = useState<number | null>(null);
+  const [candidateEmailDraft, setCandidateEmailDraft] = useState<string>('');
+  const handleSaveCandidateEmail = async (candidateId: number) => {
+    if (!candidateEmailDraft.trim() || !candidateEmailDraft.includes('@')) return;
+    try {
+      await api.updateCandidateDetails(candidateId, { email: candidateEmailDraft.trim() });
+      setCandidatePool(prev => prev.map(c => c.id === candidateId ? { ...c, email: candidateEmailDraft.trim() } : c));
+      setEditingCandidateEmailId(null);
+    } catch (e: any) {
+      alert(e?.response?.data?.detail || 'Failed to update candidate email');
+    }
+  };
 
   // Load importable screening batches, past assessments, and candidates on mount
   useEffect(() => {
@@ -604,7 +617,7 @@ export default function AssessmentsPage() {
     const cName = 'Alex Morgan';
     const role = roleTitle || 'Backend Engineer';
     const company = user?.company_name || 'HireRank';
-    const link = 'https://hirerank.app/eval/asm-8812';
+    const link = `${window.location.origin}/interview/{secure-candidate-link}`;
 
     return emailBody
       .replace(/\{\{candidate_name\}\}/g, cName)
@@ -617,22 +630,22 @@ export default function AssessmentsPage() {
   const handleSendInvitations = async () => {
     setIsSendingInvites(true);
     setInviteSuccessMsg(null);
+    setInviteManualLinks([]);
     try {
       const candidateIds = Array.from(selectedCandidateIds);
-      if (candidateIds.length > 0) {
-        const res = await api.bulkInviteCandidates(candidateIds, emailBody);
-        setInviteSuccessMsg(res.message || `Successfully invited ${candidateIds.length} candidate(s)!`);
+      if (!launchSuccessModal) throw new Error('Create or select an assessment before sending invitations.');
+      if (candidateIds.length === 0) throw new Error('Select at least one candidate to invite.');
+      const res = await api.sendAssessmentInvitations(launchSuccessModal.id, candidateIds, emailBody);
+      const failed = res.results.filter((r) => !r.sent);
+      setInviteManualLinks(failed.flatMap((r) => r.manual_link ? [{ email: r.email, url: r.manual_link }] : []));
+      if (res.emails_sent === res.invited_count) {
+        setInviteSuccessMsg(`Interview link emailed to ${res.emails_sent} candidate(s). Candidates can complete the written interview and then book a live interview time.`);
       } else {
-        setInviteSuccessMsg('Assessment invite link configured & ready to dispatch!');
+        setInviteSuccessMsg(`${res.emails_sent} of ${res.invited_count} emails were delivered. Configure email delivery for the rest, or copy their secure links below.`);
       }
-      setTimeout(() => {
-        setShowInviteModal(false);
-        setInviteSuccessMsg(null);
-        loadPastAssessments();
-        setStep(4);
-      }, 1500);
+      await loadPastAssessments();
     } catch (err: any) {
-      alert(err?.response?.data?.detail || 'Failed to dispatch invitations.');
+      setInviteSuccessMsg(err?.response?.data?.detail || err.message || 'Failed to dispatch invitations.');
     } finally {
       setIsSendingInvites(false);
     }
@@ -1450,6 +1463,9 @@ export default function AssessmentsPage() {
                           <button
                             onClick={() => {
                               setRoleTitle(a.title);
+                              setLaunchSuccessModal(a);
+                              setInviteManualLinks([]);
+                              setInviteSuccessMsg(null);
                               setShowInviteModal(true);
                             }}
                             className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1.5"
@@ -1598,7 +1614,48 @@ export default function AssessmentsPage() {
                                 {c.name || `Candidate #${c.id}`}
                               </div>
                               <div className="text-[11px] text-white/40">
-                                {c.email || 'c****@***.com'} • {c.experience_years || 3}y exp
+                                {editingCandidateEmailId === c.id ? (
+                                  <div className="mt-1 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                    <input
+                                      type="email"
+                                      value={candidateEmailDraft}
+                                      onChange={(e) => setCandidateEmailDraft(e.target.value)}
+                                      className="px-2 py-0.5 text-xs bg-black/60 border border-indigo-500 rounded text-white"
+                                      autoFocus
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSaveCandidateEmail(c.id)}
+                                      className="px-2 py-0.5 text-[10px] bg-indigo-600 hover:bg-indigo-500 rounded text-white font-bold"
+                                    >
+                                      Save
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingCandidateEmailId(null)}
+                                      className="text-white/40 hover:text-white text-xs px-1"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1.5">
+                                    <span>{c.email || 'c****@***.com'}</span>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingCandidateEmailId(c.id);
+                                        setCandidateEmailDraft(c.email || '');
+                                      }}
+                                      title="Edit candidate email"
+                                      className="text-white/40 hover:text-indigo-400 p-0.5"
+                                    >
+                                      ✎
+                                    </button>
+                                    <span>• {c.experience_years || 3}y exp</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1711,8 +1768,14 @@ export default function AssessmentsPage() {
                 {/* Success Feedback */}
                 {inviteSuccessMsg && (
                   <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center text-xs text-emerald-300 font-semibold flex items-center justify-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
                     {inviteSuccessMsg}
+                  </div>
+                )}
+                {inviteManualLinks.length > 0 && (
+                  <div className="space-y-2 rounded-xl border border-amber-400/20 bg-amber-500/[0.06] p-4">
+                    <p className="text-xs font-semibold text-amber-200">Email delivery failed for these candidates. Copy and send their secure links manually:</p>
+                    {inviteManualLinks.map(({ email, url }) => <div key={url} className="break-all text-[11px] text-white/70"><span className="mr-2">{email}</span><a href={url} target="_blank" rel="noreferrer" className="text-[var(--accent)] underline">{url}</a></div>)}
                   </div>
                 )}
 
@@ -1720,7 +1783,7 @@ export default function AssessmentsPage() {
                 <button
                   type="button"
                   onClick={handleSendInvitations}
-                  disabled={isSendingInvites}
+                  disabled={isSendingInvites || selectedCandidateIds.size === 0 || !launchSuccessModal}
                   className="w-full py-3 rounded-xl text-sm font-bold text-white btn-primary text-xs py-2.5 px-4 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isSendingInvites ? (

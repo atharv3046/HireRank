@@ -50,8 +50,15 @@ def override_get_db():
         db.close()
 
 
-app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app, raise_server_exceptions=False)
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _activate_test_db_override():
+    """Set the test DB override for the duration of this module, then remove it."""
+    app.dependency_overrides[get_db] = override_get_db
+    yield
+    app.dependency_overrides.pop(get_db, None)
 
 
 def make_user(db, email="user@test.com", password="pw123456") -> tuple:

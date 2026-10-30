@@ -1,12 +1,18 @@
 """
 Standalone Hybrid Match Scorer & Ranking Engine
 ===============================================
-Computes composite match score based on:
-  - 35% Semantic Similarity (sentence-transformers dense 384-dim embeddings)
+Computes composite match score based on heuristic ranking criteria:
+  - 35% Semantic Similarity (dense embeddings via SentenceTransformers)
   - 30% Skill Coverage (canonical matching with must-have penalty capping)
   - 20% Experience Fit (trapezoidal target band fit with linear falloff)
   - 10% Title Relevance (semantic & keyword alignment)
   - 05% Education Match (ordinal degree requirement fit)
+
+IMPORTANT PRODUCT NOTICE:
+This scoring engine is designed as an assistive recruiter ranking and prioritization
+aid, not an objectively validated psychometric measure of candidate competence or hiring
+outcome. Weights and thresholds represent configurable product choices. Recruiters
+must independently review candidate dossiers, portfolios, and interview responses.
 
 CRITICAL RULES:
 1. Missing must-have skills cap the final score at 59.9 (Potential tier),
@@ -16,14 +22,17 @@ CRITICAL RULES:
    falling off linearly outside, floored at 0.
 3. Unparseable files (needs_manual_review=True) receive final_score=None
    and tier="Needs Review" with zero fake scores.
-4. Zero FastAPI or database imports.
+4. Active embedding model is configurable via EMBEDDING_MODEL (supports custom
+   fine-tuned models from finetune_model.py or standard sentence-transformers).
 """
 
 from __future__ import annotations
 
+import os
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 from typing import Optional, List, Dict, Any
 import numpy as np
 
@@ -31,6 +40,58 @@ from scoring.taxonomy import SkillsTaxonomy, get_taxonomy
 from scoring.extractor import ExtractedProfile, EDUCATION_ORDINAL
 
 logger = logging.getLogger(__name__)
+
+
+def resolve_embedding_model_target() -> str:
+    """
+    Resolves the active embedding model target.
+    Checks EMBEDDING_MODEL from environment or backend/.env.
+    If a local path is specified and exists, resolves to its absolute path.
+    Falls back gracefully to 'all-MiniLM-L6-v2' if unconfigured or path not found.
+    """
+    model_name = os.environ.get("EMBEDDING_MODEL", "").strip()
+
+    if not model_name:
+        try:
+            from dotenv import dotenv_values
+            env_file = Path(__file__).resolve().parents[1] / ".env"
+            if env_file.exists():
+                vals = dotenv_values(env_file)
+                val = vals.get("EMBEDDING_MODEL")
+                if val:
+                    model_name = str(val).strip()
+        except Exception:
+            pass
+
+    if not model_name:
+        return "all-MiniLM-L6-v2"
+
+    # Check if model_name refers to a local directory
+    target_path = Path(model_name)
+    if target_path.exists():
+        return str(target_path.resolve())
+
+    # Check relative to backend directory
+    backend_candidate = Path(__file__).resolve().parents[1] / model_name
+    if backend_candidate.exists():
+        return str(backend_candidate.resolve())
+
+    # Check relative to root workspace
+    root_candidate = Path(__file__).resolve().parents[2] / model_name
+    if root_candidate.exists():
+        return str(root_candidate.resolve())
+
+    # If it is explicitly formatted as a filesystem path but was not found on disk
+    is_path_like = model_name.startswith((".", "/", "\\")) or Path(model_name).is_absolute()
+    if is_path_like:
+        logger.warning(
+            "[SCORER] Custom EMBEDDING_MODEL path '%s' not found on disk. Falling back to default 'all-MiniLM-L6-v2'.",
+            model_name,
+        )
+        return "all-MiniLM-L6-v2"
+
+    # Otherwise treat as a HuggingFace model hub ID (e.g. 'sentence-transformers/all-MiniLM-L6-v2')
+    return model_name
 
 
 class Tier(str, Enum):
@@ -93,9 +154,10 @@ class ScoreBreakdown:
 
 
 class EmbeddingModel:
-    """Singleton wrapper for sentence-transformers all-MiniLM-L6-v2."""
+    """Singleton wrapper for active embedding model (configured via EMBEDDING_MODEL)."""
     _instance = None
     _model = None
+    _active_target = None
 
     def __new__(cls):
         if cls._instance is None:
@@ -103,10 +165,13 @@ class EmbeddingModel:
         return cls._instance
 
     def get_model(self):
-        if self._model is None:
-            logger.info("Loading sentence-transformers all-MiniLM-L6-v2 model...")
+        target = resolve_embedding_model_target()
+        if self._model is None or self._active_target != target:
+            logger.info("[SCORER] Loading sentence-transformers embedding model: %s", target)
             from sentence_transformers import SentenceTransformer
-            self._model = SentenceTransformer("all-MiniLM-L6-v2")
+            self._model = SentenceTransformer(target)
+            self._active_target = target
+            logger.info("[SCORER] Successfully loaded active embedding model: %s", target)
         return self._model
 
     def encode(self, text: str) -> List[float]:

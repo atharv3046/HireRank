@@ -64,7 +64,6 @@ export default function ResumeScreeningsPage() {
 
   // Bulk invite modal
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteStage, setInviteStage] = useState<'screening' | 'assessment' | 'interview'>('assessment');
   const [inviteMessage, setInviteMessage] = useState(
     'Hello, thank you for your application to HireRank. Based on your screening evaluation, we would like to invite you to the next step.'
   );
@@ -161,6 +160,32 @@ export default function ResumeScreeningsPage() {
     }
   };
 
+  // Delete a screening batch (job posting + all its candidates)
+  const [deletingBatchId, setDeletingBatchId] = useState<number | null>(null);
+
+  const handleDeleteBatch = async (e: React.MouseEvent, batchId: number, batchTitle: string) => {
+    e.stopPropagation();
+    const candidateCount = batches.find(b => b.id === batchId)?.candidate_count ?? 0;
+    const msg = `Delete screening batch "${batchTitle}"?\n\nThis will permanently remove the batch and all ${candidateCount} candidate record(s) inside it. This cannot be undone.`;
+    if (!window.confirm(msg)) return;
+    try {
+      setDeletingBatchId(batchId);
+      await api.deleteJob(batchId);
+      setBatches(prev => prev.filter(b => b.id !== batchId));
+      if (selectedBatchId === batchId) {
+        setSelectedBatchId(null);
+        setSelectedBatch(null);
+        setCandidates([]);
+        setBatchStats(null);
+      }
+    } catch (err) {
+      console.error('Failed to delete batch', err);
+      alert('Failed to delete screening batch. Please try again.');
+    } finally {
+      setDeletingBatchId(null);
+    }
+  };
+
   // Export selected candidates CSV
   const handleExportSelectedCsv = async () => {
     if (selectedCandidateIds.size === 0) return;
@@ -185,7 +210,8 @@ export default function ResumeScreeningsPage() {
     setSendingInvites(true);
     try {
       const res = await api.bulkInviteCandidates(Array.from(selectedCandidateIds), inviteMessage);
-      setInviteSuccessMsg(res.message || `Successfully sent invitations to ${res.invited_count} candidate(s)!`);
+      setInviteSuccessMsg(res.message || `Created invitations for ${res.invited_count} candidate(s).`);
+      if (!res.success || res.emails_sent < res.invited_count) return;
       setTimeout(() => {
         setShowInviteModal(false);
         setInviteSuccessMsg(null);
@@ -363,9 +389,25 @@ export default function ResumeScreeningsPage() {
                           })}
                         </p>
                       </div>
-                      <span className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/[0.06] border border-[var(--line)] text-white/70">
-                        {batch.candidate_count} {batch.candidate_count === 1 ? 'candidate' : 'candidates'}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/[0.06] border border-[var(--line)] text-white/70">
+                          {batch.candidate_count} {batch.candidate_count === 1 ? 'candidate' : 'candidates'}
+                        </span>
+                        <button
+                          onClick={(e) => handleDeleteBatch(e, batch.id, batch.title)}
+                          disabled={deletingBatchId === batch.id}
+                          title="Delete screening batch"
+                          className="p-1 rounded-lg text-white/20 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50 flex-shrink-0"
+                        >
+                          {deletingBatchId === batch.id ? (
+                            <div className="w-3 h-3 border-2 border-rose-400 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
                     </div>
 
                     {/* Required skills tags */}
@@ -1095,7 +1137,7 @@ export default function ResumeScreeningsPage() {
                   <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
                     ✓
                   </div>
-                  <h4 className="font-bold text-emerald-300">Invitations Dispatched</h4>
+                  <h4 className="font-bold text-emerald-300">Interview Invitation Results</h4>
                   <p className="text-xs text-emerald-400/80">{inviteSuccessMsg}</p>
                 </div>
               ) : (
@@ -1119,31 +1161,8 @@ export default function ResumeScreeningsPage() {
                     </div>
                   </div>
 
-                  {/* Stage Selector */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-white/40 uppercase tracking-wider mb-1.5">
-                      Interview / Pipeline Stage
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: 'screening', label: 'Phone Screen' },
-                        { id: 'assessment', label: 'Technical Assessment' },
-                        { id: 'interview', label: 'Full Interview' },
-                      ].map(stage => (
-                        <button
-                          key={stage.id}
-                          type="button"
-                          onClick={() => setInviteStage(stage.id as any)}
-                          className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
-                            inviteStage === stage.id
-                              ? 'bg-[var(--accent-dim)] text-[var(--accent)] border-[var(--accent)]/30'
-                              : 'bg-white/[0.03] text-white/50 border-[var(--line)] hover:bg-white/[0.05]'
-                          }`}
-                        >
-                          {stage.label}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-white/60">
+                    Candidates receive a secure written interview link and can book a live interview time after submitting.
                   </div>
 
                   {/* Invitation Message */}

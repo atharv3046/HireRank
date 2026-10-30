@@ -30,6 +30,8 @@ import CandidatePipelinePage from './pages/CandidatePipelinePage'
 import SettingsPage from './pages/SettingsPage'
 import AssessmentsPage from './pages/AssessmentsPage'
 import AcceptInvitePage from './pages/AcceptInvitePage'
+import CandidateInterviewPage from './pages/CandidateInterviewPage'
+import InterviewsPage from './pages/InterviewsPage'
 
 // New guest flow (Screens 1-4)
 import LandingPage          from './pages/LandingPage'
@@ -55,6 +57,7 @@ export default function App() {
           <Route path="/processing/:sessionId" element={<ProcessingPage />} />
           <Route path="/results/:sessionId"    element={<ResultsPreviewPage />} />
           <Route path="/accept-invite"         element={<AcceptInvitePage />} />
+          <Route path="/interview/:token"      element={<CandidateInterviewPage />} />
           <Route path="/privacy"               element={<PrivacyPolicyPage />} />
           <Route path="/terms"                 element={<TermsOfServicePage />} />
 
@@ -66,6 +69,7 @@ export default function App() {
           <Route path="/dashboard"          element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/resume-screenings"  element={<ProtectedRoute><ResumeScreeningsPage /></ProtectedRoute>} />
           <Route path="/assessments"        element={<ProtectedRoute><AssessmentsPage /></ProtectedRoute>} />
+          <Route path="/interviews"         element={<ProtectedRoute><InterviewsPage /></ProtectedRoute>} />
           <Route path="/candidate-pipeline" element={<ProtectedRoute><CandidatePipelinePage /></ProtectedRoute>} />
           <Route path="/settings"           element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/jobs"               element={<ProtectedRoute><JobPostingsPage /></ProtectedRoute>} />

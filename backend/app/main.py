@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -105,10 +106,20 @@ def _seed_demo():
 _seed_demo()
 # ─────────────────────────────────────────────────────────────────────────────
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup / shutdown using the modern FastAPI lifespan pattern."""
+    from app.tasks.cleanup import start_cleanup_scheduler
+    start_cleanup_scheduler()
+    yield
+
+
 app = FastAPI(
     title="Resume Screening API",
     description="AI-powered resume screening and candidate ranking system",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Fix 5: Register slowapi rate limiter (limits POST /api/guest/screen to 5/hour per IP)
@@ -148,11 +159,6 @@ async def add_security_headers(request: Request, call_next):
     )
     return response
 
-# Fix 4: Start the hourly guest session cleanup scheduler
-@app.on_event("startup")
-def start_scheduler():
-    from app.tasks.cleanup import start_cleanup_scheduler
-    start_cleanup_scheduler()
 
 app.add_middleware(
     CORSMiddleware,

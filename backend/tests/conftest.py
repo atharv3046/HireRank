@@ -1,8 +1,69 @@
+import os
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.core.database import Base
+from app.core.database import Base, get_db
+from app.main import app
 from app.models import *  # Import all models
+
+# ── Stale test DB cleanup ────────────────────────────────────────────────────
+# Delete stale SQLite test databases before the session so schema changes don't
+# cause OperationalError('table X has no column Y').
+for _stale_db in ["test_security.db", "test_security_audit.db", "test_resume_screening.db"]:
+    if os.path.exists(_stale_db):
+        try:
+            os.remove(_stale_db)
+        except OSError:
+            pass
+
+
+# Capture the clean override state BEFORE any test module is imported/collected.
+# conftest.py is always loaded first, so this dict will be empty {}.
+_CLEAN_DEPENDENCY_OVERRIDES: dict = dict(app.dependency_overrides)
+
+
+@pytest.fixture(autouse=True, scope="module")
+def reset_dependency_overrides_after_module():
+    """
+    After each test MODULE finishes, restore app.dependency_overrides to the
+    clean pre-collection state (empty dict).
+
+    WHY THIS EXISTS:
+    test_security.py and test_security_audit.py set app.dependency_overrides
+    at module level during pytest collection — before any test runs. This causes
+    every subsequent module's TestClient to hit the wrong database, returning
+    401 'User not found' for all authenticated endpoints.
+
+    A module-scoped fixture correctly tears down once per module (not per test),
+    so each security test still sees its override throughout the whole module,
+    and non-security modules start with a clean slate.
+    """
+    yield
+    app.dependency_overrides.clear()
+    app.dependency_overrides.update(_CLEAN_DEPENDENCY_OVERRIDES)
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter_between_tests():
+    """
+    Reset the slowapi in-memory rate limiter before every test.
+
+    WHY THIS EXISTS:
+    The guest /guest/screen endpoint has a 5/hour per-IP rate limit. All
+    TestClient requests come from the same IP ('testclient'), so once 5 calls
+    have been made across the session the limiter returns 429 for every
+    subsequent call — causing test_phase2_endpoints and test_ownership_transfer
+    to fail with 429 instead of 200 when the full suite runs.
+    """
+    try:
+        from app.routers.guest import limiter
+        if hasattr(limiter, "_storage"):
+            limiter._storage.reset()
+    except Exception:
+        pass
+    yield
+
+
 
 TEST_DATABASE_URL = "sqlite:///./test_resume_screening.db"
 

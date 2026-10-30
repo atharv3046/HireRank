@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: Optional[str] = None
     APP_BASE_URL: str = "http://localhost:5173"
     OPENAI_API_KEY: Optional[str] = None
+    ANTHROPIC_API_KEY: Optional[str] = None
     RESEND_API_KEY: Optional[str] = None
     EMAIL_FROM: str = "onboarding@resend.dev"
     EMAIL_FROM_NAME: str = "HireRank"

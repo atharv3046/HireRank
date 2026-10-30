@@ -60,12 +60,39 @@ def update_job(job_id: int, req: JobPostingUpdate, db: Session = Depends(get_db)
 
 @router.delete("/{job_id}")
 def delete_job(job_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Delete a screening batch (job posting) and cascade-delete all associated
+    candidates, match scores, and resume files on disk.
+    """
+    from app.models.match_score import MatchScore
+    import os
+
     job = db.query(JobPosting).filter(JobPosting.id == job_id, JobPosting.recruiter_id == current_user.id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    # 1. Delete resume files for all candidates in this batch
+    candidates = db.query(Candidate).filter(Candidate.job_posting_id == job_id).all()
+    for cand in candidates:
+        if cand.resume_file_path:
+            try:
+                p = os.path.normpath(cand.resume_file_path)
+                if os.path.exists(p):
+                    os.remove(p)
+            except Exception:
+                pass
+
+    # 2. Delete match scores
+    db.query(MatchScore).filter(MatchScore.job_posting_id == job_id).delete(synchronize_session=False)
+
+    # 3. Delete candidates
+    db.query(Candidate).filter(Candidate.job_posting_id == job_id).delete(synchronize_session=False)
+
+    # 4. Delete the job posting itself
     db.delete(job)
     db.commit()
-    return {"message": "Job deleted"}
+
+    return {"message": "Screening batch deleted", "job_id": job_id}
 
 @router.get("/{job_id}/export")
 def export_job_candidates_csv(job_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

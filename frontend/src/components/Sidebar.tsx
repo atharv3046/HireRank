@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   FileCheck2,
   ClipboardList,
+  CalendarCheck2,
   Users,
   Briefcase,
   Settings,
@@ -30,6 +31,11 @@ const navItems = [
     to: '/assessments',
     label: 'Assessments',
     icon: <ClipboardList className="w-4 h-4" strokeWidth={1.8} />,
+  },
+  {
+    to: '/interviews',
+    label: 'Interviews',
+    icon: <CalendarCheck2 className="w-4 h-4" strokeWidth={1.8} />,
   },
   {
     to: '/candidate-pipeline',

@@ -59,7 +59,7 @@ HireRank also includes a **Guest Instant Triage Mode** (screen up to 5 resumes w
   - **Must-Have Skill Hard Cap (59.9%)**: Candidates missing any mandatory skill are strictly capped at 59.9 (Potential tier), preventing unqualified candidates from receiving top scores.
   - **Manual Review Safeguard**: Corrupted or unparseable files receive `needs_manual_review=True` and Tier `Needs Review` with no hallucinated scores.
 - ⚡ **Guest Instant Triage Flow**: Screen up to 5 resumes instantly with live animated progress, tier breakdown, and one-click account creation to claim candidates into a persistent workspace.
-- 🎯 **AI Skill Assessments**: Automatically generate role-specific multiple-choice assessments, dispatch invitations to candidates via email (Resend API / SMTP), and track completion scores.
+- 🎯 **Candidate Interviews**: Build a role-specific interview from an assessment blueprint, email each candidate a secure expiring link, autosave written responses, let candidates book a live interview time, and review responses with a rating, decision, and recruiter notes. Recruiters provide the Google Meet, Zoom, or other HTTPS meeting URL for each available slot.
 - 📋 **Candidate Pipeline & Kanban**: Visual stage tracking (`Screened`, `Interview`, `Offer`, `Hired`, `Rejected`) with instant status transitions.
 - 👥 **Team & Workspace Management**: Invite recruiters and hiring managers to your company domain with role-based permissions.
 - 🎨 **Modern TalentRank UI**: Dark glassmorphic interface built with React, TypeScript, Tailwind CSS, and Framer Motion, featuring drag-and-drop queues, real-time polling, and candidate comparison slide-overs.
@@ -356,6 +356,12 @@ npm run dev
 ```
 - **Web Application**: `http://localhost:5173`
 
+### Candidate Interview Email Setup
+
+Set `APP_BASE_URL` in `backend/.env` to the public frontend URL so emailed links open the right site. Configure either `RESEND_API_KEY` (and a permitted sender in `EMAIL_FROM`) or Gmail SMTP (`SMTP_USER` and an App Password in `SMTP_PASSWORD`). If email delivery is unavailable during development, HireRank shows the secure candidate links so they can be sent manually. Interview links expire after 7 days by default.
+
+In the recruiter workspace, create an assessment and invite candidates. Add future interview slots from **Interviews**, including an HTTPS meeting link. Candidates complete the written questions first, then choose a slot. HireRank sends the booking details to the candidate and recruiter; the meeting itself runs in the linked meeting provider.
+
 ---
 
 ### 4️⃣ One-Click Demo Mode
@@ -387,9 +393,15 @@ npm run dev
 | `GET` | `/jobs/{id}/candidates` | Retrieves ranked candidates with full score breakdowns | ✅ |
 | `POST` | `/jobs/{id}/rerank-all` | Re-computes embeddings and scores across candidates | ✅ |
 | `GET` | `/candidates/{id}/status`| Real-time polling endpoint for candidate processing state | ✅ |
-| `GET` | `/assessments/` | Lists assessments for job postings | ✅ |
-| `POST` | `/assessments/generate` | AI-generates assessment questions from job description | ✅ |
-| `POST` | `/assessments/{id}/invite` | Sends email invitation to candidate | ✅ |
+| `GET` | `/assessments/` | Lists recruiter-owned assessment blueprints | ✅ |
+| `POST` | `/assessments/{id}/invitations` | Creates per-candidate expiring interview links and emails them | ✅ |
+| `GET` | `/assessments/invitations` | Lists submissions, bookings, and recruiter evaluations | ✅ |
+| `PATCH` | `/assessments/invitations/{id}/review` | Saves recruiter rating, decision, and notes | ✅ |
+| `POST` | `/assessments/{id}/slots` | Adds a live interview time and HTTPS meeting URL | ✅ |
+| `GET` | `/assessments/invitation/{token}` | Loads a candidate interview using its secure link | ❌ |
+| `POST` | `/assessments/invitation/{token}/save-draft` | Saves candidate responses while they work | ❌ |
+| `POST` | `/assessments/invitation/{token}/submit` | Submits completed candidate responses | ❌ |
+| `POST` | `/assessments/invitation/{token}/book` | Books an available live interview time | ❌ |
 | `GET` | `/settings/members` | Lists team members in recruiter organization | ✅ |
 | `POST` | `/settings/invites` | Invites a new team member with role | ✅ |
 
