@@ -19,7 +19,6 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![spaCy](https://img.shields.io/badge/spaCy-3.8-09A3D5?style=for-the-badge&logo=spacy&logoColor=white)](https://spacy.io)
 [![HuggingFace Transformers](https://img.shields.io/badge/Sentence--Transformers-all--MiniLM--L6--v2-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 
 [✨ Features](#-key-features) • [🔄 Architecture & Flowchart](#-system-architecture--flowchart) • [📊 Hybrid Scoring Engine](#-5-pillar-hybrid-scoring-formula) • [🛠️ Tech Stack](#-tech-stack-details) • [📂 Repository Structure](#-repository-structure) • [🚀 Quick Start](#-quick-start) • [📡 API Reference](#-api-endpoints)
 
@@ -60,10 +59,32 @@ HireRank also includes a **Guest Instant Triage Mode** (screen up to 5 resumes w
   - **Manual Review Safeguard**: Corrupted or unparseable files receive `needs_manual_review=True` and Tier `Needs Review` with no hallucinated scores.
 - ⚡ **Guest Instant Triage Flow**: Screen up to 5 resumes instantly with live animated progress, tier breakdown, and one-click account creation to claim candidates into a persistent workspace.
 - 🎯 **Candidate Interviews**: Build a role-specific interview from an assessment blueprint, email each candidate a secure expiring link, autosave written responses, let candidates book a live interview time, and review responses with a rating, decision, and recruiter notes. Recruiters provide the Google Meet, Zoom, or other HTTPS meeting URL for each available slot.
+- 📝 **Assessment Builder**: Create role-specific assessments, draft questions from a job description, generate technical questions with OpenAI when configured (with a deterministic fallback), and preview estimated pass rates before inviting candidates.
 - 📋 **Candidate Pipeline & Kanban**: Visual stage tracking (`Screened`, `Interview`, `Offer`, `Hired`, `Rejected`) with instant status transitions.
-- 👥 **Team & Workspace Management**: Invite recruiters and hiring managers to your company domain with role-based permissions.
-- 🎨 **Modern TalentRank UI**: Dark glassmorphic interface built with React, TypeScript, Tailwind CSS, and Framer Motion, featuring drag-and-drop queues, real-time polling, and candidate comparison slide-overs.
-- 🔐 **Secure Authentication**: Stateless JWT auth with bcrypt password hashing, Google OAuth sign-in, and instant one-click demo login.
+- 🕶️ **Blind Screening**: Hide selected identifying details during early review, with candidate details revealed after the configured pipeline stage.
+- 🔎 **Evidence-Based Review**: Inspect resume excerpts supporting extracted skills and score components rather than relying on an unexplained score alone.
+- ⚖️ **Per-Job Score Weights**: Adjust the scoring factor weights for a role and rerank its candidates against the updated criteria.
+- 🧭 **Career Pattern Signals**: Surface role progression, tenure summaries, and short-tenure indicators as additional context for recruiter review.
+- 🛡️ **Adversarial Resume Checks**: Detect suspicious instruction-like or hidden text in uploaded resumes, sanitize relevant text, and flag files for recruiter review.
+- 🆚 **Candidate Comparison**: Compare selected candidates side by side, including score deltas, skill overlap, and evidence.
+- ✉️ **Candidate Communications**: Generate interview questions and compliant, templated rejection messages; send invitations and rejection emails when email delivery is configured.
+- 📤 **Recruiter Operations**: Filter and manage candidate lists, perform bulk actions, export candidate and score data as CSV, and review dashboard and job-level statistics.
+- 👥 **Team & Workspace Management**: Manage company profiles, invite and remove workspace members, assign roles, and configure team access.
+- 🔐 **Authentication & Access Control**: Password-based signup/login, Google OAuth, refreshable JWT sessions, protected recruiter routes, role-aware team access, and demo sign-in.
+- 🎨 **Recruiter and Candidate Experiences**: Responsive React and TypeScript interfaces for public guest screening, recruiter workflows, candidate interview links, team settings, and legal pages.
+
+### Candidate screening and hiring workflow
+
+1. Create a job with its title, description, required skills, experience and education criteria, and optional scoring weights.
+2. Upload PDF or DOCX resumes to the job, or start a guest screening session without signing in. Guest screening accepts up to five resumes and is rate limited.
+3. HireRank extracts resume text and candidate details, calculates the explainable score, and presents score breakdowns, matched/missing skills, and evidence. Unreadable files are sent for manual review instead of receiving an invented score.
+4. Review candidates in the ranked list, compare candidates, enable blind screening, inspect career-pattern and adversarial flags, update pipeline stages, and export results.
+5. Build an assessment, invite candidates to complete it through secure expiring links, review responses, and optionally schedule a live interview using a recruiter-provided meeting URL.
+6. Claim guest-session candidates into a recruiter workspace to continue reviewing them after signing in.
+
+Resume files are processed from temporary storage and removed after text extraction; candidate screening data and extracted text are retained in the configured database. Guest-session records are subject to automated retention cleanup.
+
+HireRank is a recruiter decision-support tool. Scores, extracted details, and automated flags should be reviewed by a person and should not be used as the sole basis for an employment decision.
 
 ---
 
@@ -77,11 +98,12 @@ flowchart TD
     classDef ml fill:#064e3b,stroke:#34d399,stroke-width:1.5px,color:#ecfdf5;
 
     A([📄 Resume Upload: PDF / DOCX]) --> B[FastAPI Upload Handler]:::process
-    B --> C[File Storage & UUID Preservation]:::storage
+    B --> C[Temporary File Storage]:::storage
     
     subgraph Extraction_Stage [🔍 1. NLP Extraction Pipeline]
         C --> D[pdfplumber / python-docx Parser]:::process
         D --> E[Raw Text Normalization]:::process
+        D --> D2[Delete Temporary Upload]:::process
         E --> F[spaCy NER: Name & Contact]:::ml
         E --> G[PhraseMatcher: 250+ Skills Taxonomy]:::ml
         E --> H[Regex Date Parser: Overlap Merged Years]:::process
@@ -116,6 +138,8 @@ flowchart TD
 HireRank uses an explainable, 5-pillar composite scoring formula producing an objective score between $0.0$ and $100.0$:
 
 $$\boxed{\text{Composite Score} = 0.35 \cdot S_{\text{semantic}} + 0.30 \cdot S_{\text{skills}} + 0.20 \cdot S_{\text{experience}} + 0.10 \cdot S_{\text{title}} + 0.05 \cdot S_{\text{education}}}$$
+
+These are the default weights. Recruiters can customize the factor weights per job and rerank candidates; the saved score breakdown makes each factor visible.
 
 ---
 
@@ -224,16 +248,22 @@ HireRank/
 │   │   ├── 📁 routers/                     # FastAPI Endpoint Route Handlers
 │   │   │   ├── 📄 auth.py                  # /auth/signup, /auth/login, /auth/google, /auth/demo-login
 │   │   │   ├── 📄 jobs.py                  # /jobs/ CRUD Operations & Filtering
-│   │   │   ├── 📄 candidates.py            # /jobs/{id}/upload, /candidates/{id}/status, pipeline update
-│   │   │   ├── 📄 guest.py                 # /guest/screen, /guest/session/{id}, /guest/claim
+│   │   │   ├── 📄 candidates.py            # Upload, candidate review, comparison, exports & communication
+│   │   │   ├── 📄 guest.py                 # Anonymous screening, session status/results & claim
 │   │   │   ├── 📄 assessments.py           # /assessments/ CRUD, generate, invite, take & submit
 │   │   │   └── 📄 settings.py              # /settings/ Workspace & Team Member Management
 │   │   │
 │   │   ├── 📁 services/                    # Machine Learning & NLP Core Engines
 │   │   │   ├── 📄 extraction.py            # ResumeExtractor (NER, Date Parsing, PhraseMatcher)
 │   │   │   ├── 📄 embeddings.py            # EmbeddingService (all-MiniLM-L6-v2 Singleton)
-│   │   │   ├── 📄 scoring.py               # Legacy scorer reference
-│   │   │   └── 📄 scoring_shared.py        # Canonical score_and_save implementation
+│   │   │   ├── 📄 scoring.py               # Scoring service
+│   │   │   ├── 📄 scoring_shared.py        # Shared score_and_save implementation
+│   │   │   ├── 📄 evidence.py              # Resume evidence excerpts for score components
+│   │   │   ├── 📄 masking.py               # Blind-screening fields
+│   │   │   ├── 📄 career_pattern.py        # Career progression and tenure signals
+│   │   │   ├── 📄 adversarial.py           # Suspicious resume content detection
+│   │   │   ├── 📄 comparison.py            # Candidate head-to-head comparison
+│   │   │   └── 📄 interview_prep.py        # Interview question generation
 │   │   │
 │   │   ├── 📁 tasks/                       # Task Pipelines & Cleanup
 │   │   │   ├── 📄 resume_tasks.py          # Asynchronous Background Processing Pipeline
@@ -248,12 +278,7 @@ HireRank/
 │   │   ├── 📄 taxonomy.py                  # SkillsTaxonomy & Phrase Matching
 │   │   └── 📄 extractor.py                 # ParsedResume & ExtractedProfile Dataclasses
 │   │
-│   ├── 📁 tests/                           # Pytest Automated Test Suite
-│   │   ├── 📄 test_scoring.py              # Tests for 5-factor scoring & must-have cap
-│   │   ├── 📄 test_extraction.py           # Tests for Contact, Skills, Dates, and Education
-│   │   ├── 📄 test_phase2_endpoints.py     # Tests for Guest Screening & Status Polling
-│   │   ├── 📄 test_assessments.py          # Tests for Assessment Generation & Submissions
-│   │   └── 📄 test_delivery5_workspace.py  # Tests for Workspace Team Management
+│   ├── 📁 tests/                           # Pytest suite for scoring, extraction, security & workflows
 │   │
 │   ├── 📁 uploads/                         # Resume File Storage
 │   ├── 📄 requirements.txt                 # Backend Python Dependencies
@@ -271,7 +296,12 @@ HireRank/
 │   │   │   ├── 📄 ProtectedRoute.tsx       # Auth Guard for Recruiter Routes
 │   │   │   ├── 📄 ScoreBar.tsx             # Animated Score Indicator Bars
 │   │   │   ├── 📄 SkillTag.tsx             # Colored Skill Chips
-│   │   │   └── 📄 StatusBadge.tsx          # Real-time Status Badges
+│   │   │   ├── 📄 StatusBadge.tsx          # Real-time Status Badges
+│   │   │   ├── 📄 EvidencePanel.tsx        # Resume evidence excerpts
+│   │   │   ├── 📄 BlindScreeningToggle.tsx # Toggle blind-screening mode
+│   │   │   ├── 📄 WeightCustomizer.tsx     # Per-job scoring weights
+│   │   │   ├── 📄 HeadToHeadComparison.tsx # Side-by-side candidate comparison
+│   │   │   └── 📄 AdversarialShieldBadge.tsx # Resume integrity warning
 │   │   ├── 📁 pages/
 │   │   │   ├── 📄 MarketingPage.tsx        # High-Conversion Landing Page & Feature Showcase
 │   │   │   ├── 📄 GuestTriagePage.tsx      # Instant Zero-Auth Resume Screening Screen
@@ -284,6 +314,8 @@ HireRank/
 │   │   │   ├── 📄 UploadPage.tsx           # Multi-file Drag & Drop Processing Queue with Progress Bars
 │   │   │   ├── 📄 CandidatePipelinePage.tsx# Candidate Kanban Pipeline Management
 │   │   │   ├── 📄 AssessmentsPage.tsx      # AI Assessment Builder, Invites & Results
+│   │   │   ├── 📄 InterviewsPage.tsx       # Interview submissions, reviews & scheduling
+│   │   │   ├── 📄 CandidatesPage.tsx       # Candidate search and review
 │   │   │   └── 📄 SettingsPage.tsx         # Workspace Settings & Team Collaboration
 │   │   ├── 📄 App.tsx                      # Application Router Configuration
 │   │   ├── 📄 main.tsx                     # React DOM Entrypoint
@@ -307,6 +339,7 @@ HireRank/
 - **Python 3.10+** (Tested on Python 3.11 & 3.13)
 - **Node.js 18+** & **npm**
 - **Git**
+- **Optional:** Docker Compose for the PostgreSQL/pgvector and Redis services in `docker-compose.yml`.
 
 ---
 
@@ -339,6 +372,8 @@ uvicorn app.main:app --port 8000
 - **API Server**: `http://localhost:8000`
 - **Interactive Swagger Docs**: `http://localhost:8000/docs`
 
+The backend defaults to a local SQLite database and eager task execution, so Redis is not required for the basic local workflow. To use PostgreSQL, set `DATABASE_URL` in `backend/.env` and start the optional services with `docker compose up -d`. Change `SECRET_KEY` before deploying. Scanned/image-only PDFs are not OCR-processed and may be marked for manual review.
+
 ---
 
 ### 3️⃣ Frontend Setup
@@ -356,6 +391,9 @@ npm run dev
 ```
 - **Web Application**: `http://localhost:5173`
 
+To confirm the frontend builds for production, run `npm run build`.
+To enable Google sign-in in the frontend, set `VITE_GOOGLE_CLIENT_ID` in `frontend/.env.local` to the OAuth client ID also configured as `GOOGLE_CLIENT_ID` in `backend/.env`.
+
 ### Candidate Interview Email Setup
 
 Set `APP_BASE_URL` in `backend/.env` to the public frontend URL so emailed links open the right site. Configure either `RESEND_API_KEY` (and a permitted sender in `EMAIL_FROM`) or Gmail SMTP (`SMTP_USER` and an App Password in `SMTP_PASSWORD`). If email delivery is unavailable during development, HireRank shows the secure candidate links so they can be sent manually. Interview links expire after 7 days by default.
@@ -365,10 +403,10 @@ In the recruiter workspace, create an assessment and invite candidates. Add futu
 ---
 
 ### 4️⃣ One-Click Demo Mode
-1. Open `http://localhost:5173`.
-2. Click **⚡ Enter Demo Dashboard** on the login page (or use the Hero CTA).
+1. Open `http://localhost:5173` and choose the demo sign-in option.
+2. The seeded demo account is `demo@recruitai.com` with password `demo1234`.
 3. Open the pre-seeded **Senior Python Engineer** role.
-4. Click **Upload Resumes** to test real-time parsing, vector embedding, and score generation!
+4. Upload resumes to try extraction, scoring, evidence, and candidate review. Use only non-sensitive sample data in a local demo.
 
 ---
 
@@ -380,30 +418,64 @@ In the recruiter workspace, create an assessment and invite candidates. Add futu
 | `POST` | `/auth/signup` | Registers a new recruiter account | ❌ |
 | `POST` | `/auth/login` | Authenticates recruiter and returns JWT | ❌ |
 | `POST` | `/auth/google` | Google OAuth token verification & login | ❌ |
+| `POST` | `/auth/refresh` | Refreshes an access token | ❌ |
 | `POST` | `/guest/screen` | Instant screening of up to 5 resumes | ❌ |
-| `GET` | `/guest/session/{id}` | Polls real-time progress for guest session | ❌ |
+| `GET` | `/guest/session/{id}/status` | Polls progress for a guest session | ❌ |
 | `GET` | `/guest/session/{id}/results`| Returns full candidate rankings for guest session | ❌ |
-| `POST` | `/guest/claim` | Transfers guest candidates to recruiter workspace | ✅ |
+| `POST` | `/guest/session/{id}/claim` | Transfers guest candidates to recruiter workspace | ✅ |
 | `GET` | `/jobs/` | Lists all recruiter's job postings | ✅ |
 | `POST` | `/jobs/` | Creates a new job posting with skill requirements | ✅ |
 | `GET` | `/jobs/{id}` | Fetches detailed job specifications | ✅ |
 | `PUT` | `/jobs/{id}` | Updates job criteria and requirements | ✅ |
 | `DELETE`| `/jobs/{id}` | Removes job posting and associated candidates | ✅ |
+| `PATCH` | `/jobs/{id}/weights` | Updates per-job scoring weights | ✅ |
+| `GET` | `/jobs/{id}/export` | Exports job candidates and score breakdowns as CSV | ✅ |
 | `POST` | `/jobs/{id}/upload` | Async multipart resume upload & background processing | ✅ |
 | `GET` | `/jobs/{id}/candidates` | Retrieves ranked candidates with full score breakdowns | ✅ |
 | `POST` | `/jobs/{id}/rerank-all` | Re-computes embeddings and scores across candidates | ✅ |
+| `GET` | `/jobs/{id}/stats` | Returns job-level candidate screening statistics | ✅ |
+| `GET` | `/dashboard/summary` | Returns recruiter dashboard summary statistics | ✅ |
 | `GET` | `/candidates/{id}/status`| Real-time polling endpoint for candidate processing state | ✅ |
+| `GET` | `/candidates` | Lists recruiter-owned candidates | ✅ |
+| `POST` | `/candidates/compare` | Compares selected candidates and their score/skill differences | ✅ |
+| `POST` | `/candidates/export` | Exports candidate results as CSV | ✅ |
+| `POST` | `/candidates/bulk-invite` | Invites multiple candidates to an assessment | ✅ |
+| `POST` | `/candidates/bulk-delete` | Deletes selected candidates | ✅ |
+| `PATCH` | `/candidates/{id}/pipeline-status` | Updates a candidate's pipeline stage | ✅ |
+| `PATCH` | `/candidates/{id}` | Updates supported candidate details | ✅ |
+| `DELETE` | `/candidates/{id}` | Deletes a candidate | ✅ |
+| `GET` | `/candidates/{id}/interview-questions` | Gets generated interview questions for a candidate | ✅ |
+| `POST` | `/candidates/{id}/interview-questions` | Generates interview questions for a candidate | ✅ |
+| `GET` | `/candidates/{id}/rejection-template` | Previews a templated rejection message | ✅ |
+| `POST` | `/candidates/{id}/send-rejection` | Sends a rejection message using configured email delivery | ✅ |
+| `GET` | `/assessments/batches` | Lists screening batches for assessment setup | ✅ |
+| `POST` | `/assessments/extract-blueprint` | Extracts an assessment blueprint from role details | ✅ |
+| `POST` | `/assessments/simulate-pass-rate` | Estimates assessment pass rates | ✅ |
+| `POST` | `/assessments` | Creates an assessment blueprint | ✅ |
 | `GET` | `/assessments/` | Lists recruiter-owned assessment blueprints | ✅ |
 | `POST` | `/assessments/{id}/invitations` | Creates per-candidate expiring interview links and emails them | ✅ |
 | `GET` | `/assessments/invitations` | Lists submissions, bookings, and recruiter evaluations | ✅ |
 | `PATCH` | `/assessments/invitations/{id}/review` | Saves recruiter rating, decision, and notes | ✅ |
 | `POST` | `/assessments/{id}/slots` | Adds a live interview time and HTTPS meeting URL | ✅ |
+| `GET` | `/assessments/{id}/slots` | Lists available live interview times | ✅ |
+| `POST` | `/assessments/invitations/{id}/resend` | Resends a candidate invitation | ✅ |
+| `DELETE` | `/assessments/invitations/{id}` | Revokes an invitation | ✅ |
 | `GET` | `/assessments/invitation/{token}` | Loads a candidate interview using its secure link | ❌ |
 | `POST` | `/assessments/invitation/{token}/save-draft` | Saves candidate responses while they work | ❌ |
 | `POST` | `/assessments/invitation/{token}/submit` | Submits completed candidate responses | ❌ |
 | `POST` | `/assessments/invitation/{token}/book` | Books an available live interview time | ❌ |
-| `GET` | `/settings/members` | Lists team members in recruiter organization | ✅ |
-| `POST` | `/settings/invites` | Invites a new team member with role | ✅ |
+| `GET` | `/settings/profile` | Reads the company workspace profile | ✅ |
+| `PUT` | `/settings/profile` | Updates the company workspace profile | ✅ |
+| `GET` | `/settings/team` | Lists workspace members | ✅ |
+| `POST` | `/settings/team/invite` | Invites a workspace member | ✅ |
+| `GET` | `/settings/team/members/{id}/invite-link` | Retrieves an invite link for a team member | ✅ |
+| `GET` | `/settings/team/invite/verify` | Verifies a team invitation | ❌ |
+| `POST` | `/settings/team/invite/accept` | Accepts a team invitation | ❌ |
+| `PATCH` | `/settings/team/members/{id}` | Updates a team member | ✅ |
+| `DELETE` | `/settings/team/members/{id}` | Removes a team member | ✅ |
+| `GET` | `/settings/billing` | Retrieves workspace billing information | ✅ |
+
+The API is also mounted under `/api` for frontend proxy compatibility. The complete, interactive OpenAPI specification is available at `/docs`.
 
 ---
 
@@ -413,16 +485,12 @@ Run the test suite with pytest:
 
 ```bash
 cd backend
-python -m pytest tests/test_scoring.py tests/test_extraction.py tests/test_phase2_endpoints.py -v
+python -m pytest -v
 ```
 
-All 38+ unit and integration tests validate the scoring engine, skills extraction, date parsing, and guest screening flows.
+The test suite covers scoring and configurable weights, resume parsing and extraction, authentication and security, guest screening and retention, blind screening, evidence, career-pattern signals, adversarial resume detection, assessments and interviews, candidate comparison, rejection templates, and team-workspace behavior.
 
 ---
-
-## 📄 License
-
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 <div align="center">
   <sub>Built with ❤️ for modern talent acquisition teams.</sub>
